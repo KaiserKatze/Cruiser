@@ -12,9 +12,6 @@
 
 #include "java.h"
 
-/*
- * /home/donizyo/NetBeansProjects/Servimg/build/classes/net/donizyo/servimg/desktop/DesktopServimg.class
- */
 int
 main(int argc, char** argv)
 {
@@ -24,7 +21,8 @@ main(int argc, char** argv)
     if (argc > 1)
     {
         path = argv[1];
-        decompile((const char *) path, &cf);
+        parseClassfile((const char *) path, &cf);
+        freeClassfile(&cf);
         return 0;
     }
 

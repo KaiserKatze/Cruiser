@@ -160,7 +160,7 @@ extern "C" {
             u2 descriptor_index;
         } * data;
     } CONSTANT_MethodType_info;
-    
+
     typedef struct
     {
         u1 tag;
@@ -169,7 +169,7 @@ extern "C" {
             u2 name_and_type_index;
         } * data;
     } CONSTANT_InvokeDynamic_info;
-    
+
     typedef struct
     {
         u4 magic;
@@ -306,7 +306,8 @@ extern "C" {
         attr_info * attributes;
     } ClassFile;
 
-    extern int decompile(const char *, ClassFile *);
+    extern int parseClassfile(const char *, ClassFile *);
+    extern int freeClassfile(ClassFile *);
 
 #ifdef	__cplusplus
 }
