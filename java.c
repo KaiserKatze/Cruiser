@@ -15,9 +15,10 @@ static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
 static int loadAttributes(FILE *, u2 *, attr_info **);
 static int releaseAttributes(u2, attr_info *);
+static const char *getConstant_Utf8(ClassFile *, u2);
 
 extern int
-decompile(const char *path, ClassFile *cf)
+parseClassfile(const char *path, ClassFile *cf)
 {
     FILE * file;
     u2 i, j;
@@ -258,9 +259,11 @@ decompile(const char *path, ClassFile *cf)
                     "\tDescriptor index: #%i\t// %s\r\n", i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
-                    ((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].name_index]))->data->bytes,
+                    getConstant_Utf8(cf,
+                        cf->fields[i].name_index),
                     cf->fields[i].descriptor_index,
-                    ((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].descriptor_index]))->data->bytes
+                    getConstant_Utf8(cf,
+                        cf->fields[i].descriptor_index)
                     );
             free(buf);
             buf = (char *) 0;
@@ -269,22 +272,15 @@ decompile(const char *path, ClassFile *cf)
                     cf->fields[i].attributes_count);
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
-                cui = (CONSTANT_Utf8_info *)
-                &(cf->constant_pool[cf->fields[i].attributes[j].attribute_name_index]);
-                if (cui && cui->tag == CONSTANT_Utf8)
-                    buf = cui->data->bytes;
-                else
-                    buf = "";
-
                 printf("\tField Attribute [%i]\r\n"
                     "\t\tName index:\t#%i\t// %s\r\n"
                     "\t\tLength    :\t%i\r\n"
                     "\t\tInfo      :\t%s\r\n", j,
                     cf->fields[i].attributes[j].attribute_name_index,
-                    buf,
+                    getConstant_Utf8(cf,
+                        cf->fields[i].attributes[j].attribute_name_index),
                     cf->fields[i].attributes[j].attribute_length,
                     cf->fields[i].attributes[j].info);
-                buf = (char *) 0;
             }
         }
     }
@@ -309,13 +305,17 @@ decompile(const char *path, ClassFile *cf)
             cf->methods[i].descriptor_index = ru2(file);
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             printf("Method[%i]\r\n"
-                    "\tAccess flag:      0x%X\t//%s\r\n"
-                    "\tName index:       #%i\r\n"
-                    "\tDescriptor index: #%i\r\n", i,
+                    "\tAccess flag:      0x%X\t// %s\r\n"
+                    "\tName index:       #%i\t// %s\r\n"
+                    "\tDescriptor index: #%i\t// %s\r\n", i,
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
-                    cf->methods[i].descriptor_index);
+                    getConstant_Utf8(cf,
+                        cf->methods[i].name_index),
+                    cf->methods[i].descriptor_index,
+                    getConstant_Utf8(cf,
+                        cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
             loadAttributes(file, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
@@ -323,49 +323,49 @@ decompile(const char *path, ClassFile *cf)
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
-                cui = (CONSTANT_Utf8_info *)
-                &(cf->constant_pool[cf->methods[i].attributes[j].attribute_name_index]);
-                if (cui && cui->tag == CONSTANT_Utf8)
-                    buf = cui->data->bytes;
-                else
-                    buf = "";
-
                 printf("\tMethod Attribute [%i]\r\n"
                     "\t\tName index:\t#%i\t// %s\r\n"
                     "\t\tLength    :\t%i\r\n"
                     "\t\tInfo      :\t%s\r\n", j,
                     cf->methods[i].attributes[j].attribute_name_index,
-                    buf,
+                    getConstant_Utf8(cf,
+                        cf->methods[i].attributes[j].attribute_name_index),
                     cf->methods[i].attributes[j].attribute_length,
                     cf->methods[i].attributes[j].info);
-                buf = (char *) 0;
             }
         }
     }
 
-    printf("Parsing attributes...\r\n");
+    printf("\r\nParsing attributes...\r\n");
     loadAttributes(file, &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
-        cui = (CONSTANT_Utf8_info *)
-            &(cf->constant_pool[cf->attributes[i].attribute_name_index]);
-        if (cui && cui->tag == CONSTANT_Utf8)
-            buf = cui->data->bytes;
-        else
-            buf = "";
-
         printf("Class Attribute [%i]\r\n"
                 "\tName index:\t#%i\t// %s\r\n"
                 "\tLength    :\t%i\r\n"
                 "\tInfo      :\t%s\r\n", i,
                 cf->attributes[i].attribute_name_index,
-                buf,
+                getConstant_Utf8(cf,
+                    cf->attributes[i].attribute_name_index),
                 cf->attributes[i].attribute_length,
                 cf->attributes[i].info);
-        buf = (char *) 0;
     }
 
 close:
+    if (file)
+    {
+        fclose(file);
+        file = (FILE *) 0;
+    }
+
+    return 0;
+}
+
+extern int
+freeClassfile(ClassFile *cf)
+{
+    u2 i;
+
     printf("Releasing memory...\r\n");
     if (cf->constant_pool)
     {
@@ -400,11 +400,6 @@ close:
         cf->methods = (method_info *) 0;
     }
     releaseAttributes(cf->attributes_count, cf->attributes);
-    if (file)
-    {
-        fclose(file);
-        file = (FILE *) 0;
-    }
 
     return 0;
 }
@@ -895,4 +890,15 @@ releaseAttributes(u2 attributes_count, attr_info *attributes)
     }
 
     return 0;
+}
+
+static const char *
+getConstant_Utf8(ClassFile *cf, u2 index)
+{
+    CONSTANT_Utf8_info *info;
+
+    info = (CONSTANT_Utf8_info *) &(cf->constant_pool[index]);
+    if (info && info->tag == CONSTANT_Utf8)
+        return (const char *) info->data->bytes;
+    return "";
 }
