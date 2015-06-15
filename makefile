@@ -2,4 +2,4 @@ cruise : main.c java.c java.h
 	gcc -o cruise main.c java.c -I.
 
 clean:
-	rm cruise
+	rm cruise *.log

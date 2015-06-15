@@ -20,7 +20,7 @@ extern int
 decompile(const char *path, ClassFile *cf)
 {
     FILE * file;
-    u2 i;
+    u2 i, j;
     int cap;
     cp_info *info;
     CONSTANT_Class_info *cci;
@@ -255,18 +255,37 @@ decompile(const char *path, ClassFile *cf)
             printf("Field[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
                     "\tName index:       #%i\t// %s\r\n"
-                    "\tDescriptor index: #%i\t// %s\r\n\r\n", i,
+                    "\tDescriptor index: #%i\t// %s\r\n", i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
-                    //((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].name_index]))->data->bytes,
-                    "",
+                    ((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].name_index]))->data->bytes,
                     cf->fields[i].descriptor_index,
-                    //((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].descriptor_index]))->data->bytes
-                    ""
+                    ((CONSTANT_Utf8_info *) &(cf->constant_pool[cf->fields[i].descriptor_index]))->data->bytes
                     );
             free(buf);
             buf = (char *) 0;
             loadAttributes(file, &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
+            printf("\tField Attribute count: %i\r\n",
+                    cf->fields[i].attributes_count);
+            for (j = 0; j < cf->fields[i].attributes_count; j++)
+            {
+                cui = (CONSTANT_Utf8_info *)
+                &(cf->constant_pool[cf->fields[i].attributes[j].attribute_name_index]);
+                if (cui && cui->tag == CONSTANT_Utf8)
+                    buf = cui->data->bytes;
+                else
+                    buf = "";
+
+                printf("\tField Attribute [%i]\r\n"
+                    "\t\tName index:\t#%i\t// %s\r\n"
+                    "\t\tLength    :\t%i\r\n"
+                    "\t\tInfo      :\t%s\r\n", j,
+                    cf->fields[i].attributes[j].attribute_name_index,
+                    buf,
+                    cf->fields[i].attributes[j].attribute_length,
+                    cf->fields[i].attributes[j].info);
+                buf = (char *) 0;
+            }
         }
     }
 
@@ -292,7 +311,7 @@ decompile(const char *path, ClassFile *cf)
             printf("Method[%i]\r\n"
                     "\tAccess flag:      0x%X\t//%s\r\n"
                     "\tName index:       #%i\r\n"
-                    "\tDescriptor index: #%i\r\n\r\n", i,
+                    "\tDescriptor index: #%i\r\n", i,
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
@@ -300,11 +319,51 @@ decompile(const char *path, ClassFile *cf)
             free(buf);
             buf = (char *) 0;
             loadAttributes(file, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+            printf("\tMethod Attribute count: %i\r\n",
+                    cf->methods[i].attributes_count);
+            for (j = 0; j < cf->methods[i].attributes_count; j++)
+            {
+                cui = (CONSTANT_Utf8_info *)
+                &(cf->constant_pool[cf->methods[i].attributes[j].attribute_name_index]);
+                if (cui && cui->tag == CONSTANT_Utf8)
+                    buf = cui->data->bytes;
+                else
+                    buf = "";
+
+                printf("\tMethod Attribute [%i]\r\n"
+                    "\t\tName index:\t#%i\t// %s\r\n"
+                    "\t\tLength    :\t%i\r\n"
+                    "\t\tInfo      :\t%s\r\n", j,
+                    cf->methods[i].attributes[j].attribute_name_index,
+                    buf,
+                    cf->methods[i].attributes[j].attribute_length,
+                    cf->methods[i].attributes[j].info);
+                buf = (char *) 0;
+            }
         }
     }
 
     printf("Parsing attributes...\r\n");
     loadAttributes(file, &(cf->attributes_count), &(cf->attributes));
+    for (i = 0; i < cf->attributes_count; i++)
+    {
+        cui = (CONSTANT_Utf8_info *)
+            &(cf->constant_pool[cf->attributes[i].attribute_name_index]);
+        if (cui && cui->tag == CONSTANT_Utf8)
+            buf = cui->data->bytes;
+        else
+            buf = "";
+
+        printf("Class Attribute [%i]\r\n"
+                "\tName index:\t#%i\t// %s\r\n"
+                "\tLength    :\t%i\r\n"
+                "\tInfo      :\t%s\r\n", i,
+                cf->attributes[i].attribute_name_index,
+                buf,
+                cf->attributes[i].attribute_length,
+                cf->attributes[i].info);
+        buf = (char *) 0;
+    }
 
 close:
     printf("Releasing memory...\r\n");
@@ -790,7 +849,6 @@ loadAttributes(FILE *file,
     int cap;
 
     *attr_count_p = ru2(file);
-    fprintf(stderr, "Attribute count: %i\r\n", *attr_count_p);
     if (*attr_count_p > 0)
     {
         cap = sizeof (attr_info) * *attr_count_p;
@@ -801,7 +859,6 @@ loadAttributes(FILE *file,
             return -1;
         }
         bzero(*attributes_p, cap);
-        fprintf(stderr, "Parsing attributes...\r\n");
         for (i = 0u; i < *attr_count_p; i++)
         {
             (*attributes_p)[i].attribute_name_index = ru2(file);
@@ -816,14 +873,6 @@ loadAttributes(FILE *file,
             bzero((*attributes_p)[i].info, cap);
             fread((*attributes_p)[i].info, sizeof (u1),
                     (*attributes_p)[i].attribute_length, file); // Page74
-            fprintf(stderr,
-                    "Attribute [%i]\r\n"
-                    "\tName index:\t#%i\r\n"
-                    "\tLength    :\t%i\r\n"
-                    "\tInfo      :\t%s\r\n", i,
-                    (*attributes_p)[i].attribute_name_index,
-                    (*attributes_p)[i].attribute_length,
-                    (*attributes_p)[i].info);
         }
     }
 
