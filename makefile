@@ -1,5 +1,9 @@
 cruise : main.c java.c java.h
-	gcc -o cruise main.c java.c -I.
+	gcc -o build/cruise main.c java.c -I.
+
+test: jar.h jar.c
+	gcc -o build/test jar.c -I. `pkg-config --libs libzip`
 
 clean:
-	rm cruise *.log
+	find build -type f -executable -delete
+	find -type f -name "*.log" -delete
