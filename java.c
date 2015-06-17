@@ -12,12 +12,18 @@ static int rbs(char *, struct zip_file *, char *, int, int *, int *, int);
 
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
+
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
+
 static int loadAttributes(struct zip_file *, char *, int, int *, int *, u2 *, attr_info **);
 static int releaseAttributes(u2, attr_info *);
-static char *getConstant_Utf8(ClassFile *, u2);
+
+static CONSTANT_Utf8_info *getConstant_Utf8(ClassFile *, u2);
 static CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
+
+static int checkAttribute_field(ClassFile *, field_info *, int);
+static int checkAttribute_method(ClassFile *, method_info *, int);
 
 extern int
 parseClassfile(
@@ -325,11 +331,9 @@ parseClassfile(
                     "\tDescriptor index: #%i\t// %s\r\n", i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
-                    getConstant_Utf8(cf,
-                        cf->fields[i].name_index),
+                    getConstant_Utf8(cf, cf->fields[i].name_index)->data->bytes,
                     cf->fields[i].descriptor_index,
-                    getConstant_Utf8(cf,
-                        cf->fields[i].descriptor_index)
+                    getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->bytes
                     );
             free(buf);
             buf = (char *) 0;
@@ -344,8 +348,7 @@ parseClassfile(
                     "\t\tLength    :\t%i\r\n"
                     "\t\tInfo      :\t%s\r\n", j,
                     cf->fields[i].attributes[j].attribute_name_index,
-                    getConstant_Utf8(cf,
-                        cf->fields[i].attributes[j].attribute_name_index),
+                    getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index)->data->bytes,
                     cf->fields[i].attributes[j].attribute_length,
                     cf->fields[i].attributes[j].info);
             }
@@ -382,11 +385,9 @@ parseClassfile(
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
-                    getConstant_Utf8(cf,
-                        cf->methods[i].name_index),
+                    getConstant_Utf8(cf, cf->methods[i].name_index)->data->bytes,
                     cf->methods[i].descriptor_index,
-                    getConstant_Utf8(cf,
-                        cf->methods[i].descriptor_index));
+                    getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->bytes);
             free(buf);
             buf = (char *) 0;
             loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
@@ -400,8 +401,7 @@ parseClassfile(
                     "\t\tLength    :\t%i\r\n"
                     "\t\tInfo      :\t%s\r\n", j,
                     cf->methods[i].attributes[j].attribute_name_index,
-                    getConstant_Utf8(cf,
-                        cf->methods[i].attributes[j].attribute_name_index),
+                    getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->bytes,
                     cf->methods[i].attributes[j].attribute_length,
                     cf->methods[i].attributes[j].info);
             }
@@ -418,8 +418,7 @@ parseClassfile(
                 "\tLength    :\t%i\r\n"
                 "\tInfo      :\t%s\r\n", i,
                 cf->attributes[i].attribute_name_index,
-                getConstant_Utf8(cf,
-                    cf->attributes[i].attribute_name_index),
+                getConstant_Utf8(cf, cf->attributes[i].attribute_name_index)->data->bytes,
                 cf->attributes[i].attribute_length,
                 cf->attributes[i].info);
     }
@@ -1064,15 +1063,24 @@ releaseAttributes(u2 attributes_count, attr_info *attributes)
     return 0;
 }
 
-static char *
+static CONSTANT_Utf8_info *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *info;
 
     info = (CONSTANT_Utf8_info *) &(cf->constant_pool[index]);
-    if (info && info->tag == CONSTANT_Utf8)
-        return info->data->bytes;
-    return "";
+    if (!info)
+    {
+        fprintf(stderr, "Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Utf8_info *) 0;
+    }
+    if (info->tag != CONSTANT_Utf8)
+    {
+        fprintf(stdout, "Constant pool entry #%i is not CONSTANT_Utf8_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Utf8_info *) 0;
+    }
+
+    return info;
 }
 
 static CONSTANT_Class_info *
@@ -1093,4 +1101,132 @@ getConstant_Class(ClassFile *cf, u2 index)
     }
 
     return info;
+}
+
+static int
+checkAttribute_field(ClassFile *cf, field_info *field_info, int index)
+{
+    attr_info info;
+    CONSTANT_Utf8_info *utf8;
+    char *name, *str;
+    u2 len;
+
+    info = field_info->attributes[index];
+    if (!info.attribute_name_index)
+        return -1;
+    utf8 = getConstant_Utf8(cf, info.attribute_name_index);
+    if (!utf8) goto fail;
+    name = (char *) utf8->data->bytes;
+    if (!name) goto fail;
+    len = utf8->data->length;
+    // ConstantValue, Synthetic, Signature, Deprecated
+    // RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
+    str = "ConstantValue\0";
+    if (!strncmp(name, str, len))
+    {
+        return 0;
+    }
+    if (cf->major_version > 49)
+    {
+        str = "Signature\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeVisibleAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeInvisibleAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+    }
+    str = "Synthetic\0";
+    if (!strncmp(name, str, len))
+    {
+        return 0;
+    }
+
+fail:
+    info.attribute_name_index = 0;
+    info.attribute_length = 0;
+    free(info.info);
+    info.info = (u1 *) 0;
+    return -1;
+}
+
+static int
+checkAttribute_method(ClassFile *cf, method_info *method_info, int index)
+{
+    attr_info info;
+    CONSTANT_Utf8_info *utf8;
+    char *name, *str;
+    u2 len;
+
+    info = method_info->attributes[index];
+    if (!info.attribute_name_index)
+        return -1;
+    utf8 = getConstant_Utf8(cf, info.attribute_name_index);
+    if (!utf8) goto fail;
+    name = (char *) utf8->data->bytes;
+    if (!name) goto fail;
+    len = utf8->data->length;
+    // Code, Exceptions, Synthetic, Signature, Deprecated
+    // RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
+    // RuntimeVisibleParameterAnnotations
+    // RuntimeInvisibleParameterAnnotations
+    // AnnotationDefault
+    str = "Code\0";
+    if (!strncmp(name, str, len))
+    {
+        return 0;
+    }
+    str = "Exceptions\0";
+    if (!strncmp(name, str, len))
+    {
+        return 0;
+    }
+    if (cf->major_version > 49)
+    {
+        str = "Signature\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeVisibleAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeInvisibleAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeVisibleParameterAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "RuntimeInvisibleParameterAnnotations\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+        str = "AnnotationDefault\0";
+        if (!strncmp(name, str, len))
+        {
+            return 0;
+        }
+    }
+
+fail:
+    info.attribute_name_index = 0;
+    info.attribute_length = 0;
+    free(info.info);
+    info.info = (u1 *) 0;
+    return -1;
 }
