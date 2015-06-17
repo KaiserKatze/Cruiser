@@ -8,6 +8,8 @@
 #ifndef JAVA_H
 #define	JAVA_H
 
+#include <zip.h>
+
 #ifdef	__cplusplus
 extern "C" {
 #endif
@@ -306,7 +308,8 @@ extern "C" {
         attr_info * attributes;
     } ClassFile;
 
-    extern int parseClassfile(const char *, ClassFile *);
+    extern int parseClassfile(struct zip_file *, char *, int, ClassFile *);
+
     extern int freeClassfile(ClassFile *);
 
 #ifdef	__cplusplus

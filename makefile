@@ -1,9 +1,6 @@
-cruise : main.c java.c java.h
-	gcc -o build/cruise main.c java.c -I.
-
-test: jar.h jar.c
-	gcc -o build/test jar.c -I. `pkg-config --libs libzip`
+cruise : main.c java.c java.h jar.c jar.h
+	if [ ! -d build ]; then mkdir build; fi
+	gcc -g -o build/cruise main.c java.c jar.c -I. `pkg-config --libs libzip`
 
 clean:
-	find build -type f -executable -delete
-	find -type f -name "*.log" -delete
+	if [ -d build ]; then rm -r build; fi

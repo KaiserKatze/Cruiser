@@ -2,25 +2,31 @@
 #include <stdio.h>
 #include <endian.h>
 #include <string.h>
-#include <math.h>
 
 #include "java.h"
 
-static u1 ru1(FILE *);
-static u2 ru2(FILE *);
-static u4 ru4(FILE *);
+static u1 ru1(struct zip_file *, char *, int, int *, int *);
+static u2 ru2(struct zip_file *, char *, int, int *, int *);
+static u4 ru4(struct zip_file *, char *, int, int *, int *);
+static int rbs(char *, struct zip_file *, char *, int, int *, int *, int);
+
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
-static int loadAttributes(FILE *, u2 *, attr_info **);
+static int loadAttributes(struct zip_file *, char *, int, int *, int *, u2 *, attr_info **);
 static int releaseAttributes(u2, attr_info *);
-static const char *getConstant_Utf8(ClassFile *, u2);
+static char *getConstant_Utf8(ClassFile *, u2);
+static CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
 
 extern int
-parseClassfile(const char *path, ClassFile *cf)
+parseClassfile(
+        struct zip_file *zf,
+        char *buffer,
+        int bufsize,
+        ClassFile *cf)
 {
-    FILE * file;
+    int bufsrc, bufdst;
     u2 i, j;
     int cap;
     cp_info *info;
@@ -37,35 +43,40 @@ parseClassfile(const char *path, ClassFile *cf)
     char *buf;
 
     if (!cf)
-        return -1;
-    file = fopen(path, "r");
-    if (!file)
     {
-        printf("Fail to decompile file '%s'.\r\n", path);
+        fprintf(stderr, "Parameter 'cf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
-    bzero(cf, sizeof (ClassFile));
+    if (!buffer)
+    {
+        fprintf(stderr, "Parameter 'buffer' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
+    bzero(buffer, bufsize);
 
-    printf("JavaDecompiler v1.0(by donizyo)\r\n\r\n");
-    printf("Decompiling file '%s'...\r\n", path);
+    bufsrc = bufdst = 0;
+
     // validate file structure
-    cf->magic = ru4(file);
+    cf->magic =
+        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
     if (cf->magic != 0XCAFEBABE)
     {
         printf("File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
-        fclose(file);
         goto close;
     }
     printf("File structure is valid[0x%X], proceeding...\r\n", cf->magic);
 
     // retrieve version
-    cf->minor_version = ru2(file);
-    cf->major_version = ru2(file);
+    cf->minor_version =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+    cf->major_version =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
 
     // retrieve constant pool size
-    cf->constant_pool_count = ru2(file);
+    cf->constant_pool_count =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
@@ -83,10 +94,11 @@ parseClassfile(const char *path, ClassFile *cf)
         // jvms7 says "The constant_pool table is indexed
         // from 1 to constant_pool_count - 1
         for (i = 1u; i < cf->constant_pool_count; i++)
-        {
+        { // LOOP
             info = &(cf->constant_pool[i]);
-            info->tag = ru1(file);
-            printf("\t#%-5i = %-18s\t",
+            info->tag =
+                ru1(zf, buffer, bufsize, &bufsrc, &bufdst);
+            printf("\t#%-5i = %-18s ",
                     i, get_cp_name(info->tag));
             cap = get_cp_size(info->tag);
             info->data = malloc(cap);
@@ -100,50 +112,76 @@ parseClassfile(const char *path, ClassFile *cf)
             {
                 case CONSTANT_Class:
                     cci = (CONSTANT_Class_info *) info;
-                    cci->data->name_index = ru2(file);
+                    cci->data->name_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i\r\n", cci->data->name_index);
+
+                    cci = (CONSTANT_Class_info *) 0;
                     break;
                 case CONSTANT_Fieldref:
                 case CONSTANT_Methodref:
                 case CONSTANT_InterfaceMethodref:
                     cfi = (CONSTANT_Fieldref_info *) info;
-                    cfi->data->class_index = ru2(file);
-                    cfi->data->name_and_type_index = ru2(file);
+                    cfi->data->class_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    cfi->data->name_and_type_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i.#%i\r\n", cfi->data->class_index, cfi->data->name_and_type_index);
+
+                    cfi = (CONSTANT_Fieldref_info *) 0;
+                    cci = (CONSTANT_Class_info *) 0;
+                    buf = (char *) 0;
                     break;
                 case CONSTANT_Integer:
                 case CONSTANT_Float:
                     cii = (CONSTANT_Integer_info *) info;
-                    cii->data->bytes = ru4(file);
+                    cii->data->bytes =
+                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("%i\r\n", cii->data->bytes);
+
+                    cii = (CONSTANT_Integer_info *) 0;
                     break;
                 case CONSTANT_Long:
                 case CONSTANT_Double:
                     cli = (CONSTANT_Long_info *) info;
-                    cli->data->high_bytes = ru4(file);
-                    cli->data->low_bytes = ru4(file);
+                    cli->data->high_bytes =
+                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    cli->data->low_bytes =
+                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    // all 8-byte constants take up two entries in the constant_pool table of the class file
+                    ++i;
 
                     printf("%i %i\r\n", cli->data->high_bytes, cli->data->low_bytes);
+
+                    cli = (CONSTANT_Long_info *) 0;
                     break;
                 case CONSTANT_NameAndType:
                     cni = (CONSTANT_NameAndType_info *) info;
-                    cni->data->name_index = ru2(file);
-                    cni->data->descriptor_index = ru2(file);
+                    cni->data->name_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    cni->data->descriptor_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i.#%i\r\n", cni->data->name_index, cni->data->descriptor_index);
+
+                    cni = (CONSTANT_NameAndType_info *) 0;
                     break;
                 case CONSTANT_String:
                     csi = (CONSTANT_String_info *) info;
-                    csi->data->string_index = ru2(file);
+                    csi->data->string_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i\r\n", csi->data->string_index);
+
+                    csi = (CONSTANT_String_info *) 0;
                     break;
                 case CONSTANT_Utf8:
                     cui = (CONSTANT_Utf8_info *) info;
-                    cui->data->length = ru2(file);
+                    cui->data->length =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
                     cap = (cui->data->length + 1) * sizeof (u1);
                     cui->data->bytes = (u1 *) malloc(cap);
                     if (!cui->data->bytes)
@@ -152,53 +190,76 @@ parseClassfile(const char *path, ClassFile *cf)
                         goto close;
                     }
                     bzero(cui->data->bytes, cap);
-                    if (fread(cui->data->bytes,
-                            sizeof (u1), cui->data->length,
-                            file) != cui->data->length)
+
+                    if (rbs(cui->data->bytes, zf, buffer, bufsize, &bufsrc, &bufdst, cui->data->length) < 0)
                     {
-                        printf("Fail to read from file!\r\n");
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
                         goto close;
                     }
 
+                    if (!cui->data->bytes)
+                    {
+                        fprintf(stderr, "Runtime error!\r\n");
+                        goto close;
+                    }
                     printf("%s\r\n", (char *) cui->data->bytes);
+
+                    cui = (CONSTANT_Utf8_info *) 0;
+                    cap = 0;
                     break;
                 case CONSTANT_MethodHandle:
                     cmhi = (CONSTANT_MethodHandle_info *) info;
-                    cmhi->data->reference_kind = ru1(file);
-                    cmhi->data->reference_index = ru2(file);
+                    cmhi->data->reference_kind =
+                        ru1(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    cmhi->data->reference_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("%i #%i\r\n", cmhi->data->reference_kind, cmhi->data->reference_index);
+
+                    cmhi = (CONSTANT_MethodHandle_info *) 0;
                     break;
                 case CONSTANT_MethodType:
                     cmti = (CONSTANT_MethodType_info *) info;
-                    cmti->data->descriptor_index = ru2(file);
+                    cmti->data->descriptor_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i\r\n", cmti->data->descriptor_index);
+
+                    cmti = (CONSTANT_MethodType_info *) 0;
                     break;
                 case CONSTANT_InvokeDynamic:
                     cidi = (CONSTANT_InvokeDynamic_info *) info;
-                    cidi->data->bootstrap_method_attr_index = ru2(file);
-                    cidi->data->name_and_type_index = ru2(file);
+                    cidi->data->bootstrap_method_attr_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                    cidi->data->name_and_type_index =
+                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
 
                     printf("#%i.#%i\r\n",
                             cidi->data->bootstrap_method_attr_index,
                             cidi->data->name_and_type_index);
+
+                    cidi = (CONSTANT_InvokeDynamic_info *) 0;
                     break;
                 default:
+                    printf("TAG:%X\r\n", info->tag);
                     break;
             }
-        }
+        } // LOOP
     } // constant pool parsed
 
-    cf->access_flags = ru2(file);
-    cf->this_class = ru2(file);
-    cf->super_class = ru2(file);
+    cf->access_flags =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+    cf->this_class =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+    cf->super_class =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("\r\nAccess flags     : 0x%X\r\n"
             "Class this_class : 0x%X\r\n"
             "Class super_class: 0x%X\r\n",
             cf->access_flags, cf->this_class, cf->super_class);
 
-    cf->interfaces_count = ru2(file);
+    cf->interfaces_count =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("\r\nInterface count: %i\r\n", cf->interfaces_count);
     if (cf->interfaces_count > 0)
     {
@@ -213,15 +274,16 @@ parseClassfile(const char *path, ClassFile *cf)
         bzero(cf->interfaces, cap);
         for (i = 0u; i < cf->interfaces_count; i++)
         {
-            cf->interfaces[i] = ru2(file);
+            cf->interfaces[i] =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
             cci = (CONSTANT_Class_info *) &(cf->constant_pool[cf->interfaces[i]]);
-            if (cci->tag != CONSTANT_Class)
+            if (!cci || cci->tag != CONSTANT_Class)
             {
                 fprintf(stderr, "Invalid constant pool index!\r\n");
                 goto close;
             }
             cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cci->data->name_index]);
-            if (cui->tag != CONSTANT_Utf8)
+            if (!cui || cui->tag != CONSTANT_Utf8)
             {
                 fprintf(stderr, "Invalid constant pool index!\r\n");
                 goto close;
@@ -234,7 +296,8 @@ parseClassfile(const char *path, ClassFile *cf)
         }
     }
 
-    cf->fields_count = ru2(file);
+    cf->fields_count =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("\r\nField count: %i\r\n", cf->fields_count);
     if (cf->fields_count > 0)
     {
@@ -249,9 +312,12 @@ parseClassfile(const char *path, ClassFile *cf)
         bzero(cf->fields, cap);
         for (i = 0u; i < cf->fields_count; i++)
         {
-            cf->fields[i].access_flags = ru2(file);
-            cf->fields[i].name_index = ru2(file);
-            cf->fields[i].descriptor_index = ru2(file);
+            cf->fields[i].access_flags =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+            cf->fields[i].name_index =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+            cf->fields[i].descriptor_index =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
             buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
             printf("Field[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -267,7 +333,8 @@ parseClassfile(const char *path, ClassFile *cf)
                     );
             free(buf);
             buf = (char *) 0;
-            loadAttributes(file, &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
+            loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+                    &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             printf("\tField Attribute count: %i\r\n",
                     cf->fields[i].attributes_count);
             for (j = 0; j < cf->fields[i].attributes_count; j++)
@@ -285,7 +352,8 @@ parseClassfile(const char *path, ClassFile *cf)
         }
     }
 
-    cf->methods_count = ru2(file);
+    cf->methods_count =
+        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
     printf("\r\nMethod count: %i\r\n", cf->methods_count);
     if (cf->methods_count > 0)
     {
@@ -300,9 +368,12 @@ parseClassfile(const char *path, ClassFile *cf)
         bzero(cf->methods, cap);
         for (i = 0u; i < cf->methods_count; i++)
         {
-            cf->methods[i].access_flags = ru2(file);
-            cf->methods[i].name_index = ru2(file);
-            cf->methods[i].descriptor_index = ru2(file);
+            cf->methods[i].access_flags =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+            cf->methods[i].name_index =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+            cf->methods[i].descriptor_index =
+                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             printf("Method[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -318,7 +389,8 @@ parseClassfile(const char *path, ClassFile *cf)
                         cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            loadAttributes(file, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+            loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+                    &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
             printf("\tMethod Attribute count: %i\r\n",
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)
@@ -337,7 +409,8 @@ parseClassfile(const char *path, ClassFile *cf)
     }
 
     printf("\r\nParsing attributes...\r\n");
-    loadAttributes(file, &(cf->attributes_count), &(cf->attributes));
+    loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+            &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
         printf("Class Attribute [%i]\r\n"
@@ -352,11 +425,6 @@ parseClassfile(const char *path, ClassFile *cf)
     }
 
 close:
-    if (file)
-    {
-        fclose(file);
-        file = (FILE *) 0;
-    }
 
     return 0;
 }
@@ -530,36 +598,128 @@ parse_method_descriptor(int desc_len, char * desc)
 }
 #endif
 
-static u1
-ru1(FILE * file)
+static char *
+zfill(struct zip_file *zf, char *buf,
+        int bufsize, int *bufsrc, int *bufdst, int nbits)
 {
-    u1 r;
+    int buflen, rbit;
 
-    fread(&r, sizeof (u1), 1, file);
+    if (!zf)
+    {
+        fprintf(stderr, "Parameter 'zf' in function %s is NULL!\r\n", __func__);
+        return (char *) 0;
+    }
+    if (!buf)
+    {
+        fprintf(stderr, "Parameter 'buf' in function %s is NULL!\r\n", __func__);
+        return (char *) 0;
+    }
+    if (!bufsrc)
+    {
+        fprintf(stderr, "Parameter 'bufsrc' in function %s is NULL!\r\n", __func__);
+        return (char *) 0;
+    }
+    if (!bufdst)
+    {
+        fprintf(stderr, "Parameter 'bufdst' in function %s is NULL!\r\n", __func__);
+        return (char *) 0;
+    }
+    if (*bufsrc > *bufdst)
+    {
+        fprintf(stderr, "Assertion error in function %s: *bufsrc > *bufdst\r\n", __func__);
+        return (char *) 0;
+    }
+    if (nbits < 0)
+    {
+        fprintf(stderr, "Parameter 'nbits' in function %s is negative!\r\n", __func__);
+        return (char *) 0;
+    }
 
-    return r;
+    // calculate the length of remaining data
+    buflen = *bufdst - *bufsrc;
+    // the remaining data is not enough
+    if (buflen < nbits)
+    {
+        // move memory
+        if (*bufsrc != 0)
+        {
+            printf("Moving memory!\r\n");
+            memmove(buf, &(buf[*bufsrc]), buflen);
+            *bufsrc = 0;
+            *bufdst = buflen;
+        }
+        // fill in more data
+        printf("Filling in data!\r\n");
+        if ((rbit = zip_fread(zf, &(buf[buflen]), bufsize - buflen)) < 0)
+        {
+            fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+            return (char *) 0;
+        }
+        *bufdst += rbit;
+        if (*bufdst < bufsize)
+            bzero(&(buf[*bufdst]), bufsize - *bufdst);
+    }
+
+    return &(buf[*bufsrc]);
+}
+
+static int rbs(char *out, struct zip_file *zf, char *buf,
+        int bufsize, int *bufsrc, int *bufdst, int nbits)
+{
+    if (!out)
+    {
+        fprintf(stderr, "Parameter 'out' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
+
+    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, nbits);
+    if (buf < 0)
+        return -1;
+    memcpy(out, buf, nbits);
+    *bufsrc += nbits;
+
+    return nbits;
+}
+
+static u1
+ru1(struct zip_file *zf, char *buf,
+        int bufsize, int *bufsrc, int *bufdst)
+{
+    u1 res;
+
+    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u1));
+    res = *(u1 *) buf;
+    *bufsrc += sizeof (u1);
+
+    return res;
 }
 
 static u2
-ru2(FILE * file)
+ru2(struct zip_file *zf, char *buf,
+        int bufsize, int *bufsrc, int *bufdst)
 {
-    u2 r;
+    u2 res;
 
-    fread(&r, sizeof (u2), 1, file);
-    r = htobe16(r);
+    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u2));
+    res = *(u2 *) buf;
+    res = htobe16(res);
+    *bufsrc += sizeof (u2);
 
-    return r;
+    return res;
 }
 
 static u4
-ru4(FILE * file)
+ru4(struct zip_file *zf, char *buf,
+        int bufsize, int *bufsrc, int *bufdst)
 {
-    u4 r;
+    u4 res;
 
-    fread(&r, sizeof (u4), 1, file);
-    r = htobe32(r);
+    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u4));
+    res = *(u4 *) buf;
+    res = htobe32(res);
+    *bufsrc += sizeof (u4);
 
-    return r;
+    return res;
 }
 
 static int
@@ -836,14 +996,20 @@ end:
 }
 
 static int
-loadAttributes(FILE *file,
-        u2 *attr_count_p,
-        attr_info **attributes_p)
+loadAttributes(
+    struct zip_file *zf,
+    char *buffer,
+    int bufsize,
+    int *bufsrc,
+    int *bufdst,
+    u2 *attr_count_p,
+    attr_info **attributes_p)
 {
     u2 i;
     int cap;
 
-    *attr_count_p = ru2(file);
+    *attr_count_p =
+        ru2(zf, buffer, bufsize, bufsrc, bufdst);
     if (*attr_count_p > 0)
     {
         cap = sizeof (attr_info) * *attr_count_p;
@@ -856,8 +1022,10 @@ loadAttributes(FILE *file,
         bzero(*attributes_p, cap);
         for (i = 0u; i < *attr_count_p; i++)
         {
-            (*attributes_p)[i].attribute_name_index = ru2(file);
-            (*attributes_p)[i].attribute_length = ru4(file);
+            (*attributes_p)[i].attribute_name_index =
+                ru2(zf, buffer, bufsize, bufsrc, bufdst);
+            (*attributes_p)[i].attribute_length =
+                ru4(zf, buffer, bufsize, bufsrc, bufdst);
             cap = (*attributes_p)[i].attribute_length * sizeof (u1);
             (*attributes_p)[i].info = (u1 *) malloc(cap);
             if (!(*attributes_p)[i].info)
@@ -866,8 +1034,12 @@ loadAttributes(FILE *file,
                 return -1;
             }
             bzero((*attributes_p)[i].info, cap);
-            fread((*attributes_p)[i].info, sizeof (u1),
-                    (*attributes_p)[i].attribute_length, file); // Page74
+            if (rbs((*attributes_p)[i].info, zf, buffer, bufsize,
+                    bufsrc, bufdst, (*attributes_p)[i].attribute_length) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
         }
     }
 
@@ -892,13 +1064,33 @@ releaseAttributes(u2 attributes_count, attr_info *attributes)
     return 0;
 }
 
-static const char *
+static char *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *info;
 
     info = (CONSTANT_Utf8_info *) &(cf->constant_pool[index]);
     if (info && info->tag == CONSTANT_Utf8)
-        return (const char *) info->data->bytes;
+        return info->data->bytes;
     return "";
+}
+
+static CONSTANT_Class_info *
+getConstant_Class(ClassFile *cf, u2 index)
+{
+    CONSTANT_Class_info *info;
+
+    info = (CONSTANT_Class_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        fprintf(stderr, "Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Class_info *) 0;
+    }
+    if (info->tag != CONSTANT_Class)
+    {
+        fprintf(stdout, "Constant pool entry #%i is not CONSTANT_Class_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Class_info *) 0;
+    }
+
+    return info;
 }

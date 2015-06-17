@@ -10,26 +10,24 @@
 #include <string.h>
 #include <wchar.h>
 
-#include "java.h"
+#include "jar.h"
 
 int
 main(int argc, char** argv)
 {
     char *path;
-    ClassFile cf;
+    JarFile jf;
 
-    if (argc > 1)
+    if (argc < 2)
     {
-        path = argv[1];
-        parseClassfile((const char *) path, &cf);
-        freeClassfile(&cf);
-        return 0;
+        fprintf(stderr, "Usage:\r\n\t%s <path>\r\n", argv[0]);
+        return -1;
     }
 
-    fprintf(stderr,
-            "Usage:\r\n"
-            "%s <path>\r\n\r\n",
-            argv[0]);
-    return -1;
+    path = argv[1];
+    parseJarfile(path, &jf);
+    freeJarfile(jf);
+
+    return 0;
 }
 

@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <zip.h>
 
-#include "java.h"
 #include "jar.h"
 
 #define ENTRY_MANIFEST          "META-INF/MANIFEST.MF\0"
@@ -17,10 +15,15 @@ parseJarfile(const char *path, JarFile *jf)
     struct zip *z;
     struct zip_stat st;
     struct zip_file *zf;
-    int error, rbit, i, j;
+    int error, rbit, i, j, k;
+    zip_uint64_t entries_count, entry_index, manifest_index, class_count, cap;
+    zip_uint64_t *classes;
     char *buffer, *save, *str;
+    const char *entry_name;
 
     error = 0;
+    buffer = (char *) 0;
+    classes = (zip_uint64_t *) 0;
     z = zip_open(path, 0, &error);
     if (!z)
     {
@@ -36,15 +39,24 @@ parseJarfile(const char *path, JarFile *jf)
     bzero(buffer, BUFSIZE);
     bzero(jf, sizeof (JarFile));
 
+    // read MANIFEST
     zip_stat_init(&st);
     if (zip_stat(z, ENTRY_MANIFEST, 0, &st))
     {
         fprintf(stderr, "Fail to retrieve manifest entry stat!\r\n");
         goto close;
     }
+    if (st.valid & ZIP_STAT_INDEX)
+    {
+        manifest_index = st.index;
+        printf("Manifest entry index: %lli\r\n", manifest_index);
+    }
     zf = zip_fopen(z, ENTRY_MANIFEST, 0);
-    //while ((rbit = zip_fread(zf, buffer, BUFSIZE)) > 0)
-    //    printf("%s", buffer);
+    if (!zf)
+    {
+        fprintf(stderr, "Fail to open manifest!\r\n");
+        goto close;
+    }
     save = buffer;
     while ((rbit = zip_readLine(zf, buffer, &save)) > 0)
     {
@@ -99,21 +111,92 @@ parseJarfile(const char *path, JarFile *jf)
         fprintf(stderr, "IO exception[%i] in function %s!\r\n", rbit, __func__);
         goto close;
     }
+    printf("Main-Class: %s\r\nClasspath:%s\r\n", jf->mainclass, jf->classpath);
+
+    // iterate .class files
+    entries_count = zip_get_num_entries(z, 0);
+    class_count = 0;
+    classes = (zip_uint64_t *) malloc(entries_count * sizeof (zip_uint64_t));
+    if (entries_count < 0)
+    {
+        fprintf(stderr, "Entry count: %lli\r\n", entries_count);
+        goto close;
+    }
+    printf("\r\nEntry count: %lli\r\n\r\n", entries_count);
+    for (entry_index = 0; entry_index < entries_count; entry_index++)
+    {
+        if (entry_index == manifest_index)
+            continue;
+
+        zip_stat_init(&st);
+        if (zip_stat_index(z, entry_index, 0, &st))
+        {
+            fprintf(stderr, "Fail to retrieve entry[%lli] stat!\r\n", entry_index);
+            goto close;
+        }
+        if (st.valid & ZIP_STAT_NAME)
+        {
+            entry_name = st.name;
+            k = strlen(entry_name);
+            str = ".class\0";
+            j = strlen(str);
+            for (i = 0; i < j; i++)
+                if (str[i] != entry_name[k - j + i])
+                {
+                    str = (char *) 0;
+                    break;
+                }
+            if (str)
+            {
+                classes[class_count++] = entry_index;
+                printf("Class '%s' in queue.\r\n", entry_name);
+            }
+        }
+    }
+
+    printf("\r\nClass count: %lli\r\n", class_count);
+    jf->class_count = class_count;
+    cap = class_count * sizeof (ClassFile);
+    jf->classes = (ClassFile *) malloc(cap);
+    if (!jf->classes)
+    {
+        fprintf(stderr, "Fail to allocate memory!\r\n");
+        goto close;
+    }
+    bzero(jf->classes, cap);
+    for (entry_index = 0; entry_index < class_count; entry_index++)
+    {
+        zip_stat_init(&st);
+        zip_stat_index(z, classes[entry_index], 0, &st);
+        printf("\r\n%4lli> Parsing class '%s'...\r\n",
+                entry_index, st.name);
+
+        zf = zip_fopen_index(z, classes[entry_index], 0);
+        if (!zf)
+        {
+            fprintf(stderr, "Fail to open manifest!\r\n");
+            goto close;
+        }
+        parseClassfile(zf, buffer, (int) BUFSIZE, &(jf->classes[entry_index]));
+
+        printf("\r\n");
+    }
 
 close:
     zip_close(z);
     free(buffer);
+    free(classes);
     return error;
 }
 
 extern int
-freeJarfile(JarFile *jf)
+freeJarfile(JarFile jf)
 {
-    if (!jf)
-        return -1;
+    zip_uint64_t i;
 
-    free(jf->mainclass);
-    free(jf->classpath);
+    free(jf.mainclass);
+    free(jf.classpath);
+    free(jf.classes);
     
     return 0;
 }
@@ -202,25 +285,4 @@ zip_readLine(struct zip_file *zf, char *buffer, char **save)
 
 end:
     return res;
-}
-
-int main(int nargs, char **args)
-{
-    char *path;
-    JarFile jf;
-
-    if (nargs < 2)
-    {
-        fprintf(stderr, "Usage:\r\n"
-                "%s <path>\r\n",
-                args[0]);
-        return -1;
-    }
-    path = args[1];
-
-    parseJarfile(path, &jf);
-    printf("Main class: %s\r\nClasspath: %s\r\n",
-            jf.mainclass, jf.classpath);
-    freeJarfile(&jf);
-    return 0;
 }
