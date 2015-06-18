@@ -5,9 +5,9 @@
 
 #include "java.h"
 
-static u1 ru1(struct BufferInput *);
-static u2 ru2(struct BufferInput *);
-static u4 ru4(struct BufferInput *);
+static int ru1(u1 *, struct BufferInput *);
+static int ru2(u2 *, struct BufferInput *);
+static int ru4(u4 *, struct BufferInput *);
 static int rbs(char *, struct BufferInput *, int);
 
 static int get_cp_size(u1);
@@ -53,7 +53,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     input->bufsrc = input->bufdst = 0;
 
     // validate file structure
-    cf->magic = ru4(input);
+    if (ru4(&(cf->magic), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     if (cf->magic != 0XCAFEBABE)
     {
         fprintf(stderr, "File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
@@ -62,16 +66,25 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     printf("File structure is valid[0x%X], proceeding...\r\n", cf->magic);
 
     // retrieve version
-    cf->minor_version =
-        ru2(input);
-    cf->major_version =
-        ru2(input);
+    if (ru2(&(cf->minor_version), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
+    if (ru2(&(cf->major_version), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
 
     // retrieve constant pool size
-    cf->constant_pool_count =
-        ru2(input);
+    if (ru2(&(cf->constant_pool_count), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
@@ -91,7 +104,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         for (i = 1u; i < cf->constant_pool_count; i++)
         { // LOOP
             info = &(cf->constant_pool[i]);
-            info->tag = ru1(input);
+            if (ru1(&(info->tag), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
             printf("\t#%-5i = %-18s ",
                     i, get_cp_name(info->tag));
             cap = get_cp_size(info->tag);
@@ -106,8 +123,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             {
                 case CONSTANT_Class:
                     cci = (CONSTANT_Class_info *) info;
-                    cci->data->name_index =
-                        ru2(input);
+                    if (ru2(&(cci->data->name_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i\r\n", cci->data->name_index);
 
@@ -117,10 +137,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 case CONSTANT_Methodref:
                 case CONSTANT_InterfaceMethodref:
                     cfi = (CONSTANT_Fieldref_info *) info;
-                    cfi->data->class_index =
-                        ru2(input);
-                    cfi->data->name_and_type_index =
-                        ru2(input);
+                    if (ru2(&(cfi->data->class_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
+                    if (ru2(&(cfi->data->name_and_type_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i.#%i\r\n", cfi->data->class_index, cfi->data->name_and_type_index);
 
@@ -131,8 +157,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 case CONSTANT_Integer:
                 case CONSTANT_Float:
                     cii = (CONSTANT_Integer_info *) info;
-                    cii->data->bytes =
-                        ru4(input);
+                    if (ru4(&(cii->data->bytes), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("%i\r\n", cii->data->bytes);
 
@@ -141,10 +170,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 case CONSTANT_Long:
                 case CONSTANT_Double:
                     cli = (CONSTANT_Long_info *) info;
-                    cli->data->high_bytes =
-                        ru4(input);
-                    cli->data->low_bytes =
-                        ru4(input);
+                    if (ru4(&(cli->data->high_bytes), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
+                    if (ru4(&(cli->data->low_bytes), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
                     // all 8-byte constants take up two entries in the constant_pool table of the class file
                     ++i;
 
@@ -154,10 +189,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_NameAndType:
                     cni = (CONSTANT_NameAndType_info *) info;
-                    cni->data->name_index =
-                        ru2(input);
-                    cni->data->descriptor_index =
-                        ru2(input);
+                    if (ru2(&(cni->data->name_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
+                    if (ru2(&(cni->data->descriptor_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i.#%i\r\n", cni->data->name_index, cni->data->descriptor_index);
 
@@ -165,8 +206,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_String:
                     csi = (CONSTANT_String_info *) info;
-                    csi->data->string_index =
-                        ru2(input);
+                    if (ru2(&(csi->data->string_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i\r\n", csi->data->string_index);
 
@@ -174,8 +218,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_Utf8:
                     cui = (CONSTANT_Utf8_info *) info;
-                    cui->data->length =
-                        ru2(input);
+                    if (ru2(&(cui->data->length), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
                     cap = (cui->data->length + 1) * sizeof (u1);
                     cui->data->bytes = (u1 *) malloc(cap);
                     if (!cui->data->bytes)
@@ -203,10 +250,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_MethodHandle:
                     cmhi = (CONSTANT_MethodHandle_info *) info;
-                    cmhi->data->reference_kind =
-                        ru1(input);
-                    cmhi->data->reference_index =
-                        ru2(input);
+                    if (ru1(&(cmhi->data->reference_kind), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
+                    if (ru2(&(cmhi->data->reference_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("%i #%i\r\n", cmhi->data->reference_kind, cmhi->data->reference_index);
 
@@ -214,8 +267,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_MethodType:
                     cmti = (CONSTANT_MethodType_info *) info;
-                    cmti->data->descriptor_index =
-                        ru2(input);
+                    if (ru2(&(cmti->data->descriptor_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i\r\n", cmti->data->descriptor_index);
 
@@ -223,10 +279,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     break;
                 case CONSTANT_InvokeDynamic:
                     cidi = (CONSTANT_InvokeDynamic_info *) info;
-                    cidi->data->bootstrap_method_attr_index =
-                        ru2(input);
-                    cidi->data->name_and_type_index =
-                        ru2(input);
+                    if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
+                    if (ru2(&(cidi->data->name_and_type_index), input) < 0)
+                    {
+                        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                        goto close;
+                    };
 
                     printf("#%i.#%i\r\n",
                             cidi->data->bootstrap_method_attr_index,
@@ -241,19 +303,31 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         } // LOOP
     } // constant pool parsed
 
-    cf->access_flags =
-        ru2(input);
-    cf->this_class =
-        ru2(input);
-    cf->super_class =
-        ru2(input);
+    if (ru2(&(cf->access_flags), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
+    if (ru2(&(cf->this_class), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
+    if (ru2(&(cf->super_class), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("\r\nAccess flags     : 0x%X\r\n"
             "Class this_class : 0x%X\r\n"
             "Class super_class: 0x%X\r\n",
             cf->access_flags, cf->this_class, cf->super_class);
 
-    cf->interfaces_count =
-        ru2(input);
+    if (ru2(&(cf->interfaces_count), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("\r\nInterface count: %i\r\n", cf->interfaces_count);
     if (cf->interfaces_count > 0)
     {
@@ -268,8 +342,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         bzero(cf->interfaces, cap);
         for (i = 0u; i < cf->interfaces_count; i++)
         {
-            cf->interfaces[i] =
-                ru2(input);
+            if (ru2(&(cf->interfaces[i]), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
             cci = (CONSTANT_Class_info *) &(cf->constant_pool[cf->interfaces[i]]);
             if (!cci || cci->tag != CONSTANT_Class)
             {
@@ -290,8 +367,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         }
     }
 
-    cf->fields_count =
-        ru2(input);
+    if (ru2(&(cf->fields_count), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("\r\nField count: %i\r\n", cf->fields_count);
     if (cf->fields_count > 0)
     {
@@ -306,12 +386,21 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         bzero(cf->fields, cap);
         for (i = 0u; i < cf->fields_count; i++)
         {
-            cf->fields[i].access_flags =
-                ru2(input);
-            cf->fields[i].name_index =
-                ru2(input);
-            cf->fields[i].descriptor_index =
-                ru2(input);
+            if (ru2(&(cf->fields[i].access_flags), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
+            if (ru2(&(cf->fields[i].name_index), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
+            if (ru2(&(cf->fields[i].descriptor_index), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
             buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
             printf("Field[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -332,19 +421,22 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
                 printf("\tField Attribute [%i]\r\n"
-                    "\t\tName index:\t#%i\t// %s\r\n"
-                    "\t\tLength    :\t%i\r\n"
-                    "\t\tInfo      :\t%s\r\n", j,
-                    cf->fields[i].attributes[j].attribute_name_index,
-                    getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index)->data->bytes,
-                    cf->fields[i].attributes[j].attribute_length,
-                    cf->fields[i].attributes[j].info);
+                        "\t\tName index:\t#%i\t// %s\r\n"
+                        "\t\tLength    :\t%i\r\n"
+                        "\t\tInfo      :\t%s\r\n", j,
+                        cf->fields[i].attributes[j].attribute_name_index,
+                        getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index)->data->bytes,
+                        cf->fields[i].attributes[j].attribute_length,
+                        cf->fields[i].attributes[j].info);
             }
         }
     }
 
-    cf->methods_count =
-        ru2(input);
+    if (ru2(&(cf->methods_count), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        goto close;
+    };
     printf("\r\nMethod count: %i\r\n", cf->methods_count);
     if (cf->methods_count > 0)
     {
@@ -359,12 +451,21 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         bzero(cf->methods, cap);
         for (i = 0u; i < cf->methods_count; i++)
         {
-            cf->methods[i].access_flags =
-                ru2(input);
-            cf->methods[i].name_index =
-                ru2(input);
-            cf->methods[i].descriptor_index =
-                ru2(input);
+            if (ru2(&(cf->methods[i].access_flags), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
+            if (ru2(&(cf->methods[i].name_index), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
+            if (ru2(&(cf->methods[i].descriptor_index), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                goto close;
+            };
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             printf("Method[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -385,13 +486,13 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
                 printf("\tMethod Attribute [%i]\r\n"
-                    "\t\tName index:\t#%i\t// %s\r\n"
-                    "\t\tLength    :\t%i\r\n"
-                    "\t\tInfo      :\t%s\r\n", j,
-                    cf->methods[i].attributes[j].attribute_name_index,
-                    getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->bytes,
-                    cf->methods[i].attributes[j].attribute_length,
-                    cf->methods[i].attributes[j].info);
+                        "\t\tName index:\t#%i\t// %s\r\n"
+                        "\t\tLength    :\t%i\r\n"
+                        "\t\tInfo      :\t%s\r\n", j,
+                        cf->methods[i].attributes[j].attribute_name_index,
+                        getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->bytes,
+                        cf->methods[i].attributes[j].attribute_length,
+                        cf->methods[i].attributes[j].info);
             }
         }
     }
@@ -718,7 +819,8 @@ fillBuffer_z(struct BufferInput * input, int nbits)
     return &(input->buffer[input->bufsrc]);
 }
 
-static int rbs(char *out, struct BufferInput * input, int nbits)
+static int
+rbs(char *out, struct BufferInput * input, int nbits)
 {
     char *buf;
 
@@ -737,45 +839,51 @@ static int rbs(char *out, struct BufferInput * input, int nbits)
     return nbits;
 }
 
-static u1
-ru1(struct BufferInput * input)
+static int
+ru1(u1 *dst, struct BufferInput * input)
 {
-    u1 res;
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u1));
-    res = *(u1 *) ptr;
+    if (!ptr)
+        return -1;
+
+    memcpy(dst, ptr, sizeof (u1));
     input->bufsrc += sizeof (u1);
 
-    return res;
+    return 0;
 }
 
-static u2
-ru2(struct BufferInput * input)
+static int
+ru2(u2 *dst, struct BufferInput * input)
 {
-    u2 res;
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u2));
-    res = *(u2 *) ptr;
-    res = htobe16(res);
+    if (!ptr)
+        return -1;
+
+    memcpy(dst, ptr, sizeof (u2));
+    *dst = htobe16(*dst);
     input->bufsrc += sizeof (u2);
 
-    return res;
+    return 0;
 }
 
-static u4
-ru4(struct BufferInput * input)
+static int
+ru4(u4 *dst, struct BufferInput * input)
 {
-    u4 res;
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u4));
-    res = *(u4 *) ptr;
-    res = htobe32(res);
+    if (!ptr)
+        return -1;
+
+    memcpy(dst, ptr, sizeof (u4));
+    *dst = htobe32(*dst);
     input->bufsrc += sizeof (u4);
 
-    return res;
+    return 0;
 }
 
 static int
@@ -1058,8 +1166,11 @@ loadAttributes(struct BufferInput * input,
     u2 i;
     int cap;
 
-    *attr_count_p =
-        ru2(input);
+    if (ru2(&(*attr_count_p), input) < 0)
+    {
+        fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+        return -1;
+    };
     if (*attr_count_p > 0)
     {
         cap = sizeof (attr_info) * *attr_count_p;
@@ -1072,10 +1183,16 @@ loadAttributes(struct BufferInput * input,
         bzero(*attributes_p, cap);
         for (i = 0u; i < *attr_count_p; i++)
         {
-            (*attributes_p)[i].attribute_name_index =
-                ru2(input);
-            (*attributes_p)[i].attribute_length =
-                ru4(input);
+            if (ru2(&((*attributes_p)[i].attribute_name_index), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                return -1;
+            };
+            if (ru4(&((*attributes_p)[i].attribute_length), input) < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                return -1;
+            };
             cap = (*attributes_p)[i].attribute_length * sizeof (u1);
             (*attributes_p)[i].info = (u1 *) malloc(cap);
             if (!(*attributes_p)[i].info)
