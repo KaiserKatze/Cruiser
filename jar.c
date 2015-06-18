@@ -10,6 +10,85 @@
 static int zip_readLine(struct zip_file *, char *, char **);
 
 extern int
+parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
+{
+    struct zip *z;
+    struct zip_stat st;
+    struct zip_file *zf;
+    int error;
+    zip_uint64_t entries_count, entry_index;
+    char *buffer;
+    const char *entry_name;
+    struct BufferInput input;
+
+    error = 0;
+    buffer = (char *) 0;
+    z = zip_open(path, 0, &error);
+    if (!z)
+    {
+        fprintf(stderr, "Fail to open jar archieve!\r\n");
+        goto close;
+    }
+    buffer = (char *) malloc(BUFSIZE);
+    if (!buffer)
+    {
+        fprintf(stderr, "Fail to allocate memory!\r\n");
+        goto close;
+    }
+    bzero(buffer, BUFSIZE);
+    bzero(cf, sizeof (ClassFile));
+
+    // search .class file with 'name'
+    entries_count = zip_get_num_entries(z, 0);
+    if (entries_count < 0)
+    {
+        fprintf(stderr, "Runtime exception in function %s!\r\n", __func__);
+        goto close;
+    }
+    printf("\r\nEntry count: %lli\r\n\r\n", entries_count);
+    for (entry_index = 0; entry_index < entries_count; entry_index++)
+    {
+        zip_stat_init(&st);
+        if (zip_stat_index(z, entry_index, 0, &st))
+        {
+            fprintf(stderr, "Fail to retrieve entry[%lli] stat!\r\n", entry_index);
+            goto close;
+        }
+        if (st.valid & ZIP_STAT_NAME)
+        {
+            entry_name = st.name;
+            if (!strcmp(entry_name, name))
+            {
+                printf("Class '%s' in queue.\r\n", entry_name);
+
+                zf = zip_fopen_index(z, entry_index, 0);
+                if (!zf)
+                {
+                    fprintf(stderr, "Fail to open manifest!\r\n");
+                    goto close;
+                }
+
+                input.entry = zf;
+                input.bufsize = BUFSIZE;
+                input.buffer = buffer;
+                input.fp = fillBuffer_z;
+                input.more = 1;
+
+                parseClassfile(&input, cf);
+
+                break;
+            }
+        }
+    }
+
+close:
+    zip_close(z);
+    free(buffer);
+    printf("---------------------------\r\n");
+    return error;
+}
+
+extern int
 parseJarfile(const char *path, JarFile *jf)
 {
     struct zip *z;

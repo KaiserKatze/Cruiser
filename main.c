@@ -12,20 +12,16 @@
 
 #include "jar.h"
 
+#define OPTION_JAR                          "-jar"
+#define OPTION_CLASSPATH                    "-classpath"
+
 int
 main(int argc, char** argv)
 {
-    char *path;
+    char *path, *name;
     struct BufferInput input;
     JarFile jf;
     ClassFile cf;
-
-    if (argc < 2)
-    {
-usage:
-        fprintf(stderr, "Usage:\r\n\t%s [-jar] <path>\r\n", argv[0]);
-        return -1;
-    }
 
     if (argc == 2)
     {
@@ -54,17 +50,42 @@ usage:
         freeClassfile(&cf);
         free(input.buffer);
         input.buffer = (char *) 0;
+
+        goto good_end;
     }
     else if (argc == 3)
     {
-        if (strncmp(argv[1], "-jar", 4))
-            goto usage;
-        path = argv[2];
-        printf("Parsing JarFile '%s'...\r\n", path);
-        parseJarfile(path, &jf);
-        freeJarfile(&jf);
+        if (!strcmp(argv[1], OPTION_JAR))
+        {
+            path = argv[2];
+            printf("Parsing JarFile '%s'...\r\n", path);
+            parseJarfile(path, &jf);
+            freeJarfile(&jf);
+
+            goto good_end;
+        }
+    }
+    else if (argc == 4)
+    {
+        if (!strcmp(argv[1], OPTION_CLASSPATH))
+        {
+            path = argv[2];
+            name = argv[3];
+            printf("Parsing ClassFile '%s' in JAR '%s'...\r\n",
+                    name, path);
+            parseClassfileInJar(path, name, &cf);
+            freeClassfile(&cf);
+
+            goto good_end;
+        }
     }
 
+    fprintf(stderr,
+        "Usage: %s %s <jarfile>\r\n"
+        "   or  %s [%s <path>] <classfile>\r\n",
+        argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
+    return -1;
+good_end:
     return 0;
 }
 
