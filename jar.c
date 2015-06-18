@@ -202,13 +202,26 @@ close:
 }
 
 extern int
-freeJarfile(JarFile jf)
+freeJarfile(JarFile *jf)
 {
     zip_uint64_t i;
 
-    free(jf.mainclass);
-    free(jf.classpath);
-    free(jf.classes);
+    printf("Releasing JarFile memory...\r\n");
+    free(jf->mainclass);
+    jf->mainclass = (char *) 0;
+    free(jf->classpath);
+    jf->classpath = (char *) 0;
+    if (jf->classes)
+    {
+        for (i = 0; i < jf->class_count; i++)
+        {
+            printf("%4lli> ", i);
+            freeClassfile(&(jf->classes[i]));
+        }
+        free(jf->classes);
+        jf->classes = (ClassFile *) 0;
+    }
+    jf->class_count = 0;
     
     return 0;
 }

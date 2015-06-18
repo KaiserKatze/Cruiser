@@ -421,7 +421,7 @@ freeClassfile(ClassFile *cf)
 {
     u2 i;
 
-    printf("Releasing memory...\r\n");
+    printf("Releasing ClassFile memory...\r\n");
     if (cf->constant_pool)
     {
         for (i = 1u; i < cf->constant_pool_count; i++)

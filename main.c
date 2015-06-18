@@ -16,17 +16,54 @@ int
 main(int argc, char** argv)
 {
     char *path;
+    struct BufferInput input;
     JarFile jf;
+    ClassFile cf;
 
     if (argc < 2)
     {
-        fprintf(stderr, "Usage:\r\n\t%s <path>\r\n", argv[0]);
+usage:
+        fprintf(stderr, "Usage:\r\n\t%s [-jar] <path>\r\n", argv[0]);
         return -1;
     }
 
-    path = argv[1];
-    parseJarfile(path, &jf);
-    freeJarfile(jf);
+    if (argc == 2)
+    {
+        path = argv[1];
+        printf("Parsing ClassFile '%s'...\r\n", path);
+
+        input.buffer = (char *) malloc(input.bufsize = 1024);
+        if (!input.buffer)
+            return -1;
+
+        input.fp = fillBuffer_f;
+
+        input.file = fopen(path, "r");
+        if (!input.file)
+        {
+            free(input.buffer);
+            input.buffer = (char *) 0;
+            return -1;
+        }
+
+        input.more = 1;
+
+        bzero(&cf, sizeof (ClassFile));
+        parseClassfile(&input, &cf);
+
+        freeClassfile(&cf);
+        free(input.buffer);
+        input.buffer = (char *) 0;
+    }
+    else if (argc == 3)
+    {
+        if (strncmp(argv[1], "-jar", 4))
+            goto usage;
+        path = argv[2];
+        printf("Parsing JarFile '%s'...\r\n", path);
+        parseJarfile(path, &jf);
+        freeJarfile(&jf);
+    }
 
     return 0;
 }

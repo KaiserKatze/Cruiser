@@ -17,7 +17,7 @@ extern "C" {
     } JarFile;
 
     extern int parseJarfile(const char *, JarFile *);
-    extern int freeJarfile(JarFile);
+    extern int freeJarfile(JarFile *);
 
 #ifdef  __cplusplus
 }
