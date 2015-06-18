@@ -5,10 +5,10 @@
 
 #include "java.h"
 
-static u1 ru1(struct zip_file *, char *, int, int *, int *);
-static u2 ru2(struct zip_file *, char *, int, int *, int *);
-static u4 ru4(struct zip_file *, char *, int, int *, int *);
-static int rbs(char *, struct zip_file *, char *, int, int *, int *, int);
+static u1 ru1(struct BufferInput *);
+static u2 ru2(struct BufferInput *);
+static u4 ru4(struct BufferInput *);
+static int rbs(char *, struct BufferInput *, int);
 
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
@@ -16,7 +16,7 @@ static const char *get_cp_name(u1);
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
 
-static int loadAttributes(struct zip_file *, char *, int, int *, int *, u2 *, attr_info **);
+static int loadAttributes(struct BufferInput * input, u2 *, attr_info **);
 static int releaseAttributes(u2, attr_info *);
 
 static CONSTANT_Utf8_info *getConstant_Utf8(ClassFile *, u2);
@@ -26,13 +26,8 @@ static int checkAttribute_field(ClassFile *, field_info *, int);
 static int checkAttribute_method(ClassFile *, method_info *, int);
 
 extern int
-parseClassfile(
-        struct zip_file *zf,
-        char *buffer,
-        int bufsize,
-        ClassFile *cf)
+parseClassfile(struct BufferInput * input, ClassFile *cf)
 {
-    int bufsrc, bufdst;
     u2 i, j;
     int cap;
     cp_info *info;
@@ -53,36 +48,30 @@ parseClassfile(
         fprintf(stderr, "Parameter 'cf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
-    if (!buffer)
-    {
-        fprintf(stderr, "Parameter 'buffer' in function %s is NULL!\r\n", __func__);
-        return -1;
-    }
-    bzero(buffer, bufsize);
 
-    bufsrc = bufdst = 0;
+    bzero(input->buffer, input->bufsize);
+    input->bufsrc = input->bufdst = 0;
 
     // validate file structure
-    cf->magic =
-        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+    cf->magic = ru4(input);
     if (cf->magic != 0XCAFEBABE)
     {
-        printf("File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
+        fprintf(stderr, "File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
         goto close;
     }
     printf("File structure is valid[0x%X], proceeding...\r\n", cf->magic);
 
     // retrieve version
     cf->minor_version =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     cf->major_version =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
 
     // retrieve constant pool size
     cf->constant_pool_count =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
@@ -90,7 +79,7 @@ parseClassfile(
         cf->constant_pool = (cp_info *) malloc(cap);
         if (!cf->constant_pool)
         {
-            printf("Fail to allocate memory.\r\n");
+            fprintf(stderr, "Fail to allocate memory.\r\n");
             goto close;
         }
         printf("Constant pool allocated.\r\n");
@@ -102,15 +91,14 @@ parseClassfile(
         for (i = 1u; i < cf->constant_pool_count; i++)
         { // LOOP
             info = &(cf->constant_pool[i]);
-            info->tag =
-                ru1(zf, buffer, bufsize, &bufsrc, &bufdst);
+            info->tag = ru1(input);
             printf("\t#%-5i = %-18s ",
                     i, get_cp_name(info->tag));
             cap = get_cp_size(info->tag);
             info->data = malloc(cap);
             if (!info->data)
             {
-                printf("Fail to allocate memory!\r\n");
+                fprintf(stderr, "Fail to allocate memory!\r\n");
                 goto close;
             }
             bzero(info->data, cap);
@@ -119,7 +107,7 @@ parseClassfile(
                 case CONSTANT_Class:
                     cci = (CONSTANT_Class_info *) info;
                     cci->data->name_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i\r\n", cci->data->name_index);
 
@@ -130,9 +118,9 @@ parseClassfile(
                 case CONSTANT_InterfaceMethodref:
                     cfi = (CONSTANT_Fieldref_info *) info;
                     cfi->data->class_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
                     cfi->data->name_and_type_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i.#%i\r\n", cfi->data->class_index, cfi->data->name_and_type_index);
 
@@ -144,7 +132,7 @@ parseClassfile(
                 case CONSTANT_Float:
                     cii = (CONSTANT_Integer_info *) info;
                     cii->data->bytes =
-                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru4(input);
 
                     printf("%i\r\n", cii->data->bytes);
 
@@ -154,9 +142,9 @@ parseClassfile(
                 case CONSTANT_Double:
                     cli = (CONSTANT_Long_info *) info;
                     cli->data->high_bytes =
-                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru4(input);
                     cli->data->low_bytes =
-                        ru4(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru4(input);
                     // all 8-byte constants take up two entries in the constant_pool table of the class file
                     ++i;
 
@@ -167,9 +155,9 @@ parseClassfile(
                 case CONSTANT_NameAndType:
                     cni = (CONSTANT_NameAndType_info *) info;
                     cni->data->name_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
                     cni->data->descriptor_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i.#%i\r\n", cni->data->name_index, cni->data->descriptor_index);
 
@@ -178,7 +166,7 @@ parseClassfile(
                 case CONSTANT_String:
                     csi = (CONSTANT_String_info *) info;
                     csi->data->string_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i\r\n", csi->data->string_index);
 
@@ -187,17 +175,17 @@ parseClassfile(
                 case CONSTANT_Utf8:
                     cui = (CONSTANT_Utf8_info *) info;
                     cui->data->length =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
                     cap = (cui->data->length + 1) * sizeof (u1);
                     cui->data->bytes = (u1 *) malloc(cap);
                     if (!cui->data->bytes)
                     {
-                        printf("Fail to allocate memory!\r\n");
+                        fprintf(stderr, "Fail to allocate memory!\r\n");
                         goto close;
                     }
                     bzero(cui->data->bytes, cap);
 
-                    if (rbs(cui->data->bytes, zf, buffer, bufsize, &bufsrc, &bufdst, cui->data->length) < 0)
+                    if (rbs(cui->data->bytes, input, cui->data->length) < 0)
                     {
                         fprintf(stderr, "IO exception in function %s!\r\n", __func__);
                         goto close;
@@ -216,9 +204,9 @@ parseClassfile(
                 case CONSTANT_MethodHandle:
                     cmhi = (CONSTANT_MethodHandle_info *) info;
                     cmhi->data->reference_kind =
-                        ru1(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru1(input);
                     cmhi->data->reference_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("%i #%i\r\n", cmhi->data->reference_kind, cmhi->data->reference_index);
 
@@ -227,7 +215,7 @@ parseClassfile(
                 case CONSTANT_MethodType:
                     cmti = (CONSTANT_MethodType_info *) info;
                     cmti->data->descriptor_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i\r\n", cmti->data->descriptor_index);
 
@@ -236,9 +224,9 @@ parseClassfile(
                 case CONSTANT_InvokeDynamic:
                     cidi = (CONSTANT_InvokeDynamic_info *) info;
                     cidi->data->bootstrap_method_attr_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
                     cidi->data->name_and_type_index =
-                        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                        ru2(input);
 
                     printf("#%i.#%i\r\n",
                             cidi->data->bootstrap_method_attr_index,
@@ -254,18 +242,18 @@ parseClassfile(
     } // constant pool parsed
 
     cf->access_flags =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     cf->this_class =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     cf->super_class =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("\r\nAccess flags     : 0x%X\r\n"
             "Class this_class : 0x%X\r\n"
             "Class super_class: 0x%X\r\n",
             cf->access_flags, cf->this_class, cf->super_class);
 
     cf->interfaces_count =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("\r\nInterface count: %i\r\n", cf->interfaces_count);
     if (cf->interfaces_count > 0)
     {
@@ -281,7 +269,7 @@ parseClassfile(
         for (i = 0u; i < cf->interfaces_count; i++)
         {
             cf->interfaces[i] =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             cci = (CONSTANT_Class_info *) &(cf->constant_pool[cf->interfaces[i]]);
             if (!cci || cci->tag != CONSTANT_Class)
             {
@@ -303,7 +291,7 @@ parseClassfile(
     }
 
     cf->fields_count =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("\r\nField count: %i\r\n", cf->fields_count);
     if (cf->fields_count > 0)
     {
@@ -319,11 +307,11 @@ parseClassfile(
         for (i = 0u; i < cf->fields_count; i++)
         {
             cf->fields[i].access_flags =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             cf->fields[i].name_index =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             cf->fields[i].descriptor_index =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
             printf("Field[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -337,7 +325,7 @@ parseClassfile(
                     );
             free(buf);
             buf = (char *) 0;
-            loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+            loadAttributes(input,
                     &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             printf("\tField Attribute count: %i\r\n",
                     cf->fields[i].attributes_count);
@@ -356,7 +344,7 @@ parseClassfile(
     }
 
     cf->methods_count =
-        ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+        ru2(input);
     printf("\r\nMethod count: %i\r\n", cf->methods_count);
     if (cf->methods_count > 0)
     {
@@ -365,18 +353,18 @@ parseClassfile(
         cf->methods = (method_info *) malloc(cap);
         if (!cf->methods)
         {
-            printf("Fail to allocate memory!\r\n");
+            fprintf(stderr, "Fail to allocate memory!\r\n");
             goto close;
         }
         bzero(cf->methods, cap);
         for (i = 0u; i < cf->methods_count; i++)
         {
             cf->methods[i].access_flags =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             cf->methods[i].name_index =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             cf->methods[i].descriptor_index =
-                ru2(zf, buffer, bufsize, &bufsrc, &bufdst);
+                ru2(input);
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             printf("Method[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
@@ -390,7 +378,7 @@ parseClassfile(
                     getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->bytes);
             free(buf);
             buf = (char *) 0;
-            loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+            loadAttributes(input,
                     &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
             printf("\tMethod Attribute count: %i\r\n",
                     cf->methods[i].attributes_count);
@@ -409,7 +397,7 @@ parseClassfile(
     }
 
     printf("\r\nParsing attributes...\r\n");
-    loadAttributes(zf, buffer, bufsize, &bufsrc, &bufdst,
+    loadAttributes(input,
             &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
@@ -597,35 +585,97 @@ parse_method_descriptor(int desc_len, char * desc)
 }
 #endif
 
-static char *
-zfill(struct zip_file *zf, char *buf,
-        int bufsize, int *bufsrc, int *bufdst, int nbits)
+static int
+checkInput(struct BufferInput * input)
 {
-    int buflen, rbit;
+    if (!input)
+    {
+        fprintf(stderr, "Member 'input' is NULL!\r\n");
+        return -1;
+    }
+    if (!input->buffer)
+    {
+        fprintf(stderr, "Member 'buffer' is NULL!\r\n");
+        return -1;
+    }
+    if (input->bufsrc > input->bufdst)
+    {
+        fprintf(stderr, "Assertion error in function %s: "
+                "bufsrc[%i] > bufdst[%i]\r\n",
+                __func__, input->bufsrc, input->bufdst);
+        return -1;
+    }
 
+    return 0;
+}
+
+extern char *
+fillBuffer_f(struct BufferInput * input, int nbits)
+{
+    FILE *file;
+    int bufsize, buflen, cap, rbit;
+
+    if (checkInput(input))
+        return (char *) 0;
+    file = input->file;
+    bufsize = input->bufsize;
+    if (!file)
+    {
+        fprintf(stderr, "Member 'file' is NULL!\r\n");
+    }
+    if (nbits < 0)
+    {
+        fprintf(stderr, "Parameter 'nbits' in function %s is negative!\r\n", __func__);
+        return (char *) 0;
+    }
+
+    // calculate the length of remaining data
+    buflen = input->bufdst - input->bufsrc;
+    // the remaining data is not enough
+    if (buflen < nbits)
+    {
+        // move memory
+        if (input->bufsrc != 0)
+        {
+            memmove(input->buffer, &(input->buffer[input->bufsrc]), buflen);
+            input->bufsrc = 0;
+            input->bufdst = buflen;
+        }
+        // fill in more data if possible
+        if (input->more)
+        {
+            cap = bufsize - buflen;
+            rbit = fread(&(input->buffer[buflen]), sizeof (u1), cap, file);
+            if (rbit < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                return (char *) 0;
+            }
+            else if (rbit < cap)
+                input->more = 0;
+
+            input->bufdst += rbit;
+            if (input->bufdst < bufsize)
+                bzero(&(input->buffer[input->bufdst]), bufsize - input->bufdst);
+        }
+    }
+
+    return &(input->buffer[input->bufsrc]);
+}
+
+extern char *
+fillBuffer_z(struct BufferInput * input, int nbits)
+{
+    struct zip_file *zf;
+    int bufsize, buflen, cap, rbit;
+
+    if (checkInput(input))
+        return (char *) 0;
+    zf = input->entry;
+    bufsize = input->bufsize;
     if (!zf)
     {
-        fprintf(stderr, "Parameter 'zf' in function %s is NULL!\r\n", __func__);
-        return (char *) 0;
-    }
-    if (!buf)
-    {
-        fprintf(stderr, "Parameter 'buf' in function %s is NULL!\r\n", __func__);
-        return (char *) 0;
-    }
-    if (!bufsrc)
-    {
-        fprintf(stderr, "Parameter 'bufsrc' in function %s is NULL!\r\n", __func__);
-        return (char *) 0;
-    }
-    if (!bufdst)
-    {
-        fprintf(stderr, "Parameter 'bufdst' in function %s is NULL!\r\n", __func__);
-        return (char *) 0;
-    }
-    if (*bufsrc > *bufdst)
-    {
-        fprintf(stderr, "Assertion error in function %s: *bufsrc > *bufdst\r\n", __func__);
+        fprintf(stderr, "Member 'zf' is NULL!\r\n");
         return (char *) 0;
     }
     if (nbits < 0)
@@ -635,88 +685,95 @@ zfill(struct zip_file *zf, char *buf,
     }
 
     // calculate the length of remaining data
-    buflen = *bufdst - *bufsrc;
+    buflen = input->bufdst - input->bufsrc;
     // the remaining data is not enough
     if (buflen < nbits)
     {
         // move memory
-        if (*bufsrc != 0)
+        if (input->bufsrc != 0)
         {
-            printf("Moving memory!\r\n");
-            memmove(buf, &(buf[*bufsrc]), buflen);
-            *bufsrc = 0;
-            *bufdst = buflen;
+            memmove(input->buffer, &(input->buffer[input->bufsrc]), buflen);
+            input->bufsrc = 0;
+            input->bufdst = buflen;
         }
-        // fill in more data
-        printf("Filling in data!\r\n");
-        if ((rbit = zip_fread(zf, &(buf[buflen]), bufsize - buflen)) < 0)
+        // fill in more data if possible
+        if (input->more)
         {
-            fprintf(stderr, "IO exception in function %s!\r\n", __func__);
-            return (char *) 0;
+            cap = bufsize - buflen;
+            rbit = zip_fread(zf, &(input->buffer[buflen]), cap);
+            if (rbit < 0)
+            {
+                fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+                return (char *) 0;
+            }
+            else if (rbit < cap)
+                input->more = 0;
+
+            input->bufdst += rbit;
+            if (input->bufdst < bufsize)
+                bzero(&(input->buffer[input->bufdst]), bufsize - input->bufdst);
         }
-        *bufdst += rbit;
-        if (*bufdst < bufsize)
-            bzero(&(buf[*bufdst]), bufsize - *bufdst);
     }
 
-    return &(buf[*bufsrc]);
+    return &(input->buffer[input->bufsrc]);
 }
 
-static int rbs(char *out, struct zip_file *zf, char *buf,
-        int bufsize, int *bufsrc, int *bufdst, int nbits)
+static int rbs(char *out, struct BufferInput * input, int nbits)
 {
+    char *buf;
+
     if (!out)
     {
         fprintf(stderr, "Parameter 'out' in function %s is NULL!\r\n", __func__);
         return -1;
     }
 
-    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, nbits);
+    buf = (*input->fp)(input, nbits);
     if (buf < 0)
         return -1;
     memcpy(out, buf, nbits);
-    *bufsrc += nbits;
+    input->bufsrc += nbits;
 
     return nbits;
 }
 
 static u1
-ru1(struct zip_file *zf, char *buf,
-        int bufsize, int *bufsrc, int *bufdst)
+ru1(struct BufferInput * input)
 {
     u1 res;
+    char *ptr;
 
-    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u1));
-    res = *(u1 *) buf;
-    *bufsrc += sizeof (u1);
+    ptr = (*input->fp)(input, sizeof (u1));
+    res = *(u1 *) ptr;
+    input->bufsrc += sizeof (u1);
 
     return res;
 }
 
 static u2
-ru2(struct zip_file *zf, char *buf,
-        int bufsize, int *bufsrc, int *bufdst)
+ru2(struct BufferInput * input)
 {
     u2 res;
+    char *ptr;
 
-    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u2));
-    res = *(u2 *) buf;
+    ptr = (*input->fp)(input, sizeof (u2));
+    res = *(u2 *) ptr;
     res = htobe16(res);
-    *bufsrc += sizeof (u2);
+    input->bufsrc += sizeof (u2);
 
     return res;
 }
 
 static u4
-ru4(struct zip_file *zf, char *buf,
-        int bufsize, int *bufsrc, int *bufdst)
+ru4(struct BufferInput * input)
 {
     u4 res;
+    char *ptr;
 
-    buf = zfill(zf, buf, bufsize, bufsrc, bufdst, sizeof (u4));
-    res = *(u4 *) buf;
+    ptr = (*input->fp)(input, sizeof (u4));
+    res = *(u4 *) ptr;
     res = htobe32(res);
-    *bufsrc += sizeof (u4);
+    input->bufsrc += sizeof (u4);
 
     return res;
 }
@@ -995,20 +1052,14 @@ end:
 }
 
 static int
-loadAttributes(
-    struct zip_file *zf,
-    char *buffer,
-    int bufsize,
-    int *bufsrc,
-    int *bufdst,
-    u2 *attr_count_p,
-    attr_info **attributes_p)
+loadAttributes(struct BufferInput * input,
+        u2 *attr_count_p, attr_info **attributes_p)
 {
     u2 i;
     int cap;
 
     *attr_count_p =
-        ru2(zf, buffer, bufsize, bufsrc, bufdst);
+        ru2(input);
     if (*attr_count_p > 0)
     {
         cap = sizeof (attr_info) * *attr_count_p;
@@ -1022,9 +1073,9 @@ loadAttributes(
         for (i = 0u; i < *attr_count_p; i++)
         {
             (*attributes_p)[i].attribute_name_index =
-                ru2(zf, buffer, bufsize, bufsrc, bufdst);
+                ru2(input);
             (*attributes_p)[i].attribute_length =
-                ru4(zf, buffer, bufsize, bufsrc, bufdst);
+                ru4(input);
             cap = (*attributes_p)[i].attribute_length * sizeof (u1);
             (*attributes_p)[i].info = (u1 *) malloc(cap);
             if (!(*attributes_p)[i].info)
@@ -1033,8 +1084,8 @@ loadAttributes(
                 return -1;
             }
             bzero((*attributes_p)[i].info, cap);
-            if (rbs((*attributes_p)[i].info, zf, buffer, bufsize,
-                    bufsrc, bufdst, (*attributes_p)[i].attribute_length) < 0)
+            if (rbs((*attributes_p)[i].info, input,
+                    (*attributes_p)[i].attribute_length) < 0)
             {
                 fprintf(stderr, "IO exception in function %s!\r\n", __func__);
                 return -1;

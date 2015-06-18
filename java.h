@@ -61,19 +61,66 @@ extern "C" {
 #define ACC_FIELD                       (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_VOLATILE | ACC_TRANSIENT | ACC_SYNTHETIC | ACC_ENUM)
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
 
+#define VER_ATTR_CONSTANTVALUE                          45.3f
+#define VER_ATTR_CODE                                   45.3f
+#define VER_ATTR_STACKMAPTABLE                          50.0f
+#define VER_ATTR_EXCEPTIONS                             45.3f
+#define VER_ATTR_INNERCLASSES                           45.3f
+#define VER_ATTR_ENCLOSINGMETHOD                        49.0f
+#define VER_ATTR_SYNTHETIC                              45.3f
+#define VER_ATTR_SIGNATURE                              49.0f
+#define VER_ATTR_SOURCEFILE                             45.3f
+#define VER_ATTR_SOURCEDEBUGEXTENSION                   49.0f
+#define VER_ATTR_LINENUMBERTABLE                        45.3f
+#define VER_ATTR_LOCALVARIABLETABLE                     45.3f
+#define VER_ATTR_LOCALVARIABLETYPETABLE                 49.0f
+#define VER_ATTR_DEPRECATED                             45.3f
+#define VER_ATTR_RUNTIMEVISIBLEANNOTATIONS              49.0f
+#define VER_ATTR_RUNTIMEINVISIBLEANNOTATIONS            49.0f
+#define VER_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     49.0f
+#define VER_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   49.0f
+#define VER_ATTR_ANNOTATIONDEFAULT                      49.0f
+#define VER_ATTR_BOOTSTRAPMETHODS                       51.0f
+
+// Cruise-specific constants
+#define TAG_ATTR_CONSTANTVALUE                          0x1
+#define TAG_ATTR_CODE                                   0x2
+#define TAG_ATTR_STACKMAPTABLE                          0x4
+#define TAG_ATTR_EXCEPTIONS                             0x8
+#define TAG_ATTR_INNERCLASSES                           0x10
+#define TAG_ATTR_ENCLOSINGMETHOD                        0x20
+#define TAG_ATTR_SYNTHETIC                              0x40
+#define TAG_ATTR_SIGNATURE                              0x80
+#define TAG_ATTR_SOURCEFILE                             0x100
+#define TAG_ATTR_SOURCEDEBUGEXTENSION                   0x200
+#define TAG_ATTR_LINENUMBERTABLE                        0x400
+#define TAG_ATTR_LOCALVARIABLETABLE                     0x800
+#define TAG_ATTR_LOCALVARIABLETYPETABLE                 0x1000
+#define TAG_ATTR_DEPRECATED                             0x2000
+#define TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS              0x4000
+#define TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS            0x8000
+#define TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     0x10000
+#define TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   0x20000
+#define TAG_ATTR_ANNOTATIONDEFAULT                      0x40000
+#define TAG_ATTR_BOOTSTRAPMETHODS                       0x80000
 
     typedef struct
     {
         u1 tag;
         void * data;
     } cp_info;
-    
-    typedef struct {
-        u2 attribute_name_index;    // 
+
+    typedef struct
+    {
+        u2 attribute_name_index;
         u4 attribute_length;
-        u1 * info;
+        // temporary storage
+        u1 *info;
+        // Cruise-specific members
+        u2 tag;
+        void *data;
     } attr_info;
-    
+
     typedef struct {
         u2 access_flags;            // 0x1, 0x2, 0x4, 0x8, 0x10, 0x40, 0x80, 0x1000, 0x4000
         u2 name_index;              // CONSTANT_Utf8_info
@@ -308,7 +355,28 @@ extern "C" {
         attr_info * attributes;
     } ClassFile;
 
-    extern int parseClassfile(struct zip_file *, char *, int, ClassFile *);
+    struct BufferInput;
+    typedef char *(*func_fillBuffer)(struct BufferInput *, int);
+
+    // Encapsulate FILE and struct zip_file pointer
+    struct BufferInput
+    {
+        union {
+            struct zip_file *entry;
+            FILE *file;
+        };
+        int bufsize;
+        char *buffer;
+        int bufsrc;
+        int bufdst;
+        func_fillBuffer fp;
+        char more;
+    };
+
+    extern char *fillBuffer_f(struct BufferInput *, int);
+    extern char *fillBuffer_z(struct BufferInput *, int);
+
+    extern int parseClassfile(struct BufferInput *, ClassFile *);
 
     extern int freeClassfile(ClassFile *);
 

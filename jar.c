@@ -20,6 +20,7 @@ parseJarfile(const char *path, JarFile *jf)
     zip_uint64_t *classes;
     char *buffer, *save, *str;
     const char *entry_name;
+    struct BufferInput input;
 
     error = 0;
     buffer = (char *) 0;
@@ -164,6 +165,10 @@ parseJarfile(const char *path, JarFile *jf)
         goto close;
     }
     bzero(jf->classes, cap);
+
+    input.bufsize = BUFSIZE;
+    input.buffer = buffer;
+    input.fp = fillBuffer_z;
     for (entry_index = 0; entry_index < class_count; entry_index++)
     {
         zip_stat_init(&st);
@@ -177,7 +182,13 @@ parseJarfile(const char *path, JarFile *jf)
             fprintf(stderr, "Fail to open manifest!\r\n");
             goto close;
         }
-        parseClassfile(zf, buffer, (int) BUFSIZE, &(jf->classes[entry_index]));
+
+        input.entry = zf;
+        input.more = 1;
+        printf("zip_file: %p\r\n"
+                "buffer  : %p\r\n"
+                "bufsize : %i\r\n", zf, buffer, BUFSIZE);
+        parseClassfile(&input, &(jf->classes[entry_index]));
 
         printf("\r\n");
     }
@@ -186,6 +197,7 @@ close:
     zip_close(z);
     free(buffer);
     free(classes);
+    printf("---------------------------\r\n");
     return error;
 }
 

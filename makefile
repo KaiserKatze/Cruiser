@@ -4,3 +4,4 @@ cruise : main.c java.c java.h jar.c jar.h
 
 clean:
 	if [ -d build ]; then rm -r build; fi
+	find -type f -name "*.log" -delete
