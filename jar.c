@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "jar.h"
+#include "log.h"
 
 #define ENTRY_MANIFEST          "META-INF/MANIFEST.MF\0"
 #define BUFSIZE                 10240
@@ -26,13 +27,13 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
     z = zip_open(path, 0, &error);
     if (!z)
     {
-        fprintf(stderr, "Fail to open jar archieve!\r\n");
+        logError("Fail to open jar archieve!\r\n");
         goto close;
     }
     buffer = (char *) malloc(BUFSIZE);
     if (!buffer)
     {
-        fprintf(stderr, "Fail to allocate memory!\r\n");
+        logError("Fail to allocate memory!\r\n");
         goto close;
     }
     bzero(buffer, BUFSIZE);
@@ -42,16 +43,16 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
     entries_count = zip_get_num_entries(z, 0);
     if (entries_count < 0)
     {
-        fprintf(stderr, "Runtime exception in function %s!\r\n", __func__);
+        logError("Runtime exception in function %s!\r\n", __func__);
         goto close;
     }
-    printf("\r\nEntry count: %lli\r\n\r\n", entries_count);
+    logInfo("\r\nEntry count: %lli\r\n\r\n", entries_count);
     for (entry_index = 0; entry_index < entries_count; entry_index++)
     {
         zip_stat_init(&st);
         if (zip_stat_index(z, entry_index, 0, &st))
         {
-            fprintf(stderr, "Fail to retrieve entry[%lli] stat!\r\n", entry_index);
+            logError("Fail to retrieve entry[%lli] stat!\r\n", entry_index);
             goto close;
         }
         if (st.valid & ZIP_STAT_NAME)
@@ -59,12 +60,12 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
             entry_name = st.name;
             if (!strcmp(entry_name, name))
             {
-                printf("Class '%s' in queue.\r\n", entry_name);
+                logInfo("Class '%s' in queue.\r\n", entry_name);
 
                 zf = zip_fopen_index(z, entry_index, 0);
                 if (!zf)
                 {
-                    fprintf(stderr, "Fail to open manifest!\r\n");
+                    logError("Fail to open manifest!\r\n");
                     goto close;
                 }
 
@@ -84,7 +85,7 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
 close:
     zip_close(z);
     free(buffer);
-    printf("---------------------------\r\n");
+    logInfo("---------------------------\r\n");
     return error;
 }
 
@@ -107,13 +108,13 @@ parseJarfile(const char *path, JarFile *jf)
     z = zip_open(path, 0, &error);
     if (!z)
     {
-        fprintf(stderr, "Fail to open jar archieve!\r\n");
+        logError("Fail to open jar archieve!\r\n");
         goto close;
     }
     buffer = (char *) malloc(BUFSIZE);
     if (!buffer)
     {
-        fprintf(stderr, "Fail to allocate memory!\r\n");
+        logError("Fail to allocate memory!\r\n");
         goto close;
     }
     bzero(buffer, BUFSIZE);
@@ -123,18 +124,18 @@ parseJarfile(const char *path, JarFile *jf)
     zip_stat_init(&st);
     if (zip_stat(z, ENTRY_MANIFEST, 0, &st))
     {
-        fprintf(stderr, "Fail to retrieve manifest entry stat!\r\n");
+        logError("Fail to retrieve manifest entry stat!\r\n");
         goto close;
     }
     if (st.valid & ZIP_STAT_INDEX)
     {
         manifest_index = st.index;
-        printf("Manifest entry index: %lli\r\n", manifest_index);
+        logInfo("Manifest entry index: %lli\r\n", manifest_index);
     }
     zf = zip_fopen(z, ENTRY_MANIFEST, 0);
     if (!zf)
     {
-        fprintf(stderr, "Fail to open manifest!\r\n");
+        logError("Fail to open manifest!\r\n");
         goto close;
     }
     save = buffer;
@@ -155,7 +156,7 @@ parseJarfile(const char *path, JarFile *jf)
             jf->mainclass = (char *) malloc(j + 1);
             if (!jf->mainclass)
             {
-                fprintf(stderr, "Fail to allocate memory!\r\n");
+                logError("Fail to allocate memory!\r\n");
                 goto close;
             }
             memcpy(jf->mainclass, str, j);
@@ -178,7 +179,7 @@ parseJarfile(const char *path, JarFile *jf)
             jf->classpath = (char *) malloc(j + 1);
             if (!jf->classpath)
             {
-                fprintf(stderr, "Fail to allocate memory!\r\n");
+                logError("Fail to allocate memory!\r\n");
                 goto close;
             }
             memcpy(jf->classpath, str, j);
@@ -188,10 +189,10 @@ parseJarfile(const char *path, JarFile *jf)
     }
     if (rbit < 0)
     {
-        fprintf(stderr, "IO exception[%i] in function %s!\r\n", rbit, __func__);
+        logError("IO exception[%i] in function %s!\r\n", rbit, __func__);
         goto close;
     }
-    printf("Main-Class: %s\r\nClasspath:%s\r\n", jf->mainclass, jf->classpath);
+    logInfo("Main-Class: %s\r\nClasspath:%s\r\n", jf->mainclass, jf->classpath);
 
     // iterate .class files
     entries_count = zip_get_num_entries(z, 0);
@@ -199,10 +200,10 @@ parseJarfile(const char *path, JarFile *jf)
     classes = (zip_uint64_t *) malloc(entries_count * sizeof (zip_uint64_t));
     if (entries_count < 0)
     {
-        fprintf(stderr, "Entry count: %lli\r\n", entries_count);
+        logError("Entry count: %lli\r\n", entries_count);
         goto close;
     }
-    printf("\r\nEntry count: %lli\r\n\r\n", entries_count);
+    logInfo("\r\nEntry count: %lli\r\n\r\n", entries_count);
     for (entry_index = 0; entry_index < entries_count; entry_index++)
     {
         if (entry_index == manifest_index)
@@ -211,7 +212,7 @@ parseJarfile(const char *path, JarFile *jf)
         zip_stat_init(&st);
         if (zip_stat_index(z, entry_index, 0, &st))
         {
-            fprintf(stderr, "Fail to retrieve entry[%lli] stat!\r\n", entry_index);
+            logError("Fail to retrieve entry[%lli] stat!\r\n", entry_index);
             goto close;
         }
         if (st.valid & ZIP_STAT_NAME)
@@ -229,18 +230,18 @@ parseJarfile(const char *path, JarFile *jf)
             if (str)
             {
                 classes[class_count++] = entry_index;
-                printf("Class '%s' in queue.\r\n", entry_name);
+                logInfo("Class '%s' in queue.\r\n", entry_name);
             }
         }
     }
 
-    printf("\r\nClass count: %lli\r\n", class_count);
+    logInfo("\r\nClass count: %lli\r\n", class_count);
     jf->class_count = class_count;
     cap = class_count * sizeof (ClassFile);
     jf->classes = (ClassFile *) malloc(cap);
     if (!jf->classes)
     {
-        fprintf(stderr, "Fail to allocate memory!\r\n");
+        logError("Fail to allocate memory!\r\n");
         goto close;
     }
     bzero(jf->classes, cap);
@@ -252,31 +253,31 @@ parseJarfile(const char *path, JarFile *jf)
     {
         zip_stat_init(&st);
         zip_stat_index(z, classes[entry_index], 0, &st);
-        printf("\r\n%4lli> Parsing class '%s'...\r\n",
+        logInfo("\r\n%4lli> Parsing class '%s'...\r\n",
                 entry_index, st.name);
 
         zf = zip_fopen_index(z, classes[entry_index], 0);
         if (!zf)
         {
-            fprintf(stderr, "Fail to open manifest!\r\n");
+            logError("Fail to open manifest!\r\n");
             goto close;
         }
 
         input.entry = zf;
         input.more = 1;
-        printf("zip_file: %p\r\n"
+        logInfo("zip_file: %p\r\n"
                 "buffer  : %p\r\n"
                 "bufsize : %i\r\n", zf, buffer, BUFSIZE);
         parseClassfile(&input, &(jf->classes[entry_index]));
 
-        printf("\r\n");
+        logInfo("\r\n");
     }
 
 close:
     zip_close(z);
     free(buffer);
     free(classes);
-    printf("---------------------------\r\n");
+    logInfo("---------------------------\r\n");
     return error;
 }
 
@@ -285,7 +286,7 @@ freeJarfile(JarFile *jf)
 {
     zip_uint64_t i;
 
-    printf("Releasing JarFile memory...\r\n");
+    logInfo("Releasing JarFile memory...\r\n");
     free(jf->mainclass);
     jf->mainclass = (char *) 0;
     free(jf->classpath);
@@ -294,7 +295,7 @@ freeJarfile(JarFile *jf)
     {
         for (i = 0; i < jf->class_count; i++)
         {
-            printf("%4lli> ", i);
+            logInfo("%4lli> ", i);
             freeClassfile(&(jf->classes[i]));
         }
         free(jf->classes);
@@ -312,12 +313,12 @@ zip_readLine(struct zip_file *zf, char *buffer, char **save)
 
     if (!zf)
     {
-        fprintf(stderr, "Parameter 'zf' in function %s is NULL!\r\n", __func__);
+        logError("Parameter 'zf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
     if (!save)
     {
-        fprintf(stderr, "Parameter 'save' in function %s is NULL!\r\n", __func__);
+        logError("Parameter 'save' in function %s is NULL!\r\n", __func__);
         return -2;
     }
     // first read
@@ -326,7 +327,7 @@ zip_readLine(struct zip_file *zf, char *buffer, char **save)
         rbit = zip_fread(zf, buffer, BUFSIZE);
         if (rbit < 0)
         {
-            fprintf(stderr, "Fail to read from zip file!\r\n");
+            logError("Fail to read from zip file!\r\n");
             return -3;
         }
     }
@@ -337,14 +338,14 @@ zip_readLine(struct zip_file *zf, char *buffer, char **save)
         rbit = BUFSIZE - len;
         if (memmove(buffer, *save, rbit) != buffer)
         {
-            fprintf(stderr, "Fail to move memory!\r\n");
+            logError("Fail to move memory!\r\n");
             return -4;
         }
         // fill in empty buffer
         i = zip_fread(zf, buffer + rbit, len);
         if (i < 0)
         {
-            fprintf(stderr, "IO exception in function %s!\r\n", __func__);
+            logError("IO exception in function %s!\r\n", __func__);
             return -5;
         }
         else if (i > 0)
@@ -356,7 +357,7 @@ zip_readLine(struct zip_file *zf, char *buffer, char **save)
     }
     else
     {
-        fprintf(stderr, "Runtime error in function %s!\r\n", __func__);
+        logError("Runtime error in function %s!\r\n", __func__);
         return -6;
     }
 
