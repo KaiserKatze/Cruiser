@@ -1187,6 +1187,7 @@ loadAttributes(struct BufferInput * input,
 {
     u2 i;
     int cap;
+    attr_info *attribute;
 
     logInfo("Loading attributes...\r\n");
     if (ru2(&(*attr_count_p), input) < 0)
@@ -1207,26 +1208,27 @@ loadAttributes(struct BufferInput * input,
         bzero(*attributes_p, cap);
         for (i = 0u; i < *attr_count_p; i++)
         {
-            if (ru2(&((*attributes_p)[i].attribute_name_index), input) < 0)
+            attribute = &((*attributes_p)[i]);
+            if (ru2(&(attribute->attribute_name_index), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
                 return -1;
             }
-            if (ru4(&((*attributes_p)[i].attribute_length), input) < 0)
+            if (ru4(&(attribute->attribute_length), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
                 return -1;
             }
-            cap = (*attributes_p)[i].attribute_length * sizeof (u1);
-            (*attributes_p)[i].info = (u1 *) malloc(cap);
-            if (!(*attributes_p)[i].info)
+            cap = attribute->attribute_length * sizeof (u1);
+            attribute->info = (u1 *) malloc(cap);
+            if (!attribute->info)
             {
                 logError("Fail to allocate memory!\r\n");
                 return -1;
             }
-            bzero((*attributes_p)[i].info, cap);
-            if (rbs((*attributes_p)[i].info, input,
-                    (*attributes_p)[i].attribute_length) < 0)
+            bzero(attribute->info, cap);
+            if (rbs(attribute->info, input,
+                    attribute->attribute_length) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
                 return -1;
