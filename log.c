@@ -6,7 +6,7 @@
 extern int
 logInfo(const char *format, ...)
 {
-#ifdef DEBUG
+#if (defined DEBUG && defined LOG_INFO)
     int res;
     va_list vl;
 
@@ -23,7 +23,7 @@ logInfo(const char *format, ...)
 extern int
 logError(const char *format, ...)
 {
-#ifdef DEBUG
+#if (defined DEBUG && defined LOG_ERROR)
     int res;
     va_list vl;
 
@@ -35,12 +35,4 @@ logError(const char *format, ...)
 #else
     return 0;
 #endif
-}
-
-int main(int argc, char **argv)
-{
-    logInfo("Integer: %i\r\n", 5);
-    logError("Float  : %f\r\n", 3.8f);
-
-    return 0;
 }
