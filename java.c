@@ -421,14 +421,18 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     cf->fields[i].attributes_count);
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
+                cui = getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index);
+                buf = cui->data->bytes;
                 logInfo("\tField Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
                         "\t\tLength    :\t%i\r\n"
                         "\t\tInfo      :\t%s\r\n", j,
                         cf->fields[i].attributes[j].attribute_name_index,
-                        getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index)->data->bytes,
+                        buf,
                         cf->fields[i].attributes[j].attribute_length,
                         cf->fields[i].attributes[j].info);
+                cui = (CONSTANT_Utf8_info *) 0;
+                buf = (char *) 0;
             }
         }
     }
@@ -486,14 +490,17 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
+                cui = getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index);
+                buf = cui->data->bytes;
                 logInfo("\tMethod Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
                         "\t\tLength    :\t%i\r\n"
                         "\t\tInfo      :\t%s\r\n", j,
                         cf->methods[i].attributes[j].attribute_name_index,
-                        getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->bytes,
+                        buf,
                         cf->methods[i].attributes[j].attribute_length,
                         cf->methods[i].attributes[j].info);
+                buf = (char *) 0;
             }
         }
     }
@@ -503,14 +510,18 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
+        cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
+        buf = cui->data->bytes;
         logInfo("Class Attribute [%i]\r\n"
                 "\tName index:\t#%i\t// %s\r\n"
                 "\tLength    :\t%i\r\n"
                 "\tInfo      :\t%s\r\n", i,
                 cf->attributes[i].attribute_name_index,
-                getConstant_Utf8(cf, cf->attributes[i].attribute_name_index)->data->bytes,
+                buf,
                 cf->attributes[i].attribute_length,
                 cf->attributes[i].info);
+        cui = (CONSTANT_Utf8_info *) 0;
+        buf = (char *) 0;
     }
 
 close:
@@ -700,8 +711,6 @@ checkInput(struct BufferInput * input)
         logError("Member 'buffer' is NULL!\r\n");
         return -1;
     }
-    logInfo("BufferInput %p {bufsrc: %i, bufdst: %i}\r\n",
-            input, input->bufsrc, input->bufdst);
     if (input->bufsrc > input->bufdst)
     {
         logError("Assertion error in function %s: "
@@ -826,6 +835,7 @@ static int
 rbs(char *out, struct BufferInput * input, int nbits)
 {
     char *buf;
+    int bufsize;
 
     if (!out)
     {
@@ -833,6 +843,17 @@ rbs(char *out, struct BufferInput * input, int nbits)
         return -1;
     }
 
+    bufsize = input->bufsize;
+
+    while (nbits > bufsize)
+    {
+        buf = (*input->fp)(input, bufsize);
+        if (buf < 0)
+            return -1;
+        memcpy(out, buf, bufsize);
+        nbits -= bufsize;
+        input->bufsrc = input->bufsize;
+    }
     buf = (*input->fp)(input, nbits);
     if (buf < 0)
         return -1;

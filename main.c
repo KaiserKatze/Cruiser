@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
+#include <time.h>
 
 #include "jar.h"
 
@@ -22,9 +22,11 @@ main(int argc, char** argv)
     struct BufferInput input;
     JarFile jf;
     ClassFile cf;
+    time_t t;
 
     if (argc == 2)
     {
+        time(&t);
         path = argv[1];
         printf("Parsing ClassFile '%s'...\r\n", path);
 
@@ -57,6 +59,7 @@ main(int argc, char** argv)
     {
         if (!strcmp(argv[1], OPTION_JAR))
         {
+            time(&t);
             path = argv[2];
             printf("Parsing JarFile '%s'...\r\n", path);
             parseJarfile(path, &jf);
@@ -69,6 +72,7 @@ main(int argc, char** argv)
     {
         if (!strcmp(argv[1], OPTION_CLASSPATH))
         {
+            time(&t);
             path = argv[2];
             name = argv[3];
             printf("Parsing ClassFile '%s' in JAR '%s'...\r\n",
@@ -86,6 +90,8 @@ main(int argc, char** argv)
         argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
     return -1;
 good_end:
+    printf("Time used: %.2f seconds.\r\n",
+        difftime(time(0), t));
     return 0;
 }
 
