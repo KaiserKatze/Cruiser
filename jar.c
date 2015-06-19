@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #include "jar.h"
 #include "log.h"
@@ -101,6 +102,9 @@ parseJarfile(const char *path, JarFile *jf)
     char *buffer, *save, *str;
     const char *entry_name;
     struct BufferInput input;
+#ifdef DEBUG
+    int column;
+#endif
 
     error = 0;
     buffer = (char *) 0;
@@ -246,6 +250,9 @@ parseJarfile(const char *path, JarFile *jf)
     }
     bzero(jf->classes, cap);
 
+#ifdef DEBUG
+    column = (int) ceil(log10(class_count));
+#endif
     input.bufsize = BUFSIZE;
     input.buffer = buffer;
     input.fp = fillBuffer_z;
@@ -253,8 +260,10 @@ parseJarfile(const char *path, JarFile *jf)
     {
         zip_stat_init(&st);
         zip_stat_index(z, classes[entry_index], 0, &st);
-        logInfo("\r\n%4lli> Parsing class '%s'...\r\n",
-                entry_index, st.name);
+#ifdef DEBUG
+        logInfo("\r\n%*lli> Parsing class '%s'...\r\n",
+                column, entry_index, st.name);
+#endif
 
         zf = zip_fopen_index(z, classes[entry_index], 0);
         if (!zf)
@@ -265,9 +274,6 @@ parseJarfile(const char *path, JarFile *jf)
 
         input.entry = zf;
         input.more = 1;
-        logInfo("zip_file: %p\r\n"
-                "buffer  : %p\r\n"
-                "bufsize : %i\r\n", zf, buffer, BUFSIZE);
         parseClassfile(&input, &(jf->classes[entry_index]));
 
         logInfo("\r\n");

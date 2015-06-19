@@ -9,36 +9,51 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <signal.h>
 
 #include "jar.h"
 
 #define OPTION_JAR                          "-jar"
 #define OPTION_CLASSPATH                    "-classpath"
 
+JarFile *jf;
+ClassFile *cf;
+struct BufferInput input;
+
+static void freeAll();
+static void handleInterruption(int);
+
 int
 main(int argc, char** argv)
 {
     char *path, *name;
-    struct BufferInput input;
-    JarFile jf;
-    ClassFile cf;
     time_t t;
+
+    cf = (ClassFile *) 0;
+    jf = (JarFile *) 0;
+    path = name = (char *) 0;
+    bzero(&input, sizeof (struct BufferInput));
+    signal(SIGINT, handleInterruption);
+    time(&t);
 
     if (argc == 2)
     {
-        time(&t);
         path = argv[1];
         printf("Parsing ClassFile '%s'...\r\n", path);
 
         input.buffer = (char *) malloc(input.bufsize = 1024);
         if (!input.buffer)
+        {
+            logError("Fail to allocate memory!\r\n");
             return -1;
+        }
 
         input.fp = fillBuffer_f;
 
         input.file = fopen(path, "r");
         if (!input.file)
         {
+            logError("Fail to open file %s!\r\n", path);
             free(input.buffer);
             input.buffer = (char *) 0;
             return -1;
@@ -46,12 +61,36 @@ main(int argc, char** argv)
 
         input.more = 1;
 
-        bzero(&cf, sizeof (ClassFile));
-        parseClassfile(&input, &cf);
+        cf = (ClassFile *) malloc(sizeof (cf));
+        if (!cf)
+        {
+            logError("Fail to allocate memory!\r\n");
+            free(input.buffer);
+            input.buffer = (char *) 0;
+            fclose(input.file);
+            input.file = (FILE *) 0;
+            return -1;
+        }
 
-        freeClassfile(&cf);
+        if (parseClassfile(&input, cf) < 0)
+        {
+            freeClassfile(cf);
+            free(cf);
+            cf = (ClassFile *) 0;
+            free(input.buffer);
+            input.buffer = (char *) 0;
+            fclose(input.file);
+            input.file = (FILE *) 0;
+            return -1;
+        }
+
+        freeClassfile(cf);
+        free(cf);
+        cf = (ClassFile *) 0;
         free(input.buffer);
         input.buffer = (char *) 0;
+        fclose(input.file);
+        input.file = (FILE *) 0;
 
         goto good_end;
     }
@@ -59,11 +98,16 @@ main(int argc, char** argv)
     {
         if (!strcmp(argv[1], OPTION_JAR))
         {
-            time(&t);
             path = argv[2];
             printf("Parsing JarFile '%s'...\r\n", path);
-            parseJarfile(path, &jf);
-            freeJarfile(&jf);
+
+            if (parseJarfile(path, jf) < 0)
+            {
+                freeJarfile(jf);
+                return -1;
+            }
+
+            freeJarfile(jf);
 
             goto good_end;
         }
@@ -72,26 +116,69 @@ main(int argc, char** argv)
     {
         if (!strcmp(argv[1], OPTION_CLASSPATH))
         {
-            time(&t);
             path = argv[2];
             name = argv[3];
             printf("Parsing ClassFile '%s' in JAR '%s'...\r\n",
                     name, path);
-            parseClassfileInJar(path, name, &cf);
-            freeClassfile(&cf);
+            cf = (ClassFile *) malloc(sizeof (cf));
+            if (!cf)
+            {
+                logError("Fail to allocate memory!\r\n");
+                return -1;
+            }
+
+            if (parseClassfileInJar(path, name, cf) < 0)
+            {
+                freeClassfile(cf);
+                free(cf);
+                cf = (ClassFile *) 0;
+                return -1;
+            }
+
+            freeClassfile(cf);
+            free(cf);
+            cf = (ClassFile *) 0;
 
             goto good_end;
         }
     }
 
     fprintf(stderr,
-        "Usage: %s %s <jarfile>\r\n"
-        "   or  %s [%s <path>] <classfile>\r\n",
-        argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
-    return -1;
+            "Usage: %s %s <jarfile>\r\n"
+            "   or  %s [%s <path>] <classfile>\r\n",
+            argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
+    return 0;
 good_end:
     printf("Time used: %.2f seconds.\r\n",
-        difftime(time(0), t));
+            difftime(time(0), t));
     return 0;
 }
 
+static void
+freeAll()
+{
+    if (cf)
+    {
+        freeClassfile(cf);
+        free(cf);
+        cf = (ClassFile *) 0;
+        fclose(input.file);
+        input.file = (FILE *) 0;
+        free(input.buffer);
+        input.buffer = (char *) 0;
+    }
+    if (jf)
+    {
+        freeJarfile(jf);
+        free(jf);
+        jf = (JarFile *) 0;
+    }
+}
+
+static void
+handleInterruption(int param)
+{
+    logError("Interrupted[%i]!\r\n", param);
+    freeAll();
+    exit(SIGINT);
+}
