@@ -41,7 +41,8 @@ main(int argc, char** argv)
         path = argv[1];
         printf("Parsing ClassFile '%s'...\r\n", path);
 
-        input.buffer = (char *) malloc(input.bufsize = 1024);
+        input.bufsize = 1024;
+        input.buffer = (char *) malloc(input.bufsize);
         if (!input.buffer)
         {
             logError("Fail to allocate memory!\r\n");
@@ -61,7 +62,7 @@ main(int argc, char** argv)
 
         input.more = 1;
 
-        cf = (ClassFile *) malloc(sizeof (cf));
+        cf = (ClassFile *) malloc(sizeof (ClassFile));
         if (!cf)
         {
             logError("Fail to allocate memory!\r\n");
@@ -120,7 +121,7 @@ main(int argc, char** argv)
             name = argv[3];
             printf("Parsing ClassFile '%s' in JAR '%s'...\r\n",
                     name, path);
-            cf = (ClassFile *) malloc(sizeof (cf));
+            cf = (ClassFile *) malloc(sizeof (ClassFile));
             if (!cf)
             {
                 logError("Fail to allocate memory!\r\n");
@@ -143,6 +144,7 @@ main(int argc, char** argv)
         }
     }
 
+usage:
     fprintf(stderr,
             "Usage: %s %s <jarfile>\r\n"
             "   or  %s [%s <path>] <classfile>\r\n",
