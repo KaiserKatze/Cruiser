@@ -1,8 +1,8 @@
 SOURCE=`find -type f -name "*.c"`
 
-cruise : main.c java.c java.h jar.c jar.h log.c log.h
+cruise : main.c java.c java.h jar.c jar.h log.c log.h attr.c
 	if [ ! -d build ]; then mkdir build; fi
-	gcc -g -o build/cruise ${SOURCE} -I. `pkg-config --libs libzip` -DDEBUG -DLOG_ERROR
+	gcc -g -o build/cruise ${SOURCE} -I. `pkg-config --libs libzip` -lm -DDEBUG -DLOG_ERROR -DLOG_INFO
 
 clean:
 	if [ -d build ]; then rm -r build; fi

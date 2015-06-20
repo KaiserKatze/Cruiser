@@ -13,7 +13,16 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
+
+#define MINOR_VERSION              3
+#define MAJOR_VERSION              45
     
+#if (defined MAJOR_VERSION && defined MINOR_VERSION)
+#define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
+#else
+#error "Macro 'MAJOR_VERSION' and 'MINOR_VERSION' is missing!"
+#endif
+
     typedef unsigned char u1;
     typedef unsigned short u2;
     typedef unsigned int u4;
@@ -58,6 +67,7 @@ extern "C" {
 #define ACC_STRICT                      0x0800 // Declared strictfp; floating-point mode is FP-strict
 
 #define ACC_CLASS                       (ACC_PUBLIC | ACC_FINAL | ACC_SUPER | ACC_INTERFACE | ACC_ABSTRACT | ACC_SYNTHETIC | ACC_ANNOTATION | ACC_ENUM)
+#define ACC_NESTED_CLASS                (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_INTERFACE | ACC_ABSTRACT | ACC_SYNTHETIC | ACC_ANNOTATION | ACC_ENUM)
 #define ACC_FIELD                       (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_VOLATILE | ACC_TRANSIENT | ACC_SYNTHETIC | ACC_ENUM)
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
 
@@ -120,6 +130,124 @@ extern "C" {
         u2 tag;
         void *data;
     } attr_info;
+
+#if VER_CMP(45, 3)
+    struct attr_SourceFile_info
+    {
+        u2 sourcefile_index;
+    };
+    struct attr_InnerClasses_info
+    {
+        u2 number_of_classes;
+        struct
+        {
+            u2 inner_class_info_index;
+            u2 outer_class_info_index;
+            u2 inner_name_index;
+            u2 inner_class_access_flags;
+        } *classes;
+    };
+    struct attr_Synthetic_info {};
+    struct attr_Deprecated_info {};
+    struct line_number_table_entry
+    {
+        u2 start_pc;
+        u2 line_number;
+    };
+    struct attr_LineNumberTable_info
+    {
+        u2 line_number_table_length;
+        struct line_number_table_entry line_number_table[];
+    };
+    struct local_variable_table_entry
+    {
+        u2 start_pc;
+        u2 length;
+        u2 name_index;
+        u2 descriptor_index;
+        u2 index;
+    };
+    struct attr_LocalVariableTable_info
+    {
+        u2 local_variable_table_length;
+        struct local_variable_table_entry local_variable_table[];
+    };
+
+    struct attr_ConstantValue_info
+    {
+        u2 constantvalue_index;
+    };
+
+    struct attr_Code_info
+    {
+        u2 max_stack;
+        u2 max_locals;
+        u4 code_length;
+        u1 *code;
+        u2 exception_table_length;
+        struct
+        {
+            u2 start_pc;
+            u2 end_pc;
+            u2 handler_pc;
+            u2 catch_type;
+        } *exception_table;
+        u2 attributes_count;
+        attr_info *attributes;
+    };
+
+    struct attr_Exceptions_info
+    {
+        u2 number_of_exceptions;
+        u2 *exception_index_table;
+    };
+#endif /* VERSION 45.3 */
+#if VER_CMP(49, 0)
+    struct attr_EnclosingMethod_info
+    {
+        u2 class_index;
+        u2 method_index;
+    };
+    struct attr_RuntimeVisibleParameterAnnotations;
+    struct attr_RuntimeInvisibleParameterAnnotations;
+    struct attr_AnnotationDefault_info;
+    struct attr_Signature_info
+    {
+        u2 signature_index;
+    };
+    struct attr_RuntimeVisibleAnnotations;
+    struct attr_RuntimeInvisibleAnnotations;
+    struct local_variable_type_table_entry
+    {
+        u2 start_pc;
+        u2 length;
+        u2 name_index;
+        u2 signature_index;
+        u2 index;
+    };
+    struct attr_LocalVariableTypeTable_info
+    {
+        u2 local_variable_type_table_length;
+        struct local_variable_type_table_entry local_variable_type_table[];
+    };
+#endif /* VERSION 49.0 */
+#if VER_CMP(50, 0)
+    struct attr_StackMapTable_info
+    {
+        u2 number_of_entries;
+        struct stack_map_frame
+        {
+        } *entries;
+    };
+#endif /* VERSION 50.0 */
+#if VER_CMP(51, 0)
+    struct BootstrapMethods;
+#endif /* VERSION 51.0 */
+#if VER_CMP(52, 0)
+    struct MethodParameters;
+    struct RuntimeVisibleTypeAnnotations;
+    struct RuntimeInvisibleTypeAnnotations;
+#endif /* VERSION 52.0 */
 
     typedef struct {
         u2 access_flags;            // 0x1, 0x2, 0x4, 0x8, 0x10, 0x40, 0x80, 0x1000, 0x4000
@@ -355,6 +483,23 @@ extern "C" {
         attr_info * attributes;
     } ClassFile;
 
+    extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
+    extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *, u2);
+    extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *, u2);
+    extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFile *, u2);
+    extern CONSTANT_String_info *getConstant_String(ClassFile *, u2);
+    extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *, u2);
+    extern CONSTANT_Float_info *getConstant_Float(ClassFile *, u2);
+    extern CONSTANT_Long_info *getConstant_Long(ClassFile *, u2);
+    extern CONSTANT_Double_info *getConstant_Double(ClassFile *, u2);
+    extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *, u2);
+    extern CONSTANT_Utf8_info *getConstant_Utf8(ClassFile *, u2);
+    extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *, u2);
+    extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *, u2);
+    extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *, u2);
+
+    extern char *getConstant_Utf8String(ClassFile *, u2);
+
     struct BufferInput;
     typedef char *(*func_fillBuffer)(struct BufferInput *, int);
 
@@ -373,6 +518,21 @@ extern "C" {
         char more;
     };
 
+    extern int loadAttributes_class(ClassFile *, struct BufferInput *, u2 *, attr_info **);
+    extern int loadAttributes_field(ClassFile *, struct BufferInput *, u2 *, attr_info **);
+    extern int loadAttributes_method(ClassFile *, struct BufferInput *, u2 *, attr_info **);
+    extern int loadAttributes_code(ClassFile *, struct BufferInput *, u2 *, attr_info **);
+
+    extern int freeAttributes_class(u2, attr_info *);
+    extern int freeAttributes_field(u2, attr_info *);
+    extern int freeAttributes_method(u2, attr_info *);
+    extern int freeAttributes_code(u2, attr_info *);
+
+    extern int ru1(u1 *, struct BufferInput *);
+    extern int ru2(u2 *, struct BufferInput *);
+    extern int ru4(u4 *, struct BufferInput *);
+    extern int rbs(char *, struct BufferInput *, int);
+    extern int skp(struct BufferInput *, int);
     extern char *fillBuffer_f(struct BufferInput *, int);
     extern char *fillBuffer_z(struct BufferInput *, int);
 
@@ -380,6 +540,8 @@ extern "C" {
 
     extern int freeClassfile(ClassFile *);
 
+    extern int compareVersion(u2, u2);
+    extern int checkInput(struct BufferInput *);
 #ifdef	__cplusplus
 }
 #endif

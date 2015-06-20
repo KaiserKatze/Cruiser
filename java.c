@@ -13,9 +13,6 @@ static const char *get_cp_name(u1);
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
 
-static int loadAttributes(struct BufferInput * input, u2 *, attr_info **);
-static int releaseAttributes(u2, attr_info *);
-
 static int checkAttribute_field(ClassFile *, field_info *, int);
 static int checkAttribute_method(ClassFile *, method_info *, int);
 
@@ -407,32 +404,29 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             logInfo("Field[%i]\r\n"
                     "\tAccess flag:      0x%X\t// %s\r\n"
                     "\tName index:       #%i\t// %s\r\n"
-                    "\tDescriptor index: #%i\t// %s\r\n", i,
+                    "\tDescriptor index: #%i\t// %s\r\n",
+                    i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
-                    getConstant_Utf8(cf, cf->fields[i].name_index)->data->bytes,
+                    getConstant_Utf8String(cf, cf->fields[i].name_index),
                     cf->fields[i].descriptor_index,
-                    getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->bytes
-                    );
+                    getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            loadAttributes(input,
-                    &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
+            loadAttributes_field(cf, input, &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             logInfo("\tField Attribute count: %i\r\n",
                     cf->fields[i].attributes_count);
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
-                cui = getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index);
-                buf = cui->data->bytes;
+                buf = getConstant_Utf8String(cf, cf->fields[i].attributes[j].attribute_name_index);
                 logInfo("\tField Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
-                        "\t\tLength    :\t%i\r\n"
-                        "\t\tInfo      :\t\"%s\"\r\n", j,
+                        "\t\tLength    :\t%i\r\n",
+                        j,
                         cf->fields[i].attributes[j].attribute_name_index,
                         buf,
-                        cf->fields[i].attributes[j].attribute_length,
-                        cf->fields[i].attributes[j].info);
-                cui = (CONSTANT_Utf8_info *) 0;
+                        cf->fields[i].attributes[j].attribute_length
+                        );
                 buf = (char *) 0;
             }
         }
@@ -480,48 +474,44 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
-                    getConstant_Utf8(cf, cf->methods[i].name_index)->data->bytes,
+                    getConstant_Utf8String(cf, cf->methods[i].name_index),
                     cf->methods[i].descriptor_index,
-                    getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->bytes);
+                    getConstant_Utf8String(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            loadAttributes(input,
-                    &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+            goto close;
+            loadAttributes_method(cf, input, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
             logInfo("\tMethod Attribute count: %i\r\n",
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
-                cui = getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index);
-                buf = cui->data->bytes;
+                buf = getConstant_Utf8String(cf, cf->methods[i].attributes[j].attribute_name_index);
                 logInfo("\tMethod Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
-                        "\t\tLength    :\t%i\r\n"
-                        "\t\tInfo      :\t\"%s\"\r\n", j,
+                        "\t\tLength    :\t%i\r\n",
+                        j,
                         cf->methods[i].attributes[j].attribute_name_index,
                         buf,
-                        cf->methods[i].attributes[j].attribute_length,
-                        cf->methods[i].attributes[j].info);
+                        cf->methods[i].attributes[j].attribute_length
+                        );
                 buf = (char *) 0;
             }
         }
     }
 
+    goto close; //brkpt;
     logInfo("\r\nParsing attributes...\r\n");
-    loadAttributes(input,
-            &(cf->attributes_count), &(cf->attributes));
+    loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
-        cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
-        buf = cui->data->bytes;
-        logInfo("Class Attribute [%i]\r\n"
+        buf = getConstant_Utf8String(cf, cf->attributes[i].attribute_name_index);
+        logInfo("Class Attribute: [%i]\r\n"
                 "\tName index:\t#%i\t// %s\r\n"
-                "\tLength    :\t%i\r\n"
-                "\tInfo      :\t\"%s\"\r\n", i,
+                "\tLength    :\t%i\r\n",
+                i,
                 cf->attributes[i].attribute_name_index,
                 buf,
-                cf->attributes[i].attribute_length,
-                cf->attributes[i].info);
-        cui = (CONSTANT_Utf8_info *) 0;
+                cf->attributes[i].attribute_length);
         buf = (char *) 0;
     }
 
@@ -558,17 +548,17 @@ freeClassfile(ClassFile *cf)
     }
     if (cf->fields)
     {
-        releaseAttributes(cf->fields->attributes_count, cf->fields->attributes);
+        freeAttributes_field(cf->fields->attributes_count, cf->fields->attributes);
         free(cf->fields);
         cf->fields = (field_info *) 0;
     }
     if (cf->methods)
     {
-        releaseAttributes(cf->methods->attributes_count, cf->methods->attributes);
+        freeAttributes_method(cf->methods->attributes_count, cf->methods->attributes);
         free(cf->methods);
         cf->methods = (method_info *) 0;
     }
-    releaseAttributes(cf->attributes_count, cf->attributes);
+    freeAttributes_class(cf->attributes_count, cf->attributes);
 
     return 0;
 }
@@ -836,7 +826,7 @@ extern int
 rbs(char *out, struct BufferInput * input, int nbits)
 {
     char *buf;
-    int bufsize;
+    int bufsize, rbits;
 
     if (!out)
     {
@@ -845,8 +835,9 @@ rbs(char *out, struct BufferInput * input, int nbits)
     }
 
     bufsize = input->bufsize;
+    rbits = nbits;
 
-    while (nbits > bufsize)
+    while (rbits > bufsize)
     {
         buf = (*input->fp)(input, bufsize);
         if (buf < 0)
@@ -855,17 +846,46 @@ rbs(char *out, struct BufferInput * input, int nbits)
             return -1;
         }
         memcpy(out, buf, bufsize);
-        nbits -= bufsize;
-        input->bufsrc = input->bufsize;
+        rbits -= bufsize;
+        input->bufsrc = bufsize;
     }
-    buf = (*input->fp)(input, nbits);
+    buf = (*input->fp)(input, rbits);
     if (buf < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    memcpy(out, buf, nbits);
-    input->bufsrc += nbits;
+    memcpy(out, buf, rbits);
+    input->bufsrc += rbits;
+
+    return nbits;
+}
+
+extern int
+skp(struct BufferInput *input, int nbits)
+{
+    char *buf;
+    int bufsize, rbits;
+
+    bufsize = input->bufsize;
+    rbits = nbits;
+
+    while (rbits > bufsize)
+    {
+        if ((*input->fp)(input, bufsize) < 0)
+        {
+            logError("IO exception in function %s!\r\n", __func__);
+            return -1;
+        }
+        rbits -= bufsize;
+        input->bufsrc = bufsize;
+    }
+    if ((*input->fp)(input, rbits) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    input->bufsrc += rbits;
 
     return nbits;
 }
@@ -1197,80 +1217,6 @@ end:
     return out;
 }
 
-static int
-loadAttributes(struct BufferInput * input,
-        u2 *attr_count_p, attr_info **attributes_p)
-{
-    u2 i;
-    int cap;
-    attr_info *attribute;
-
-    if (ru2(&(*attr_count_p), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
-        return -1;
-    }
-    if (*attr_count_p > 0)
-    {
-        cap = sizeof (attr_info) * *attr_count_p;
-        *attributes_p = (attr_info *) malloc(cap);
-        if (!*attributes_p)
-        {
-            logError("Fail to allocate memory!\r\n");
-            return -1;
-        }
-        bzero(*attributes_p, cap);
-        for (i = 0u; i < *attr_count_p; i++)
-        {
-            attribute = &((*attributes_p)[i]);
-            if (ru2(&(attribute->attribute_name_index), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            if (ru4(&(attribute->attribute_length), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            cap = attribute->attribute_length * sizeof (u1);
-            attribute->info = (u1 *) malloc(cap);
-            if (!attribute->info)
-            {
-                logError("Fail to allocate memory!\r\n");
-                return -1;
-            }
-            bzero(attribute->info, cap);
-            if (rbs(attribute->info, input,
-                    attribute->attribute_length) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-        }
-    }
-
-    return 0;
-}
-
-static int
-releaseAttributes(u2 attributes_count, attr_info *attributes)
-{
-    u2 i;
-
-    if (attributes)
-    {
-        for (i = 0; i < attributes_count; i++)
-        {
-            free(attributes[i].info);
-            attributes[i].info = (u1 *) 0;
-        }
-        free(attributes);
-    }
-
-    return 0;
-}
-
 extern CONSTANT_Utf8_info *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
@@ -1289,6 +1235,24 @@ getConstant_Utf8(ClassFile *cf, u2 index)
     }
 
     return info;
+}
+
+extern char *
+getConstant_Utf8String(ClassFile *cf, u2 index)
+{
+    CONSTANT_Utf8_info *cu;
+    char *str;
+
+    cu = getConstant_Utf8(cf, index);
+    if (!cu)
+        return "";
+    if (!cu->data)
+        return "";
+    str = cu->data->bytes;
+    if (!str)
+        str = "";
+
+    return str;
 }
 
 extern CONSTANT_Class_info *
@@ -1537,135 +1501,6 @@ extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *cf, u2 
     }
 
     return info;
-}
-
-
-static int
-checkAttribute_field(ClassFile *cf, field_info *field_info, int index)
-{
-    attr_info info;
-    CONSTANT_Utf8_info *utf8;
-    char *name, *str;
-    u2 len;
-
-    info = field_info->attributes[index];
-    if (!info.attribute_name_index)
-        return -1;
-    utf8 = getConstant_Utf8(cf, info.attribute_name_index);
-    if (!utf8) goto fail;
-    name = (char *) utf8->data->bytes;
-    if (!name) goto fail;
-    len = utf8->data->length;
-    // ConstantValue, Synthetic, Signature, Deprecated
-    // RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
-    str = "ConstantValue\0";
-    if (!strncmp(name, str, len))
-    {
-        return 0;
-    }
-    if (cf->major_version > 49)
-    {
-        str = "Signature\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeVisibleAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeInvisibleAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-    }
-    str = "Synthetic\0";
-    if (!strncmp(name, str, len))
-    {
-        return 0;
-    }
-
-fail:
-    info.attribute_name_index = 0;
-    info.attribute_length = 0;
-    free(info.info);
-    info.info = (u1 *) 0;
-    return -1;
-}
-
-static int
-checkAttribute_method(ClassFile *cf, method_info *method_info, int index)
-{
-    attr_info info;
-    CONSTANT_Utf8_info *utf8;
-    char *name, *str;
-    u2 len;
-
-    info = method_info->attributes[index];
-    if (!info.attribute_name_index)
-        return -1;
-    utf8 = getConstant_Utf8(cf, info.attribute_name_index);
-    if (!utf8) goto fail;
-    name = (char *) utf8->data->bytes;
-    if (!name) goto fail;
-    len = utf8->data->length;
-    // Code, Exceptions, Synthetic, Signature, Deprecated
-    // RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations
-    // RuntimeVisibleParameterAnnotations
-    // RuntimeInvisibleParameterAnnotations
-    // AnnotationDefault
-    str = "Code\0";
-    if (!strncmp(name, str, len))
-    {
-        return 0;
-    }
-    str = "Exceptions\0";
-    if (!strncmp(name, str, len))
-    {
-        return 0;
-    }
-    if (cf->major_version > 49)
-    {
-        str = "Signature\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeVisibleAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeInvisibleAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeVisibleParameterAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "RuntimeInvisibleParameterAnnotations\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-        str = "AnnotationDefault\0";
-        if (!strncmp(name, str, len))
-        {
-            return 0;
-        }
-    }
-
-fail:
-    info.attribute_name_index = 0;
-    info.attribute_length = 0;
-    free(info.info);
-    info.info = (u1 *) 0;
-    return -1;
 }
 
 extern int

@@ -106,6 +106,16 @@ parseJarfile(const char *path, JarFile *jf)
     int column;
 #endif
 
+    if (!path)
+    {
+        logError("Parameter 'path' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
+    if (!jf)
+    {
+        logError("Parameter 'jf' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
     error = 0;
     buffer = (char *) 0;
     classes = (zip_uint64_t *) 0;

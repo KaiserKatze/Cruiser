@@ -102,6 +102,12 @@ main(int argc, char** argv)
             path = argv[2];
             printf("Parsing JarFile '%s'...\r\n", path);
 
+            jf = (JarFile *) malloc(sizeof (JarFile));
+            if (!jf)
+            {
+                logError("Fail to allocate memory!\r\n");
+                return -1;
+            }
             if (parseJarfile(path, jf) < 0)
             {
                 freeJarfile(jf);
@@ -109,6 +115,8 @@ main(int argc, char** argv)
             }
 
             freeJarfile(jf);
+            free(jf);
+            jf = 0;
 
             goto good_end;
         }
