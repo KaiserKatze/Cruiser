@@ -2,14 +2,10 @@
 #include <stdio.h>
 #include <endian.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "java.h"
 #include "log.h"
-
-static int ru1(u1 *, struct BufferInput *);
-static int ru2(u2 *, struct BufferInput *);
-static int ru4(u4 *, struct BufferInput *);
-static int rbs(char *, struct BufferInput *, int);
 
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
@@ -19,9 +15,6 @@ static char *convertAccessFlags_method(u2, u2);
 
 static int loadAttributes(struct BufferInput * input, u2 *, attr_info **);
 static int releaseAttributes(u2, attr_info *);
-
-static CONSTANT_Utf8_info *getConstant_Utf8(ClassFile *, u2);
-static CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
 
 static int checkAttribute_field(ClassFile *, field_info *, int);
 static int checkAttribute_method(ClassFile *, method_info *, int);
@@ -49,6 +42,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         logError("Parameter 'cf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
+    bzero(cf, sizeof (ClassFile));
 
     bzero(input->buffer, input->bufsize);
     input->bufsrc = input->bufdst = 0;
@@ -79,6 +73,13 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     }
     logInfo("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
+#ifndef DEBUG
+    if (compareVersion(cf->major_version, cf->minor_version) > 0)
+    {
+        logError("Class file version is higher than this implementation!\r\n");
+        goto close;
+    }
+#endif
 
     // retrieve constant pool size
     if (ru2(&(cf->constant_pool_count), input) < 0)
@@ -426,7 +427,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 logInfo("\tField Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
                         "\t\tLength    :\t%i\r\n"
-                        "\t\tInfo      :\t%s\r\n", j,
+                        "\t\tInfo      :\t\"%s\"\r\n", j,
                         cf->fields[i].attributes[j].attribute_name_index,
                         buf,
                         cf->fields[i].attributes[j].attribute_length,
@@ -495,7 +496,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 logInfo("\tMethod Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
                         "\t\tLength    :\t%i\r\n"
-                        "\t\tInfo      :\t%s\r\n", j,
+                        "\t\tInfo      :\t\"%s\"\r\n", j,
                         cf->methods[i].attributes[j].attribute_name_index,
                         buf,
                         cf->methods[i].attributes[j].attribute_length,
@@ -515,7 +516,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         logInfo("Class Attribute [%i]\r\n"
                 "\tName index:\t#%i\t// %s\r\n"
                 "\tLength    :\t%i\r\n"
-                "\tInfo      :\t%s\r\n", i,
+                "\tInfo      :\t\"%s\"\r\n", i,
                 cf->attributes[i].attribute_name_index,
                 buf,
                 cf->attributes[i].attribute_length,
@@ -698,7 +699,7 @@ parse_method_descriptor(int desc_len, char * desc)
 }
 #endif
 
-static int
+extern int
 checkInput(struct BufferInput * input)
 {
     if (!input)
@@ -831,7 +832,7 @@ fillBuffer_z(struct BufferInput * input, int nbits)
     return &(input->buffer[input->bufsrc]);
 }
 
-static int
+extern int
 rbs(char *out, struct BufferInput * input, int nbits)
 {
     char *buf;
@@ -849,28 +850,37 @@ rbs(char *out, struct BufferInput * input, int nbits)
     {
         buf = (*input->fp)(input, bufsize);
         if (buf < 0)
+        {
+            logError("IO exception in function %s!\r\n", __func__);
             return -1;
+        }
         memcpy(out, buf, bufsize);
         nbits -= bufsize;
         input->bufsrc = input->bufsize;
     }
     buf = (*input->fp)(input, nbits);
     if (buf < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
         return -1;
+    }
     memcpy(out, buf, nbits);
     input->bufsrc += nbits;
 
     return nbits;
 }
 
-static int
+extern int
 ru1(u1 *dst, struct BufferInput * input)
 {
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u1));
     if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
         return -1;
+    }
 
     memcpy(dst, ptr, sizeof (u1));
     input->bufsrc += sizeof (u1);
@@ -878,14 +888,17 @@ ru1(u1 *dst, struct BufferInput * input)
     return 0;
 }
 
-static int
+extern int
 ru2(u2 *dst, struct BufferInput * input)
 {
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u2));
     if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
         return -1;
+    }
 
     memcpy(dst, ptr, sizeof (u2));
     *dst = htobe16(*dst);
@@ -894,14 +907,17 @@ ru2(u2 *dst, struct BufferInput * input)
     return 0;
 }
 
-static int
+extern int
 ru4(u4 *dst, struct BufferInput * input)
 {
     char *ptr;
 
     ptr = (*input->fp)(input, sizeof (u4));
     if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
         return -1;
+    }
 
     memcpy(dst, ptr, sizeof (u4));
     *dst = htobe32(*dst);
@@ -1189,13 +1205,11 @@ loadAttributes(struct BufferInput * input,
     int cap;
     attr_info *attribute;
 
-    logInfo("Loading attributes...\r\n");
     if (ru2(&(*attr_count_p), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    logInfo("Attribute count retrieved.\r\n");
     if (*attr_count_p > 0)
     {
         cap = sizeof (attr_info) * *attr_count_p;
@@ -1257,7 +1271,7 @@ releaseAttributes(u2 attributes_count, attr_info *attributes)
     return 0;
 }
 
-static CONSTANT_Utf8_info *
+extern CONSTANT_Utf8_info *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *info;
@@ -1277,7 +1291,7 @@ getConstant_Utf8(ClassFile *cf, u2 index)
     return info;
 }
 
-static CONSTANT_Class_info *
+extern CONSTANT_Class_info *
 getConstant_Class(ClassFile *cf, u2 index)
 {
     CONSTANT_Class_info *info;
@@ -1296,6 +1310,235 @@ getConstant_Class(ClassFile *cf, u2 index)
 
     return info;
 }
+
+extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *cf, u2 index)
+{
+    CONSTANT_Fieldref_info *info;
+
+    info = (CONSTANT_Fieldref_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Fieldref_info *) 0;
+    }
+    if (info->tag != CONSTANT_Fieldref)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Fieldref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Fieldref_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *cf, u2 index)
+{
+    CONSTANT_Methodref_info *info;
+
+    info = (CONSTANT_Methodref_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Methodref_info *) 0;
+    }
+    if (info->tag != CONSTANT_Methodref)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Methodref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Methodref_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFile *cf, u2 index)
+{
+    CONSTANT_InterfaceMethodref_info *info;
+
+    info = (CONSTANT_InterfaceMethodref_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_InterfaceMethodref_info *) 0;
+    }
+    if (info->tag != CONSTANT_InterfaceMethodref)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_InterfaceMethodref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_InterfaceMethodref_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_String_info *getConstant_String(ClassFile *cf, u2 index)
+{
+    CONSTANT_String_info *info;
+
+    info = (CONSTANT_String_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_String_info *) 0;
+    }
+    if (info->tag != CONSTANT_String)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_String_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_String_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *cf, u2 index)
+{
+    CONSTANT_Integer_info *info;
+
+    info = (CONSTANT_Integer_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Integer_info *) 0;
+    }
+    if (info->tag != CONSTANT_Integer)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Integer_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Integer_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_Float_info *getConstant_Float(ClassFile *cf, u2 index)
+{
+    CONSTANT_Float_info *info;
+
+    info = (CONSTANT_Float_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Float_info *) 0;
+    }
+    if (info->tag != CONSTANT_Float)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Float_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Float_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_Long_info *getConstant_Long(ClassFile *cf, u2 index)
+{
+    CONSTANT_Long_info *info;
+
+    info = (CONSTANT_Long_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Long_info *) 0;
+    }
+    if (info->tag != CONSTANT_Long)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Long_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Long_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_Double_info *getConstant_Double(ClassFile *cf, u2 index)
+{
+    CONSTANT_Double_info *info;
+
+    info = (CONSTANT_Double_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_Double_info *) 0;
+    }
+    if (info->tag != CONSTANT_Double)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_Double_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_Double_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *cf, u2 index)
+{
+    CONSTANT_NameAndType_info *info;
+
+    info = (CONSTANT_NameAndType_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_NameAndType_info *) 0;
+    }
+    if (info->tag != CONSTANT_NameAndType)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_NameAndType_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_NameAndType_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *cf, u2 index)
+{
+    CONSTANT_MethodHandle_info *info;
+
+    info = (CONSTANT_MethodHandle_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_MethodHandle_info *) 0;
+    }
+    if (info->tag != CONSTANT_MethodHandle)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_MethodHandle_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_MethodHandle_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *cf, u2 index)
+{
+    CONSTANT_MethodType_info *info;
+
+    info = (CONSTANT_MethodType_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_MethodType_info *) 0;
+    }
+    if (info->tag != CONSTANT_MethodType)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_MethodType_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_MethodType_info *) 0;
+    }
+
+    return info;
+}
+
+extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *cf, u2 index)
+{
+    CONSTANT_InvokeDynamic_info *info;
+
+    info = (CONSTANT_InvokeDynamic_info *) &(cf->constant_pool[index]);
+    if (!info)
+    {
+        logError("Constant pool entry #%i is NULL!\r\n", index);
+        return (CONSTANT_InvokeDynamic_info *) 0;
+    }
+    if (info->tag != CONSTANT_InvokeDynamic)
+    {
+        logInfo("Constant pool entry #%i is not CONSTANT_InvokeDynamic_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        return (CONSTANT_InvokeDynamic_info *) 0;
+    }
+
+    return info;
+}
+
 
 static int
 checkAttribute_field(ClassFile *cf, field_info *field_info, int index)
@@ -1422,5 +1665,18 @@ fail:
     info.attribute_length = 0;
     free(info.info);
     info.info = (u1 *) 0;
+    return -1;
+}
+
+extern int
+compareVersion(u2 major_version, u2 minor_version)
+{
+    if (major_version > MAJOR_VERSION)
+        return 1;
+    else if (major_version == MAJOR_VERSION)
+        if (minor_version > MINOR_VERSION)
+            return 1;
+        else if (minor_version == MINOR_VERSION)
+            return 0;
     return -1;
 }
