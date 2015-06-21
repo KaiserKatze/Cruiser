@@ -13,9 +13,6 @@ static const char *get_cp_name(u1);
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
 
-static int checkAttribute_field(ClassFile *, field_info *, int);
-static int checkAttribute_method(ClassFile *, method_info *, int);
-
 extern int
 parseClassfile(struct BufferInput * input, ClassFile *cf)
 {
