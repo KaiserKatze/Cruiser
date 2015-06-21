@@ -524,19 +524,29 @@ extern int
 freeClassfile(ClassFile *cf)
 {
     u2 i;
+    cp_info *cp;
+    CONSTANT_Utf8_info *cu;
 
     logInfo("Releasing ClassFile memory...\r\n");
     if (cf->constant_pool)
     {
         for (i = 1u; i < cf->constant_pool_count; i++)
         {
-            if (cf->constant_pool[i].tag == CONSTANT_Utf8)
+            cp = &(cf->constant_pool[i]);
+            if (cp->data)
             {
-                free(((CONSTANT_Utf8_info *) &(cf->constant_pool[i]))->data->bytes);
-                ((CONSTANT_Utf8_info *) &(cf->constant_pool[i]))->data->bytes = (u1 *) 0;
+                if (cp->tag == CONSTANT_Utf8)
+                {
+                    cu = (CONSTANT_Utf8_info *) cp;
+                    if (cu->data->bytes)
+                    {
+                        free(cu->data->bytes);
+                        cu->data->bytes = (u1 *) 0;
+                    }
+                }
+                free(cp->data);
+                cp->data = (void *) 0;
             }
-            free(cf->constant_pool[i].data);
-            cf->constant_pool[i].data = (void *) 0;
         }
         free(cf->constant_pool);
         cf->constant_pool = (cp_info *) 0;
