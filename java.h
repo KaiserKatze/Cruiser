@@ -26,6 +26,7 @@ extern "C" {
     typedef unsigned char u1;
     typedef unsigned short u2;
     typedef unsigned int u4;
+    typedef unsigned long long u8;
 
 #define CONSTANT_Class                  7
 #define CONSTANT_Fieldref               9
@@ -287,8 +288,10 @@ extern "C" {
     typedef struct
     {
         u1 tag;
-        struct {
+        union
+        {
             u4 bytes;
+            float float_value;
         } * data;
     } CONSTANT_Integer_info,
         CONSTANT_Float_info;
@@ -296,9 +299,15 @@ extern "C" {
     typedef struct
     {
         u1 tag;
-        struct {
-            u4 high_bytes;
-            u4 low_bytes;
+        union
+        {
+            struct
+            {
+                u4 low_bytes;
+                u4 high_bytes;
+            };
+            u8 long_value;
+            double double_value;
         } * data;
     } CONSTANT_Long_info,
         CONSTANT_Double_info;

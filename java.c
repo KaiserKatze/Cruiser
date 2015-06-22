@@ -159,7 +159,10 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                         goto close;
                     }
 
-                    logInfo("%i\r\n", cii->data->bytes);
+                    if (info->tag == CONSTANT_Integer)
+                        logInfo("%i\r\n", cii->data->bytes);
+                    else
+                        logInfo("%fF\r\n", cii->data->float_value);
 
                     cii = (CONSTANT_Integer_info *) 0;
                     break;
@@ -179,7 +182,10 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     // all 8-byte constants take up two entries in the constant_pool table of the class file
                     ++i;
 
-                    logInfo("%i %i\r\n", cli->data->high_bytes, cli->data->low_bytes);
+                    if (info->tag == CONSTANT_Long)
+                        logInfo("%lliL\r\n", cli->data->long_value);
+                    else
+                        logInfo("%dD\r\n", cli->data->double_value);
 
                     cli = (CONSTANT_Long_info *) 0;
                     break;
