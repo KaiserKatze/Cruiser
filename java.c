@@ -225,7 +225,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                         logError("IO exception in function %s!\r\n", __func__);
                         goto close;
                     }
-                    cap = (cui->data->length + 1) * sizeof (u1);
+                    cap = cui->data->length;
                     cui->data->bytes = (u1 *) malloc(cap);
                     if (!cui->data->bytes)
                     {
@@ -245,7 +245,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                         logError("Runtime error!\r\n");
                         goto close;
                     }
-                    logInfo("%s\r\n", (char *) cui->data->bytes);
+                    logInfo("%.*s\r\n", cap, (char *) cui->data->bytes);
 
                     cui = (CONSTANT_Utf8_info *) 0;
                     cap = 0;
@@ -299,11 +299,147 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     cidi = (CONSTANT_InvokeDynamic_info *) 0;
                     break;
                 default:
-                    logInfo("TAG:%X\r\n", info->tag);
-                    break;
+                    logError("Unknown TAG:%X\r\n", info->tag);
+                    goto close;
             }
         } // LOOP
     } // constant pool parsed
+
+    // constant pool validation
+    for (i = 1u; i < cf->constant_pool_count; i++)
+    {
+        info = &(cf->constant_pool[i]);
+        switch (info->tag)
+        {
+            case CONSTANT_Class:
+                cci = (CONSTANT_Class_info *) info;
+                j = cci->name_index;
+                if (cf->constant_pool[j].tag != CONSTANT_Utf8)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
+                    goto close;
+                }
+                break;
+            case CONSTANT_Fieldref:
+            case CONSTANT_Methodref:
+            case CONSTANT_InterfaceMethodref:
+                cfi = (CONSTANT_Fieldref_info *) info;
+                j = cfi->class_index;
+                if (cf->constant_pool[j].tag != CONSTANT_Class)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_Class_info!\r\n", j);
+                    goto close;
+                }
+                j = cfi->name_and_type_index;
+                if (cf->constant_pool[j].tag != CONSTANT_NameAndType)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_NameAndType_info!\r\n", j);
+                    goto close;
+                }
+                break;
+            case CONSTANT_String:
+                csi = (CONSTANT_String_info *) info;
+                j = csi->string_index;
+                if (cf->constant_pool[j].tag != CONSTANT_String)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_String_info!\r\n", j);
+                    goto close;
+                }
+                break;
+            case CONSTANT_NameAndType:
+                cni = (CONSTANT_NameAndType_info *) info;
+                j = cni->name_index;
+                cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[j]);
+                if (cui->tag != CONSTANT_Utf8)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
+                    goto close;
+                }
+                if (cui->data)
+                    if (cui->data->bytes)
+                        if(cui->data->bytes[0] == '<')
+                            if (strcmp(cui->data->bytes, "<init>"))
+                            {
+                                logError("Invalid CONSTANT_NamdAndType_info!\r\n");
+                                goto close;
+                            }
+                j = cni->descriptor_index;
+                if (cf->constant_pool[j].tag != CONSTANT_Utf8)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
+                    goto close;
+                }
+                break;
+            case CONSTANT_Utf8:
+                cui = (CONSTANT_Utf8_info *) info;
+                if (!cui->data || !cui->data->bytes)
+                {
+                    logError("Invalid CONSTANT_Utf8_info!\r\n");
+                    goto close;
+                }
+                break;
+            case CONSTANT_MethodHandle:
+                cmhi = (CONSTANT_MethodHandle_info *) info;
+                j = cmhi->reference_kind;
+                info = &(cf->constant_pool[cmhi->reference_index]);
+                switch (j)
+                {
+                    case 1: // REF_getField
+                    case 2: // REF_getStatic
+                    case 3: // REF_putField
+                    case 4: // REF_putStatic
+                        if (info->tag != CONSTANT_Fieldref)
+                        {
+                            logError("Assertion error: constant pool[%i] is not CONSTANT_Fieldref_info!\r\n", info->tag);
+                            goto close;
+                        }
+                        break;
+                    case 5: // REF_invokeVirtual
+                    case 6: // REF_invokeStatic
+                    case 7: // REF_inokeSpecial
+                    case 8: // REF_newInvokeSpecial
+                        if (info->tag != CONSTANT_Methodref)
+                        {
+                            logError("Assertion error: constant pool[%i] is not CONSTANT_Methodref_info!\r\n", info->tag);
+                            goto close;
+                        }
+                        break;
+                    case 9: // REF_invokeInterface
+                        if (info->tag != CONSTANT_InterfaceMethodref)
+                        {
+                            logError("Assertion error: constant pool[%i] is not CONSTANT_InterfaceMethodref_info!\r\n", info->tag);
+                            goto close;
+                        }
+                        break;
+                    default:
+                        logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n", i, j);
+                        goto close;
+                }
+                break;
+            case CONSTANT_MethodType:
+                cmti = (CONSTANT_MethodType_info *) info;
+                j = cmti->descriptor_index;
+                if (cui->tag != CONSTANT_Utf8)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
+                    goto close;
+                }
+                break;
+            case CONSTANT_InvokeDynamic:
+                cidi = (CONSTANT_InvokeDynamic_info *) info;
+                j = cidi->name_and_type_index;
+                if (cui->tag != CONSTANT_NameAndType)
+                {
+                    logError("Assertion error: constant pool[%i] is not CONSTANT_NameAndType_info!\r\n", j);
+                    goto close;
+                }
+                j = cidi->bootstrap_method_attr_index;
+                // TODO need validation
+                break;
+            default:
+                break;
+        }
+    }
 
     if (ru2(&(cf->access_flags), input) < 0)
     {
