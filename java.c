@@ -520,7 +520,10 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     }
 
     if (validateConstantPool(cf) < 0)
+    {
+        logError("Constant pool is invalid!\r\n");
         return -1;
+    }
 close:
 
     return 0;
