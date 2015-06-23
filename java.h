@@ -196,7 +196,7 @@ extern "C" {
         u2 attributes_count;
         attr_info *attributes;
 
-#ifdef QUICK_ATTRIBUTE
+#ifdef QUICK_REFERENCE
         attr_info *attrStackMapTable;
 
         attr_info *attrRuntimeVisibleTypeAnnotations;
@@ -273,7 +273,7 @@ extern "C" {
         u2 attributes_count;
         attr_info *attributes;
 
-#if QUICK_ATTRIBUTE
+#if QUICK_REFERENCE
         attr_info *attrConstantValue;
 
         attr_info *attrRuntimeVisibleAnnotations;
@@ -291,7 +291,7 @@ extern "C" {
         u2 attributes_count;
         attr_info *attributes;
 
-#ifdef QUICK_ATTRIBUTE
+#ifdef QUICK_REFERENCE
         attr_info *attrCode;
         attr_info *attrExceptions;
 
@@ -542,7 +542,7 @@ extern "C" {
          */
         attr_info * attributes;
 
-#ifdef QUICK_ATTRIBUTE
+#ifdef QUICK_REFERENCE
         attr_info *attrEnclosingMethod;
         attr_info *attrSourceFile;
         attr_info *attrSourceDebugExtension;
