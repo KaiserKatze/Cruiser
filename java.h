@@ -195,6 +195,13 @@ extern "C" {
         } *exception_table;
         u2 attributes_count;
         attr_info *attributes;
+
+#ifdef QUICK_ATTRIBUTE
+        attr_info *attrStackMapTable;
+
+        attr_info *attrRuntimeVisibleTypeAnnotations;
+        attr_info *attrRuntimeInvisibleTypeAnnotations;
+#endif
     };
 
     struct attr_Exceptions_info
@@ -260,12 +267,47 @@ extern "C" {
 #endif /* VERSION 52.0 */
 
     typedef struct {
-        u2 access_flags;            // 0x1, 0x2, 0x4, 0x8, 0x10, 0x40, 0x80, 0x1000, 0x4000
-        u2 name_index;              // CONSTANT_Utf8_info
-        u2 descriptor_index;        // CONSTANT_Utf8_info
+        u2 access_flags;
+        u2 name_index;
+        u2 descriptor_index;
         u2 attributes_count;
-        attr_info * attributes;
-    } field_info, method_info;
+        attr_info *attributes;
+
+#if QUICK_ATTRIBUTE
+        attr_info *attrConstantValue;
+
+        attr_info *attrRuntimeVisibleAnnotations;
+        attr_info *attrRuntimeInvisibleAnnotations;
+
+        attr_info *attrRuntimeVisibleTypeAnnotations;
+        attr_info *attrRuntimeInvisibleTypeAnnotations;
+#endif
+    } field_info;
+
+    typedef struct {
+        u2 access_flags;
+        u2 name_index;
+        u2 descriptor_index;
+        u2 attributes_count;
+        attr_info *attributes;
+
+#ifdef QUICK_ATTRIBUTE
+        attr_info *attrCode;
+        attr_info *attrExceptions;
+
+        attr_info *attrRuntimeVisibleAnnotations;
+        attr_info *attrRuntimeInvisibleAnnotations;
+
+        attr_info *attrRuntimeVisibleParameterAnnotations;
+        attr_info *attrRuntimeInvisibleParameterAnnotations;
+
+        attr_info *attrRuntimeVisibleTypeAnnotations;
+        attr_info *attrRuntimeInvisibleTypeAnnotations;
+
+        attr_info *attrAnnotationDefault;
+        attr_info *attrMethodParameters;
+#endif
+    } method_info;
     
     typedef struct
     {
@@ -499,6 +541,20 @@ extern "C" {
          * additional descriptive information.
          */
         attr_info * attributes;
+
+#ifdef QUICK_ATTRIBUTE
+        attr_info *attrEnclosingMethod;
+        attr_info *attrSourceFile;
+        attr_info *attrSourceDebugExtension;
+
+        attr_info *attrRuntimeVisibleAnnotations;
+        attr_info *attrRuntimeInvisibleAnnotations;
+
+        attr_info *attrRuntimeVisibleTypeAnnotations;
+        attr_info *attrRuntimeInvisibleTypeAnnotations;
+
+        attr_info *attrBootstrapMethods;
+#endif
     } ClassFile;
 
     extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
