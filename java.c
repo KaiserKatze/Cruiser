@@ -9,6 +9,7 @@
 
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
+static int validateConstantPool(ClassFile *);
 
 static char *convertAccessFlags_field(u2, u2);
 static char *convertAccessFlags_method(u2, u2);
@@ -306,140 +307,6 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     } // constant pool parsed
 
     // constant pool validation
-    for (i = 1u; i < cf->constant_pool_count; i++)
-    {
-        info = &(cf->constant_pool[i]);
-        switch (info->tag)
-        {
-            case CONSTANT_Class:
-                cci = (CONSTANT_Class_info *) info;
-                j = cci->name_index;
-                if (cf->constant_pool[j].tag != CONSTANT_Utf8)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
-                    goto close;
-                }
-                break;
-            case CONSTANT_Fieldref:
-            case CONSTANT_Methodref:
-            case CONSTANT_InterfaceMethodref:
-                cfi = (CONSTANT_Fieldref_info *) info;
-                j = cfi->class_index;
-                if (cf->constant_pool[j].tag != CONSTANT_Class)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_Class_info!\r\n", j);
-                    goto close;
-                }
-                j = cfi->name_and_type_index;
-                if (cf->constant_pool[j].tag != CONSTANT_NameAndType)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_NameAndType_info!\r\n", j);
-                    goto close;
-                }
-                break;
-            case CONSTANT_String:
-                csi = (CONSTANT_String_info *) info;
-                j = csi->string_index;
-                if (cf->constant_pool[j].tag != CONSTANT_String)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_String_info!\r\n", j);
-                    goto close;
-                }
-                break;
-            case CONSTANT_NameAndType:
-                cni = (CONSTANT_NameAndType_info *) info;
-                j = cni->name_index;
-                cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[j]);
-                if (cui->tag != CONSTANT_Utf8)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
-                    goto close;
-                }
-                if (cui->data)
-                    if (cui->data->bytes)
-                        if(cui->data->bytes[0] == '<')
-                            if (strcmp(cui->data->bytes, "<init>"))
-                            {
-                                logError("Invalid CONSTANT_NamdAndType_info!\r\n");
-                                goto close;
-                            }
-                j = cni->descriptor_index;
-                if (cf->constant_pool[j].tag != CONSTANT_Utf8)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
-                    goto close;
-                }
-                break;
-            case CONSTANT_Utf8:
-                cui = (CONSTANT_Utf8_info *) info;
-                if (!cui->data || !cui->data->bytes)
-                {
-                    logError("Invalid CONSTANT_Utf8_info!\r\n");
-                    goto close;
-                }
-                break;
-            case CONSTANT_MethodHandle:
-                cmhi = (CONSTANT_MethodHandle_info *) info;
-                j = cmhi->reference_kind;
-                info = &(cf->constant_pool[cmhi->reference_index]);
-                switch (j)
-                {
-                    case 1: // REF_getField
-                    case 2: // REF_getStatic
-                    case 3: // REF_putField
-                    case 4: // REF_putStatic
-                        if (info->tag != CONSTANT_Fieldref)
-                        {
-                            logError("Assertion error: constant pool[%i] is not CONSTANT_Fieldref_info!\r\n", info->tag);
-                            goto close;
-                        }
-                        break;
-                    case 5: // REF_invokeVirtual
-                    case 6: // REF_invokeStatic
-                    case 7: // REF_inokeSpecial
-                    case 8: // REF_newInvokeSpecial
-                        if (info->tag != CONSTANT_Methodref)
-                        {
-                            logError("Assertion error: constant pool[%i] is not CONSTANT_Methodref_info!\r\n", info->tag);
-                            goto close;
-                        }
-                        break;
-                    case 9: // REF_invokeInterface
-                        if (info->tag != CONSTANT_InterfaceMethodref)
-                        {
-                            logError("Assertion error: constant pool[%i] is not CONSTANT_InterfaceMethodref_info!\r\n", info->tag);
-                            goto close;
-                        }
-                        break;
-                    default:
-                        logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n", i, j);
-                        goto close;
-                }
-                break;
-            case CONSTANT_MethodType:
-                cmti = (CONSTANT_MethodType_info *) info;
-                j = cmti->descriptor_index;
-                if (cui->tag != CONSTANT_Utf8)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_Utf8_info!\r\n", j);
-                    goto close;
-                }
-                break;
-            case CONSTANT_InvokeDynamic:
-                cidi = (CONSTANT_InvokeDynamic_info *) info;
-                j = cidi->name_and_type_index;
-                if (cui->tag != CONSTANT_NameAndType)
-                {
-                    logError("Assertion error: constant pool[%i] is not CONSTANT_NameAndType_info!\r\n", j);
-                    goto close;
-                }
-                j = cidi->bootstrap_method_attr_index;
-                // TODO need validation
-                break;
-            default:
-                break;
-        }
-    }
 
     if (ru2(&(cf->access_flags), input) < 0)
     {
@@ -638,8 +505,6 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         }
     }
 
-    goto close; //brkpt;
-    logInfo("\r\nParsing attributes...\r\n");
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
@@ -654,6 +519,8 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         buf = (char *) 0;
     }
 
+    if (validateConstantPool(cf) < 0)
+        return -1;
 close:
 
     return 0;
@@ -1663,4 +1530,143 @@ compareVersion(u2 major_version, u2 minor_version)
         else if (minor_version == MINOR_VERSION)
             return 0;
     return -1;
+}
+
+static int
+validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
+{
+    cp_info *info;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Fieldref_info *cfi;
+    CONSTANT_String_info *csi;
+    CONSTANT_NameAndType_info *cni;
+    CONSTANT_Utf8_info *cui;
+    CONSTANT_MethodHandle_info *cmhi;
+    CONSTANT_MethodType_info *cmti;
+    CONSTANT_InvokeDynamic_info *cidi;
+    u2 j;
+    struct attr_BootstrapMethods_info *dataBootstrapMethods;
+
+    info = &(cf->constant_pool[i]);
+    if (tag != 0 && info->tag != tag)
+    {
+        logError("Assertion error: constant pool[%i] is not CONSTANT_%s_info!\r\n", info->tag, get_cp_name(info->tag));
+        return -1;
+    }
+    if (bul[i])
+        return 0;
+    switch (info->tag)
+    {
+        case CONSTANT_Class:
+            cci = (CONSTANT_Class_info *) info;
+            if (validateConstantPoolEntry(cf, cci->data->name_index, bul, CONSTANT_Utf8) < 0)
+                return -1;
+            break;
+        case CONSTANT_Fieldref:
+        case CONSTANT_Methodref:
+        case CONSTANT_InterfaceMethodref:
+            cfi = (CONSTANT_Fieldref_info *) info;
+            if (validateConstantPoolEntry(cf, cfi->data->class_index, bul, CONSTANT_Class) < 0)
+                return -1;
+            if (validateConstantPoolEntry(cf, cfi->data->name_and_type_index, bul, CONSTANT_NameAndType) < 0)
+                return -1;
+            break;
+        case CONSTANT_String:
+            csi = (CONSTANT_String_info *) info;
+            if (validateConstantPoolEntry(cf, csi->data->string_index, bul, CONSTANT_String) < 0)
+                return -1;
+            break;
+        case CONSTANT_NameAndType:
+            cni = (CONSTANT_NameAndType_info *) info;
+            if (validateConstantPoolEntry(cf, cni->data->name_index, bul, CONSTANT_Utf8) < 0)
+                return -1;
+            cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
+            if (cui->data->bytes[0] == '<'
+                    && strcmp(&(cui->data->bytes[1]), "init>"))
+                return -1;
+            if (validateConstantPoolEntry(cf, cni->data->descriptor_index, bul, CONSTANT_Utf8) < 0)
+                return -1;
+            break;
+        case CONSTANT_Utf8:
+            cui = (CONSTANT_Utf8_info *) info;
+            if (!cui->data || !cui->data->bytes)
+            {
+                logError("Invalid CONSTANT_Utf8_info!\r\n");
+                return -1;
+            }
+            break;
+        case CONSTANT_MethodHandle:
+            cmhi = (CONSTANT_MethodHandle_info *) info;
+            switch (cmhi->data->reference_kind)
+            {
+                case 1: // REF_getField
+                case 2: // REF_getStatic
+                case 3: // REF_putField
+                case 4: // REF_putStatic
+                    if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Fieldref) < 0)
+                        return -1;
+                    break;
+                case 5: // REF_invokeVirtual
+                case 6: // REF_invokeStatic
+                case 7: // REF_inokeSpecial
+                case 8: // REF_newInvokeSpecial
+                    if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Methodref) < 0)
+                        return -1;
+                    break;
+                case 9: // REF_invokeInterface
+                    if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_InterfaceMethodref) < 0)
+                        return -1;
+                    break;
+                default:
+                    logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n", i, cmhi->data->reference_kind);
+                    return -1;
+            }
+            break;
+        case CONSTANT_MethodType:
+            cmti = (CONSTANT_MethodType_info *) info;
+            if (validateConstantPoolEntry(cf, cmti->data->descriptor_index, bul, CONSTANT_Utf8) < 0)
+                return -1;
+            break;
+#if VER_CMP(51, 0)
+        case CONSTANT_InvokeDynamic:
+            cidi = (CONSTANT_InvokeDynamic_info *) info;
+            if (validateConstantPoolEntry(cf, cidi->data->name_and_type_index, bul, CONSTANT_NameAndType) < 0)
+                return -1;
+            if (!cf->attributes)
+            {
+                logError("Class attributes ain't loaded!\r\n");
+                return -1;
+            }
+            for (j = 0; j < cf->attributes_count; j++)
+            {
+                if (cf->attributes[j].tag != TAG_ATTR_BOOTSTRAPMETHODS)
+                    continue;
+                dataBootstrapMethods = cf->attributes[j].data;
+                if (validateConstantPoolEntry(cf, dataBootstrapMethods->bootstrap_methods[cidi->data->bootstrap_method_attr_index].bootstrap_method_ref, bul, CONSTANT_MethodHandle) < 0)
+                    return -1;
+                // TODO validate 'bootstrap_arguments' P140
+                break;
+            }
+            break;
+#endif
+        default:
+            break;
+    }
+
+    bul[i] = 1;
+    return 0;
+}
+
+static int
+validateConstantPool(ClassFile *cf)
+{
+    u1 bul[cf->constant_pool_count];
+    u2 i;
+
+    bzero(bul, cf->constant_pool_count);
+    for (i = 1u; i < cf->constant_pool_count; i++)
+        if (validateConstantPoolEntry(cf, i, bul, 0) < 0)
+            return -1;
+
+    return 0;
 }

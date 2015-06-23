@@ -284,7 +284,11 @@ parseJarfile(const char *path, JarFile *jf)
 
         input.entry = zf;
         input.more = 1;
-        parseClassfile(&input, &(jf->classes[entry_index]));
+        if (parseClassfile(&input, &(jf->classes[entry_index])) < 0)
+        {
+            logError("Fail to parse class file [%i]!\r\n", entry_index);
+            goto close;
+        }
 
         logInfo("\r\n");
     }

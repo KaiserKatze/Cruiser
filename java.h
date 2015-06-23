@@ -242,12 +242,21 @@ extern "C" {
     };
 #endif /* VERSION 50.0 */
 #if VER_CMP(51, 0)
-    struct BootstrapMethods;
+    struct attr_BootstrapMethods_info
+    {
+        u2 num_bootstrap_methods;
+        strcut bootstrap_method
+        {
+            u2 bootstrap_method_ref;
+            u2 num_bootstrap_arguments;
+            u2 *bootstrap_arguments;
+        } bootstrap_methods[];
+    };
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
-    struct MethodParameters;
-    struct RuntimeVisibleTypeAnnotations;
-    struct RuntimeInvisibleTypeAnnotations;
+    struct attr_MethodParameters_info;
+    struct attr_RuntimeVisibleTypeAnnotations_info;
+    struct attr_RuntimeInvisibleTypeAnnotations_info;
 #endif /* VERSION 52.0 */
 
     typedef struct {
