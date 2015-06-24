@@ -474,8 +474,8 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             }
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             logInfo("Method[%i]\r\n"
-                    "\tAccess flag:      0x%X\t// %s\r\n"
-                    "\tName index:       #%i\t// %s\r\n"
+                    "\tAccess flag     : 0x%X\t// %s\r\n"
+                    "\tName index      : #%i\t// %s\r\n"
                     "\tDescriptor index: #%i\t// %s\r\n", i,
                     cf->methods[i].access_flags,
                     buf ? buf : "",
@@ -485,22 +485,19 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     getConstant_Utf8String(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            goto close;
             loadAttributes_method(cf, input, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
-            logInfo("\tMethod Attribute count: %i\r\n",
+            logInfo("\tAttribute count : %i\r\n",
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
-                buf = getConstant_Utf8String(cf, cf->methods[i].attributes[j].attribute_name_index);
-                logInfo("\tMethod Attribute [%i]\r\n"
+                logInfo("\tAttribute[%i]\r\n"
                         "\t\tName index:\t#%i\t// %s\r\n"
                         "\t\tLength    :\t%i\r\n",
                         j,
                         cf->methods[i].attributes[j].attribute_name_index,
-                        buf,
-                        cf->methods[i].attributes[j].attribute_length
-                        );
-                buf = (char *) 0;
+                        getConstant_Utf8String(cf,
+                            cf->methods[i].attributes[j].attribute_name_index),
+                        cf->methods[i].attributes[j].attribute_length);
             }
         }
     }
@@ -1551,6 +1548,11 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     struct attr_BootstrapMethods_info *dataBootstrapMethods;
 
     info = &(cf->constant_pool[i]);
+    if (i == 0)
+    {
+        logError("Pointing to null entry!\r\n");
+        return -1;
+    }
     if (tag != 0 && info->tag != tag)
     {
         logError("Assertion error: constant pool[%i] is not CONSTANT_%s_info!\r\n", info->tag, get_cp_name(info->tag));

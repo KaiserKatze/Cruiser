@@ -702,7 +702,7 @@ loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
 
 #if VER_CMP(45, 3)
     if (!strcmp(attribute_name, "Code"))
-        return loadAttribute_ConstantValue(cf, input, info);
+        return loadAttribute_Code(cf, input, info);
     if (!strcmp(attribute_name, "Exceptions"))
         return loadAttribute_Exceptions(cf, input, info);
     if (!strcmp(attribute_name, "Synthetic"))
@@ -733,6 +733,7 @@ loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
 
+    logError("Attribute skipped!\r\n");
     return skipAttribute(input, info);
 }
 
@@ -964,7 +965,11 @@ loadAttributes_method(ClassFile *cf, struct BufferInput *input, u2 *attributes_c
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     for (i = 0u; i < *attributes_count; i++)
         if (loadAttribute_method(cf, input, &((*attributes)[i])) < 0)
+        {
+            logError("Fail to load method attributes!\r\n");
             return -1;
+        }
+
     return 0;
 }
 
