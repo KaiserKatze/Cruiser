@@ -18,7 +18,7 @@ loadAttribute(struct BufferInput *input, attr_info *info)
 static int
 skipAttribute(struct BufferInput *input, attr_info *info)
 {
-    logError("Skip attribute{name_index: %i, length: %i}!\r\n",
+    logError("Skip attribute{name_index: 0x%X, length: %i}!\r\n",
             info->attribute_name_index, info->attribute_length);
     return skp(input, info->attribute_length);
 }
@@ -78,11 +78,21 @@ loadAttribute_Code(ClassFile *cf, struct BufferInput *input, attr_info *info)
     }
     data->code = malloc(data->code_length);
     if (!data->code)
+    {
+        logError("Fail to allocate memory!\r\n");
         return -1;
+    }
     if (rbs(data->code, input, data->code_length) < 0)
         return -1;
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
+    data->exception_table = (struct exception_table_entry *)
+        malloc(sizeof (struct exception_table_entry) * data->exception_table_length);
+    if (!data->exception_table)
+    {
+        logError("Fail to allocate memory!\r\n");
+        return -1;
+    }
     for (i = 0u; i < data->exception_table_length; i++)
     {
         if (ru2(&(data->exception_table[i].start_pc), input) < 0)
@@ -133,9 +143,20 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferInput *input, attr_info *in
     data = (struct attr_Exceptions_info *)
             malloc(sizeof (struct attr_Exceptions_info));
     if (!data)
+    {
+        logError("Fail to allocate memory!\r\n");
         return -1;
+    }
+    bzero(data, sizeof (struct attr_Exceptions_info));
     if (ru2(&(data->number_of_exceptions), input) < 0)
         return -1;
+    data->exception_index_table = (u2 *)
+        malloc(sizeof (u2) * data->number_of_exceptions);
+    if (!data->exception_index_table)
+    {
+        logError("Fail to allocate memory!\r\n");
+        return -1;
+    }
     for (i = 0u; i < data->number_of_exceptions; i++)
     {
         if (ru2(&(data->exception_index_table[i]), input) < 0)
@@ -183,6 +204,13 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferInput *input, attr_info *
         return -1;
     if (ru2(&(data->number_of_classes), input) < 0)
         return -1;
+    data->classes = (struct classes_entry *)
+        malloc(sizeof (struct classes_entry) * data->number_of_classes);
+    if (!data->classes)
+    {
+        logError("Fail to allocate memory!\r\n");
+        return -1;
+    }
     for (i = 0u; i < data->number_of_classes; i++)
     {
         if (ru2(&(data->classes[i].inner_class_info_index), input) < 0)
@@ -733,7 +761,6 @@ loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
 
-    logError("Attribute skipped!\r\n");
     return skipAttribute(input, info);
 }
 

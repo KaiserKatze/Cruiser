@@ -364,11 +364,9 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                 logError("Invalid constant pool index!\r\n");
                 goto close;
             }
-            buf = cui->data->bytes;
-            if (!buf) buf = "";
-            logInfo("Interface[%i] #%i\t// %s\r\n",
-                    i, cf->interfaces[i], buf);
-            buf = (char *) 0;
+            logInfo("Interface[%i] #%i\t// %.*s\r\n",
+                    i, cf->interfaces[i],
+                    cui->data->length, cui->data->bytes);
         }
     }
 
@@ -408,14 +406,16 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             }
             buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
             logInfo("Field[%i]\r\n"
-                    "\tAccess flag:      0x%X\t// %s\r\n"
-                    "\tName index:       #%i\t// %s\r\n"
-                    "\tDescriptor index: #%i\t// %s\r\n",
+                    "\tAccess flag     : 0x%X\t// %s\r\n"
+                    "\tName index      : #%i\t// %.*s\r\n"
+                    "\tDescriptor index: #%i\t// %.*s\r\n",
                     i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
+                    getConstant_Utf8(cf, cf->fields[i].name_index)->data->length,
                     getConstant_Utf8String(cf, cf->fields[i].name_index),
                     cf->fields[i].descriptor_index,
+                    getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->length,
                     getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
@@ -424,13 +424,14 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
                     cf->fields[i].attributes_count);
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
-                buf = getConstant_Utf8String(cf, cf->fields[i].attributes[j].attribute_name_index);
+                cui = getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index);
+                buf = cui->data->bytes;
                 logInfo("\tField Attribute [%i]\r\n"
-                        "\t\tName index:\t#%i\t// %s\r\n"
+                        "\t\tName index:\t#%i\t// %.*s\r\n"
                         "\t\tLength    :\t%i\r\n",
                         j,
                         cf->fields[i].attributes[j].attribute_name_index,
-                        buf,
+                        cui->data->length, buf,
                         cf->fields[i].attributes[j].attribute_length
                         );
                 buf = (char *) 0;
@@ -475,13 +476,15 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             logInfo("Method[%i]\r\n"
                     "\tAccess flag     : 0x%X\t// %s\r\n"
-                    "\tName index      : #%i\t// %s\r\n"
-                    "\tDescriptor index: #%i\t// %s\r\n", i,
+                    "\tName index      : #%i\t// %.*s\r\n"
+                    "\tDescriptor index: #%i\t// %.*s\r\n", i,
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
+                    getConstant_Utf8(cf, cf->methods[i].name_index)->data->length,
                     getConstant_Utf8String(cf, cf->methods[i].name_index),
                     cf->methods[i].descriptor_index,
+                    getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->length,
                     getConstant_Utf8String(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
@@ -491,10 +494,11 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
             for (j = 0; j < cf->methods[i].attributes_count; j++)
             {
                 logInfo("\tAttribute[%i]\r\n"
-                        "\t\tName index:\t#%i\t// %s\r\n"
+                        "\t\tName index:\t#%i\t// %.*s\r\n"
                         "\t\tLength    :\t%i\r\n",
                         j,
                         cf->methods[i].attributes[j].attribute_name_index,
+                        getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->length,
                         getConstant_Utf8String(cf,
                             cf->methods[i].attributes[j].attribute_name_index),
                         cf->methods[i].attributes[j].attribute_length);
@@ -505,12 +509,14 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
     for (i = 0; i < cf->attributes_count; i++)
     {
-        buf = getConstant_Utf8String(cf, cf->attributes[i].attribute_name_index);
+        cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
+        buf = cui->data->bytes;
         logInfo("Class Attribute: [%i]\r\n"
-                "\tName index:\t#%i\t// %s\r\n"
+                "\tName index:\t#%i\t// %.*s\r\n"
                 "\tLength    :\t%i\r\n",
                 i,
                 cf->attributes[i].attribute_name_index,
+                cui->data->length,
                 buf,
                 cf->attributes[i].attribute_length);
         buf = (char *) 0;

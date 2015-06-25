@@ -140,7 +140,7 @@ extern "C" {
     struct attr_InnerClasses_info
     {
         u2 number_of_classes;
-        struct
+        struct classes_entry
         {
             u2 inner_class_info_index;
             u2 outer_class_info_index;
@@ -186,7 +186,7 @@ extern "C" {
         u4 code_length;
         u1 *code;
         u2 exception_table_length;
-        struct
+        struct exception_table_entry
         {
             u2 start_pc;
             u2 end_pc;
