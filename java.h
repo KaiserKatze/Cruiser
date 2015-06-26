@@ -72,27 +72,6 @@ extern "C" {
 #define ACC_FIELD                       (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_VOLATILE | ACC_TRANSIENT | ACC_SYNTHETIC | ACC_ENUM)
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
 
-#define VER_ATTR_CONSTANTVALUE                          45.3f
-#define VER_ATTR_CODE                                   45.3f
-#define VER_ATTR_STACKMAPTABLE                          50.0f
-#define VER_ATTR_EXCEPTIONS                             45.3f
-#define VER_ATTR_INNERCLASSES                           45.3f
-#define VER_ATTR_ENCLOSINGMETHOD                        49.0f
-#define VER_ATTR_SYNTHETIC                              45.3f
-#define VER_ATTR_SIGNATURE                              49.0f
-#define VER_ATTR_SOURCEFILE                             45.3f
-#define VER_ATTR_SOURCEDEBUGEXTENSION                   49.0f
-#define VER_ATTR_LINENUMBERTABLE                        45.3f
-#define VER_ATTR_LOCALVARIABLETABLE                     45.3f
-#define VER_ATTR_LOCALVARIABLETYPETABLE                 49.0f
-#define VER_ATTR_DEPRECATED                             45.3f
-#define VER_ATTR_RUNTIMEVISIBLEANNOTATIONS              49.0f
-#define VER_ATTR_RUNTIMEINVISIBLEANNOTATIONS            49.0f
-#define VER_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     49.0f
-#define VER_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   49.0f
-#define VER_ATTR_ANNOTATIONDEFAULT                      49.0f
-#define VER_ATTR_BOOTSTRAPMETHODS                       51.0f
-
 // Cruise-specific constants
 #define TAG_ATTR_CONSTANTVALUE                          0x1
 #define TAG_ATTR_CODE                                   0x2
