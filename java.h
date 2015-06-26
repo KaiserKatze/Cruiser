@@ -572,6 +572,7 @@ extern "C" {
     extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *, u2);
     extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *, u2);
 
+    extern u2 getConstant_Utf8Length(ClassFile *, u2);
     extern char *getConstant_Utf8String(ClassFile *, u2);
 
     struct BufferInput;

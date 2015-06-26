@@ -1259,6 +1259,18 @@ getConstant_Utf8(ClassFile *cf, u2 index)
     return info;
 }
 
+extern u2
+getConstant_Utf8Length(ClassFile *cf, u2 index)
+{
+    CONSTANT_Utf8_info *cu;
+
+    cu = getConstant_Utf8(cf, index);
+    if (!cu || !cu->data)
+        return 0;
+
+    return cu->data->length;
+}
+
 extern char *
 getConstant_Utf8String(ClassFile *cf, u2 index)
 {

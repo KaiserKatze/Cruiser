@@ -62,6 +62,10 @@ main(int argc, char** argv)
 
         input.more = 1;
 
+        fseek(input.file, 0, SEEK_END);
+        logInfo("File size: %i\r\n", ftell(input.file));
+        rewind(input.file);
+
         cf = (ClassFile *) malloc(sizeof (ClassFile));
         if (!cf)
         {
