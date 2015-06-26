@@ -56,7 +56,7 @@ releaseDequeEntry(struct DequeEntry *entry)
 }
 
 extern struct DequeEntry *
-removeFirst(struct Deque *deque)
+deque_removeFirst(struct Deque *deque)
 {
     struct DequeEntry *first;
 
@@ -75,7 +75,7 @@ removeFirst(struct Deque *deque)
 }
 
 extern struct DequeEntry *
-removeLast(struct Deque *deque)
+deque_removeLast(struct Deque *deque)
 {
     struct DequeEntry *last;
 
@@ -94,13 +94,13 @@ removeLast(struct Deque *deque)
 }
 
 extern struct DequeEntry *
-pop(struct Deque *deque)
+deque_pop(struct Deque *deque)
 {
-    return removeFirst(deque);
+    return deque_removeFirst(deque);
 }
 
 extern int
-addFirst(struct Deque *deque, int size, void *value)
+deque_addFirst(struct Deque *deque, int size, void *value)
 {
     struct DequeEntry *entry;
 
@@ -124,7 +124,7 @@ addFirst(struct Deque *deque, int size, void *value)
 }
 
 extern int
-addLast(struct Deque *deque, int size, void *value)
+deque_addLast(struct Deque *deque, int size, void *value)
 {
     struct DequeEntry *entry;
 
@@ -148,7 +148,7 @@ addLast(struct Deque *deque, int size, void *value)
 }
 
 extern int
-push(struct Deque *deque, int size, void *value)
+deque_push(struct Deque *deque, int size, void *value)
 {
-    return addFirst(deque, size, value);
+    return deque_addFirst(deque, size, value);
 }

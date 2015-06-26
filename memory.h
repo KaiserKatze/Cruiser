@@ -24,12 +24,12 @@ struct DequeEntry
 extern struct Deque *createDeque();
 extern void releaseDequeEntry(struct DequeEntry *);
 
-extern int addFirst(struct Deque *, int, void *);
-extern int addLast(struct Deque *, int, void *);
-extern int push(struct Deque *, int, void *);
+extern int deque_addFirst(struct Deque *, int, void *);
+extern int deque_addLast(struct Deque *, int, void *);
+extern int deque_push(struct Deque *, int, void *);
 
-extern struct DequeEntry *removeFirst(struct Deque *);
-extern struct DequeEntry *removeLast(struct Deque *);
-extern struct DequeEntry *pop(struct Deque *);
+extern struct DequeEntry *deque_removeFirst(struct Deque *);
+extern struct DequeEntry *deque_removeLast(struct Deque *);
+extern struct DequeEntry *deque_pop(struct Deque *);
 
 #endif /* STACK_H */
