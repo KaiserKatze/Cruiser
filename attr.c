@@ -18,7 +18,7 @@ loadAttribute(struct BufferInput *input, attr_info *info)
 static int
 skipAttribute(struct BufferInput *input, attr_info *info)
 {
-    logError("Skip attribute{name_index: 0x%X, length: %i}!\r\n",
+    logError("Skip attribute{name_index: 0x%02X, length: %i}!\r\n",
             info->attribute_name_index, info->attribute_length);
     return skp(input, info->attribute_length);
 }

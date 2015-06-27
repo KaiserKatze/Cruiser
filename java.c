@@ -507,11 +507,12 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     }
 
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
+        logInfo("Class Attribute count: %i\r\n", cf->attributes_count);
     for (i = 0; i < cf->attributes_count; i++)
     {
         cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
         buf = cui->data->bytes;
-        logInfo("Class Attribute: [%i]\r\n"
+        logInfo("Class Attribute      : [%i]\r\n"
                 "\tName index:\t#%i\t// %.*s\r\n"
                 "\tLength    :\t%i\r\n",
                 i,
@@ -522,11 +523,8 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
         buf = (char *) 0;
     }
 
-    if ((cap = validateConstantPool(cf)) < 0)
-    {
-        logError("Constant pool is invalid[%i]!\r\n", -cap);
+    if (validateConstantPool(cf) < 0)
         return -1;
-    }
 close:
 
     return 0;
@@ -1605,9 +1603,20 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             if (validateConstantPoolEntry(cf, cni->data->name_index, bul, CONSTANT_Utf8) < 0)
                 return -1;
             cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-            if (cui->data->bytes[0] == '<'
-                    && strcmp(&(cui->data->bytes[1]), "init>"))
-                return -1;
+            if (strncmp(cui->data->bytes, "<init>", 6)
+                    && strncmp(cui->data->bytes, "<clinit>", 8))
+            {
+                for (j = 0; j < cui->data->length; j++)
+                {
+                    switch (cui->data->bytes[j])
+                    {
+                        case '.':case ';':case '[':case '/':case '<':case '>':
+                            logError("Method name '%.*s' constains invalid character!\r\n",
+                                    cui->data->length, cui->data->bytes);
+                            return -1;
+                    }
+                }
+            }
             if (validateConstantPoolEntry(cf, cni->data->descriptor_index, bul, CONSTANT_Utf8) < 0)
                 return -1;
             break;
@@ -1642,7 +1651,8 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         return -1;
                     break;
                 default:
-                    logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n", i, cmhi->data->reference_kind);
+                    logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n",
+                            i, cmhi->data->reference_kind);
                     return -1;
             }
             switch (cmhi->data->reference_kind)
@@ -1651,16 +1661,29 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                     cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
                     cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
                     cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (!strcmp(cui->data->bytes, "<init>")
-                            || !strcmp(cui->data->bytes, "<clinit>"))
+                    if (!strncmp(cui->data->bytes, "<init>", 6))
+                    {
+                        logError("Method name '<init>' is invalid because MethodHandle reference kind is %i!\r\n",
+                                cmhi->data->reference_kind);
                         return -1;
+                    }
+                    if (!strncmp(cui->data->bytes, "<clinit>", 8))
+                    {
+                        logError("Method name '<clinit>' is invalid because MethodHandle reference kind is %i!\r\n",
+                                cmhi->data->reference_kind);
+                        return -1;
+                    }
                     break;
                 case 8:
                     cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
                     cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
                     cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (strcmp(cui->data->bytes, "<init>"))
+                    if (strncmp(cui->data->bytes, "<init>", 6))
+                    {
+                        logError("Method name '%.*s' is invalid because MethodHandle reference kind is %i!\r\n",
+                                cui->data->length, cui->data->bytes, cmhi->data->reference_kind);
                         return -1;
+                    }
                     break;
             }
             break;
@@ -1708,7 +1731,10 @@ validateConstantPool(ClassFile *cf)
     bzero(bul, cf->constant_pool_count);
     for (i = 1u; i < cf->constant_pool_count; i++)
         if (validateConstantPoolEntry(cf, i, bul, 0) < 0)
-            return -i;
+        {
+            logError("Constant pool is invalid[%i]!\r\n", i);
+            return -1;
+        }
 
     return 0;
 }
