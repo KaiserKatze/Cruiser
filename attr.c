@@ -30,7 +30,6 @@ loadAttribute_ConstantValue(ClassFile *cf, struct BufferInput *input, attr_info 
     struct attr_ConstantValue_info *data;
 
     info->tag = TAG_ATTR_CONSTANTVALUE;
-    info->info = (u1 *) 0;
     data = (struct attr_ConstantValue_info *)
             malloc(sizeof (struct attr_ConstantValue_info));
     if (!data)
@@ -60,7 +59,6 @@ loadAttribute_Code(ClassFile *cf, struct BufferInput *input, attr_info *info)
     u2 i;
 
     info->tag = TAG_ATTR_CODE;
-    info->info = (u1 *) 0;
     data = (struct attr_Code_info *)
             malloc(sizeof (struct attr_Code_info));
     if (!data)
@@ -139,7 +137,6 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferInput *input, attr_info *in
     u2 i;
 
     info->tag = TAG_ATTR_EXCEPTIONS;
-    info->info = (u1 *) 0;
     data = (struct attr_Exceptions_info *)
             malloc(sizeof (struct attr_Exceptions_info));
     if (!data)
@@ -197,7 +194,6 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferInput *input, attr_info *
     u2 i;
 
     info->tag = TAG_ATTR_INNERCLASSES;
-    info->info = (u1 *) 0;
     data = (struct attr_InnerClasses_info *)
             malloc(sizeof (struct attr_InnerClasses_info));
     if (!data)
@@ -275,7 +271,6 @@ loadAttribute_Synthetic(ClassFile *cf, struct BufferInput *input, attr_info *inf
         return -1;
     }
     info->tag = TAG_ATTR_SYNTHETIC;
-    info->info = (u1 *) 0;
     info->data = (void *) 0;
 
     return 0;
@@ -288,7 +283,6 @@ loadAttribute_SourceFile(ClassFile *cf, struct BufferInput *input, attr_info *in
     CONSTANT_Utf8_info *cu;
 
     info->tag = TAG_ATTR_SOURCEFILE;
-    info->info = (u1 *) 0;
     data = (struct attr_SourceFile_info *)
             malloc(sizeof (struct attr_SourceFile_info));
     if (!data)
@@ -323,7 +317,6 @@ loadAttribute_SourceDebugExtension(ClassFile *cf, struct BufferInput *input, att
     int cap;
 
     info->tag = TAG_ATTR_SOURCEDEBUGEXTENSION;
-    info->info = (u1 *) 0;
     cap = sizeof (u1) * info->attribute_length;
     info->data = (u1 *) malloc(info->attribute_length);
     if (!info->data)
@@ -353,7 +346,6 @@ loadAttribute_LineNumberTable(ClassFile *cf, struct BufferInput *input, attr_inf
     int cap;
 
     info->tag = TAG_ATTR_LINENUMBERTABLE;
-    info->info = (u1 *) 0;
     if (ru2(&lntl, input) < 0)
         return -1;
     cap = sizeof (struct attr_LineNumberTable_info)
@@ -394,7 +386,6 @@ loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferInput *input, attr_
     CONSTANT_Utf8_info *cu;
 
     info->tag = TAG_ATTR_LOCALVARIABLETABLE;
-    info->info = (u1 *) 0;
     if (ru2(&lvtl, input) < 0)
         return -1;
     cap = sizeof (struct attr_LocalVariableTable_info)
@@ -453,7 +444,6 @@ loadAttribute_Deprecated(ClassFile *cf, struct BufferInput *input, attr_info *in
         return -1;
     }
     info->tag = TAG_ATTR_DEPRECATED;
-    info->info = (u1 *) 0;
     info->data = (void *) 0;
 
     return 0;
@@ -468,7 +458,6 @@ loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferInput *input, attr_inf
     CONSTANT_NameAndType_info *cn;
 
     info->tag = TAG_ATTR_ENCLOSINGMETHOD;
-    info->info = (u1 *) 0;
     data = (struct attr_EnclosingMethod_info *)
             malloc(sizeof (struct attr_EnclosingMethod_info));
     if (!data)
@@ -515,7 +504,6 @@ loadAttribute_Signature(ClassFile *cf, struct BufferInput *input, attr_info *inf
     CONSTANT_Utf8_info *cu;
 
     info->tag = TAG_ATTR_SIGNATURE;
-    info->info = (u1 *) 0;
     data = (struct attr_Signature_info *)
             malloc(sizeof (struct attr_Signature_info));
     if (!data)
@@ -553,7 +541,6 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferInput *input, a
     CONSTANT_Utf8_info *cu;
 
     info->tag = TAG_ATTR_LOCALVARIABLETYPETABLE;
-    info->info = (u1 *) 0;
     if (ru2(&lvttl, input) < 0)
         return -1;
     cap = sizeof (struct attr_LocalVariableTypeTable_info)
@@ -611,7 +598,6 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferInput *input, attr_info 
     u2 i;
 
     info->tag = TAG_ATTR_STACKMAPTABLE;
-    info->info = (u1 *) 0;
     data = (struct attr_StackMapTable_info *)
             malloc(sizeof (struct attr_StackMapTable_info));
     if (!data)
@@ -642,35 +628,35 @@ loadAttribute_class(ClassFile *cf, struct BufferInput *input, attr_info *info)
     attribute_name = utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strcmp(attribute_name, "SourceFile"))
+    if (!strncmp(attribute_name, "SourceFile", 10))
         return loadAttribute_SourceFile(cf, input, info);
-    if (!strcmp(attribute_name, "InnerClasses"))
+    if (!strncmp(attribute_name, "InnerClasses", 12))
         return loadAttribute_InnerClasses(cf, input, info);
-    if (!strcmp(attribute_name, "Synthetic"))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strcmp(attribute_name, "Deprecated"))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strcmp(attribute_name, "InnerClasses"))
-        return loadAttribute_InnerClasses(cf, input, info);
-    if (!strcmp(attribute_name, "EnclosingMethod"))
+    if (!strncmp(attribute_name, "EnclosingMethod", 15))
         return loadAttribute_EnclosingMethod(cf, input, info);
-    if (!strcmp(attribute_name, "Signature"))
+    if (!strncmp(attribute_name, "SourceDebugExtension", 20))
+        return loadAttribute_SourceDebugExtension(cf, input, info);
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeVisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
         return loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
         return loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
 #endif
 #if VER_CMP(51, 0)
-    if (!strcmp(attribute_name, "BootstrapMethods"))
+    if (!strncmp(attribute_name, "BootstrapMethods", 16))
         return loadAttribute_BootstrapMethods(cf, input, info);
 #endif
 #if VER_CMP(52, 0)
-    if (!strcmp(attribute_name, "RuntimeVisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
         return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
     return skipAttribute(input, info);
@@ -690,25 +676,25 @@ loadAttribute_field(ClassFile *cf, struct BufferInput *input, attr_info *info)
     attribute_name = utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strcmp(attribute_name, "ConstantValue"))
+    if (!strncmp(attribute_name, "ConstantValue", 13))
         return loadAttribute_ConstantValue(cf, input, info);
-    if (!strcmp(attribute_name, "Synthetic"))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strcmp(attribute_name, "Deprecated"))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strcmp(attribute_name, "Signature"))
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeVisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
         return loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
         return loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
 #endif
 #if VER_CMP(52, 0)
-    if (!strcmp(attribute_name, "RuntimeVisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
         return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
 
@@ -729,35 +715,35 @@ loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
     attribute_name = utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strcmp(attribute_name, "Code"))
+    if (!strncmp(attribute_name, "Code", 4))
         return loadAttribute_Code(cf, input, info);
-    if (!strcmp(attribute_name, "Exceptions"))
+    if (!strncmp(attribute_name, "Exceptions", 10))
         return loadAttribute_Exceptions(cf, input, info);
-    if (!strcmp(attribute_name, "Synthetic"))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strcmp(attribute_name, "Deprecated"))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strcmp(attribute_name, "RuntimeVisibleParameterAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleParameterAnnotations", 34))
         return loadAttribute_RuntimeVisibleParameterAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleParameterAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleParameterAnnotations", 36))
         return loadAttribute_RuntimeInvisibleParameterAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "AnnotationDefault"))
+    if (!strncmp(attribute_name, "AnnotationDefault", 17))
         return loadAttribute_AnnotationDefault(cf, input, info);
-    if (!strcmp(attribute_name, "Signature"))
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeVisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
         return loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
         return loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
 #endif
 #if VER_CMP(52, 0)
-    if (!strcmp(attribute_name, "MethodParameters"))
+    if (!strncmp(attribute_name, "MethodParameters", 16))
         return loadAttribute_MethodParameters(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeVisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
         return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
 
@@ -778,23 +764,23 @@ loadAttribute_code(ClassFile *cf, struct BufferInput *input, attr_info *info)
     attribute_name = utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strcmp(attribute_name, "LineNumberTable"))
+    if (!strncmp(attribute_name, "LineNumberTable", 15))
         return loadAttribute_LineNumberTable(cf, input, info);
-    if (!strcmp(attribute_name, "LocalVariableTable"))
+    if (!strncmp(attribute_name, "LocalVariableTable", 18))
         return loadAttribute_LocalVariableTable(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strcmp(attribute_name, "LocalVariableTypeTable"))
+    if (!strncmp(attribute_name, "LocalVariableTypeTable", 22))
         return loadAttribute_LocalVariableTypeTable(cf, input, info);
 #endif
 #if VER_CMP(50, 0)
-    if (!strcmp(attribute_name, "StackMapTable"))
+    if (!strncmp(attribute_name, "StackMapTable", 13))
         return loadAttribute_StackMapTable(cf, input, info);
 #endif
 #if VER_CMP(52, 0)
-    if (!strcmp(attribute_name, "RuntimeVisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
         return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-    if (!strcmp(attribute_name, "RuntimeInvisibleTypeAnnotations"))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
 
@@ -822,6 +808,7 @@ loadAttributes_class(ClassFile *cf, struct BufferInput *input, u2 *attributes_co
 static int
 freeAttribute_class(attr_info *info)
 {
+    logError("Free class attribute tagged %i\r\n", info->tag);
 #if VER_CMP(45, 3)
     if (!freeAttribute_SourceFile(info))
         return 0;
@@ -851,6 +838,7 @@ freeAttribute_class(attr_info *info)
         return 0;
 #endif
 
+    logError("Fail to free attriute %p!\r\n", info);
     return -1;
 }
 

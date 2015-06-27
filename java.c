@@ -31,6 +31,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     CONSTANT_MethodType_info *cmti;
     CONSTANT_InvokeDynamic_info *cidi;
     char *buf;
+    FILE *f_out, *f_err;
 
     if (!cf)
     {
@@ -507,7 +508,7 @@ parseClassfile(struct BufferInput * input, ClassFile *cf)
     }
 
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
-        logInfo("Class Attribute count: %i\r\n", cf->attributes_count);
+    logInfo("Class Attribute count: %i\r\n", cf->attributes_count);
     for (i = 0; i < cf->attributes_count; i++)
     {
         cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
@@ -1563,7 +1564,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     u2 j;
     struct attr_BootstrapMethods_info *dataBootstrapMethods;
 
-    logInfo("Examing constant pool[%i]...\r\n", i);
+    //logInfo("Examing constant pool[%i]...\r\n", i);
     info = &(cf->constant_pool[i]);
     if (i == 0)
     {

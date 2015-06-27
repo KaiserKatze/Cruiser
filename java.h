@@ -8,6 +8,8 @@
 #ifndef JAVA_H
 #define	JAVA_H
 
+#include <stdint.h>
+
 #include <zip.h>
 
 #ifdef	__cplusplus
@@ -23,10 +25,10 @@ extern "C" {
 #error "Macro 'MAJOR_VERSION' and 'MINOR_VERSION' is missing!"
 #endif
 
-    typedef unsigned char u1;
-    typedef unsigned short u2;
-    typedef unsigned int u4;
-    typedef unsigned long long u8;
+    typedef uint8_t u1;
+    typedef uint16_t u2;
+    typedef uint32_t u4;
+    typedef uint64_t u8;
 
 #define CONSTANT_Class                  7
 #define CONSTANT_Fieldref               9
@@ -73,26 +75,28 @@ extern "C" {
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
 
 // Cruise-specific constants
-#define TAG_ATTR_CONSTANTVALUE                          0x1
-#define TAG_ATTR_CODE                                   0x2
-#define TAG_ATTR_STACKMAPTABLE                          0x4
-#define TAG_ATTR_EXCEPTIONS                             0x8
-#define TAG_ATTR_INNERCLASSES                           0x10
-#define TAG_ATTR_ENCLOSINGMETHOD                        0x20
-#define TAG_ATTR_SYNTHETIC                              0x40
-#define TAG_ATTR_SIGNATURE                              0x80
-#define TAG_ATTR_SOURCEFILE                             0x100
-#define TAG_ATTR_SOURCEDEBUGEXTENSION                   0x200
-#define TAG_ATTR_LINENUMBERTABLE                        0x400
-#define TAG_ATTR_LOCALVARIABLETABLE                     0x800
-#define TAG_ATTR_LOCALVARIABLETYPETABLE                 0x1000
-#define TAG_ATTR_DEPRECATED                             0x2000
-#define TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS              0x4000
-#define TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS            0x8000
-#define TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     0x10000
-#define TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   0x20000
-#define TAG_ATTR_ANNOTATIONDEFAULT                      0x40000
-#define TAG_ATTR_BOOTSTRAPMETHODS                       0x80000
+#define TAG_ATTR_CONSTANTVALUE                          1
+#define TAG_ATTR_CODE                                   2
+#define TAG_ATTR_STACKMAPTABLE                          3
+#define TAG_ATTR_EXCEPTIONS                             4
+#define TAG_ATTR_INNERCLASSES                           5
+#define TAG_ATTR_ENCLOSINGMETHOD                        6
+#define TAG_ATTR_SYNTHETIC                              7
+#define TAG_ATTR_SIGNATURE                              8
+#define TAG_ATTR_SOURCEFILE                             9
+#define TAG_ATTR_SOURCEDEBUGEXTENSION                   10
+#define TAG_ATTR_LINENUMBERTABLE                        11
+#define TAG_ATTR_LOCALVARIABLETABLE                     12
+#define TAG_ATTR_LOCALVARIABLETYPETABLE                 13
+#define TAG_ATTR_DEPRECATED                             14
+#define TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS              15
+#define TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS            16
+#define TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     17
+#define TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   18
+#define TAG_ATTR_ANNOTATIONDEFAULT                      19
+#define TAG_ATTR_BOOTSTRAPMETHODS                       20
+#define TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS          21
+#define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        22
 
     typedef struct
     {
@@ -104,8 +108,6 @@ extern "C" {
     {
         u2 attribute_name_index;
         u4 attribute_length;
-        // temporary storage
-        u1 *info;
         // Cruise-specific members
         u2 tag;
         void *data;
