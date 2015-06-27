@@ -38,8 +38,14 @@ reallocMemory(void **mem, size_t newsize)
     *mem = ptr;
 }
 
+extern void
+freeMemory(void *mem)
+{
+    free(mem);
+}
+
 extern struct Deque *
-createDeque()
+deque_createDeque()
 {
     struct Deque *deque;
 
@@ -50,9 +56,9 @@ createDeque()
 }
 
 extern void
-releaseDequeEntry(struct DequeEntry *entry)
+deque_releaseEntry(struct DequeEntry *entry)
 {
-    free(entry);
+    freeMemory(entry);
 }
 
 extern struct DequeEntry *

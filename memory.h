@@ -1,8 +1,9 @@
-#ifndef STACK_H
-#define STACK_H
+#ifndef MEMORY_H
+#define MEMORY_H
 
 extern void * allocMemory(size_t, size_t);
 extern void reallocMemory(void **, size_t);
+extern void freeMemory(void *);
 
 struct Deque;
 struct DequeEntry;
@@ -21,8 +22,8 @@ struct DequeEntry
     void *value;
 };
 
-extern struct Deque *createDeque();
-extern void releaseDequeEntry(struct DequeEntry *);
+extern struct Deque *deque_createDeque();
+extern void deque_releaseEntry(struct DequeEntry *);
 
 extern int deque_addFirst(struct Deque *, int, void *);
 extern int deque_addLast(struct Deque *, int, void *);
@@ -32,4 +33,4 @@ extern struct DequeEntry *deque_removeFirst(struct Deque *);
 extern struct DequeEntry *deque_removeLast(struct Deque *);
 extern struct DequeEntry *deque_pop(struct Deque *);
 
-#endif /* STACK_H */
+#endif /* MEMORY_H */
