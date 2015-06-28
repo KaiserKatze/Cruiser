@@ -36,3 +36,20 @@ logError(const char *format, ...)
     return 0;
 #endif
 }
+
+extern int
+flogError(FILE *file, const char *format, ...)
+{
+#if (defined DEBUG && defined LOG_ERROR)
+    int res;
+    va_list vl;
+
+    va_start(vl, format);
+    res = vfprintf(file, format, vl);
+    va_end(vl);
+
+    return res;
+#else
+    return 0;
+#endif
+}

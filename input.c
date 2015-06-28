@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include <endian.h>
 #include <dirent.h>
@@ -159,4 +160,51 @@ findClassfile(const char *dir)
 
     freeMemory(parent);
     return deque;
+}
+
+extern FILE *
+openFile(const char *path, const char *mode)
+{
+    FILE *file;
+    struct stat entry_stat;
+    char *prev, *mask;
+
+    file = (FILE *) 0;
+    prev = (char *) path;
+    if (prev[0] == '/')
+        mask = strchr(prev + 1, '/');
+    else
+        mask = strchr(prev, '/');
+    do
+    {
+        *mask = 0;
+        if (mkdir(prev, S_IRWXU) < 0)
+        {
+            if (errno != EEXIST)
+            {
+                perror("Fail to create new directory");
+                return (FILE *) 0;
+            }
+            if (stat(prev, &entry_stat) < 0)
+            {
+                perror("Fail to get entry stat");
+                return (FILE *) 0;
+            }
+            if (!S_ISDIR(entry_stat.st_mode))
+            {
+                logError("Existing entry '%s' is not directory!\r\n", prev);
+                return (FILE *) 0;
+            }
+        }
+        if (chdir(prev) < 0)
+        {
+            perror("Fail to change current working directory");
+            return (FILE *) 0;
+        }
+        prev = mask + 1;
+    }
+    while (mask = strchr(prev, '/'));
+    file = fopen(prev, mode);
+
+    return file;
 }
