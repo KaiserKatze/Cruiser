@@ -1,34 +1,22 @@
-/* 
- * File:   java.h
- * Author: donizyo
- *
- * Created on April 23, 2015, 7:13 PM
- */
-
 #ifndef JAVA_H
 #define	JAVA_H
 
-#include <stdint.h>
-
 #include <zip.h>
+
+#include "input.h"
 
 #ifdef	__cplusplus
 extern "C" {
 #endif
 
-#define MINOR_VERSION              3
-#define MAJOR_VERSION              45
+#define MINOR_VERSION                   3
+#define MAJOR_VERSION                   45
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
 #else
 #error "Macro 'MAJOR_VERSION' and 'MINOR_VERSION' is missing!"
 #endif
-
-    typedef uint8_t u1;
-    typedef uint16_t u2;
-    typedef uint32_t u4;
-    typedef uint64_t u8;
 
 #define CONSTANT_Class                  7
 #define CONSTANT_Fieldref               9
@@ -394,133 +382,16 @@ extern "C" {
         u2 minor_version, major_version;
         u2 constant_pool_count;
         cp_info * constant_pool;
-        /*
-         * The value of the access_flags item is a mask
-         * of flags used to denote access permissions to
-         * and properties of this class or interface.
-         */
         u2 access_flags;
-        /*
-         * The value of this_class must be
-         * a valid index into the constant_pool table.
-         * The constant_pool entry at that index must be
-         * a CONSTANT_Class_info structure
-         */
         u2 this_class;
-        /*
-         * The value of super_class item must be zero
-         * or must be a valid index into
-         * the constant_pool table. If the value of
-         * the super_class item is nonzero, the constant_pool
-         * entry at that index must be a CONSTANT_Class_info
-         * structure presenting the direct superclass
-         * of the class defined by this class file. Neither
-         * the direct superclass nor any of its superclasses
-         * may have the ACC_FINAL flag set in the access_flags
-         * item of its ClassFile structure.
-         * If the value of the super_class item is zero, then
-         * this class file must represent the class Object,
-         * the only class or interface without
-         * a direct superclass.
-         */
         u2 super_class;
-        /*
-         * The value of the interfaces_count item gives
-         * the number of direct superinterfaces of
-         * this class or interface type.
-         */
         u2 interfaces_count;
-        /*
-         * Each value in the interfaces array must be
-         * a valid index into the constant_pool table.
-         * The constant_pool entry at each value of
-         * interfaces[i], where 0 <= i < interfaces_count,
-         * must be a CONSTANT_Class_info structure
-         * representing an interface that is a direct
-         * superinterface of this class or interface type,
-         * in ther left-to right ordr given in the source
-         * for the type.
-         */
         u2 * interfaces;
-        /*
-         * The value of the fields_count item gives
-         * the number of field_info structures
-         * in the fields table. The field_info structures
-         * represent all fields, both class variables and
-         * instance variables, declared by this class or
-         * interface type.
-         */
         u2 fields_count;
-        /*
-         * Each value in the fields table must be
-         * a field_info structure giving a complete
-         * description of a field in this class or
-         * interface. The fields table includes only
-         * those fields that are declared by this class
-         * or interface. It does not include items
-         * representing fields that are inherited
-         * from superclasses or superinterfaces.
-         */
         field_info * fields;
-        /*
-         * The value of the methods_count item gives
-         * the number of method_info structures in
-         * the methods table.
-         */
         u2 methods_count;
-        /*
-         * Each value in the methods table must be a method_info
-         * structure giving a complete description of a method
-         * in this class or interface. If neither of the
-         * ACC_NATIVE and ACC_ABSTRACT flags are set in the
-         * access_flags item of a method_info structure,
-         * the JVM instructions implementing the method are
-         * also supplied.
-         * The method_info structures represent all methods
-         * declared by this class or interface type,
-         * including instance methods, class methods,
-         * instance initialization methods, and any class
-         * or interface initialization method. The methods
-         * table does not include items representing
-         * methods that are inherited from superclasses
-         * or superinterfaces.
-         */
         method_info * methods;
-        /*
-         * The value of the attributes_count item gives
-         * the number of attributes in the attributes
-         * table of this class.
-         */
         u2 attributes_count;
-        /*
-         * Each value of the attributes table must be
-         * an attribute_info structure.
-         * The attributes defined by this specification
-         * as appearing in the attributes table of
-         * a ClassFile structure are the InnerClasses,
-         * EnclosingMethod, Synthetic, Signature, SourceFile,
-         * SourceDebugExtension, Deprecated,
-         * RuntimeVisibleAnnotations,
-         * RuntimeInvisibleAnnotations,
-         * BootstrapMethods attributes.
-         * If a JVM implementation recognizes class files whose
-         * version number is 49.0 or above, it must recognize
-         * and correctly read Signature, RuntimeVisibleAnnotations,
-         * and RuntimeInvisibleAnnotations attributes found in the
-         * attributes table of a ClassFile structure of a class
-         * file whose version number is 49.0 or above.
-         * If a JVM implementation recognizes class files whose
-         * version number is 51.0 or above, it must recognize
-         * and correctly read BootstrapMethods attributes found in
-         * the attributes table of a ClassFile structure of a class
-         * file whose version number is 51.0 or above.
-         * A JVM implementation is required to silently ignore any
-         * or all attributes in the attributes table of a ClassFile
-         * structure that it does not recognize. Attributes not
-         * defined in this specification are not allowed to affect
-         * the semantics of the class file, but only to provide
-         * additional descriptive information.
-         */
         attr_info * attributes;
 
 #ifdef QUICK_REFERENCE
@@ -556,51 +427,20 @@ extern "C" {
     extern u2 getConstant_Utf8Length(ClassFile *, u2);
     extern char *getConstant_Utf8String(ClassFile *, u2);
 
-    struct BufferInput;
-    typedef char *(*func_fillBuffer)(struct BufferInput *, int);
-
-    // Encapsulate FILE and struct zip_file pointer
-    struct BufferInput
-    {
-        union {
-            struct zip_file *entry;
-            FILE *file;
-        };
-        int bufsize;
-        char *buffer;
-        int bufsrc;
-        int bufdst;
-        func_fillBuffer fp;
-        char more;
-    };
-
-    extern int loadAttributes_class(ClassFile *, struct BufferInput *, u2 *, attr_info **);
-    extern int loadAttributes_field(ClassFile *, struct BufferInput *, u2 *, attr_info **);
-    extern int loadAttributes_method(ClassFile *, struct BufferInput *, u2 *, attr_info **);
-    extern int loadAttributes_code(ClassFile *, struct BufferInput *, u2 *, attr_info **);
-
+    extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+    extern int loadAttributes_field(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+    extern int loadAttributes_method(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+    extern int loadAttributes_code(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int freeAttributes_class(u2, attr_info *);
     extern int freeAttributes_field(u2, attr_info *);
     extern int freeAttributes_method(u2, attr_info *);
     extern int freeAttributes_code(u2, attr_info *);
 
-    extern int ru1(u1 *, struct BufferInput *);
-    extern int ru2(u2 *, struct BufferInput *);
-    extern int ru4(u4 *, struct BufferInput *);
-    extern int rbs(char *, struct BufferInput *, int);
-    extern int skp(struct BufferInput *, int);
-    extern char *fillBuffer_f(struct BufferInput *, int);
-    extern char *fillBuffer_z(struct BufferInput *, int);
-
-    extern int parseClassfile(struct BufferInput *, ClassFile *);
-
+    extern int parseClassfile(struct BufferIO *, ClassFile *);
     extern int freeClassfile(ClassFile *);
 
     extern int compareVersion(u2, u2);
-    extern int checkInput(struct BufferInput *);
 #ifdef	__cplusplus
 }
 #endif
-
 #endif	/* JAVA_H */
-

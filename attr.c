@@ -6,7 +6,7 @@
 #include "log.h"
 
 static int
-loadAttribute(struct BufferInput *input, attr_info *info)
+loadAttribute(struct BufferIO *input, attr_info *info)
 {
     if (ru2(&(info->attribute_name_index), input) < 0)
         return -1;
@@ -16,7 +16,7 @@ loadAttribute(struct BufferInput *input, attr_info *info)
 }
 
 static int
-skipAttribute(struct BufferInput *input, attr_info *info)
+skipAttribute(struct BufferIO *input, attr_info *info)
 {
     logError("Skip attribute{name_index: 0x%02X, length: %i}!\r\n",
             info->attribute_name_index, info->attribute_length);
@@ -25,7 +25,7 @@ skipAttribute(struct BufferInput *input, attr_info *info)
 
 #if VER_CMP(45, 3)
 static int
-loadAttribute_ConstantValue(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_ConstantValue(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_ConstantValue_info *data;
 
@@ -53,7 +53,7 @@ freeAttribute_ConstantValue(attr_info *info)
 }
 
 static int
-loadAttribute_Code(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Code_info *data;
     u2 i;
@@ -130,7 +130,7 @@ freeAttribute_Code(attr_info *info)
 }
 
 static int
-loadAttribute_Exceptions(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Exceptions_info *data;
     CONSTANT_Class_info *cc;
@@ -186,7 +186,7 @@ freeAttribute_Exceptions(attr_info *info)
 }
 
 static int
-loadAttribute_InnerClasses(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_InnerClasses_info *data;
     CONSTANT_Class_info *cc;
@@ -263,7 +263,7 @@ freeAttribute_InnerClasses(attr_info *info)
 }
 
 static int
-loadAttribute_Synthetic(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_Synthetic(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     if (info->attribute_length != 0)
     {
@@ -277,7 +277,7 @@ loadAttribute_Synthetic(ClassFile *cf, struct BufferInput *input, attr_info *inf
 }
 
 static int
-loadAttribute_SourceFile(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_SourceFile(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_SourceFile_info *data;
     CONSTANT_Utf8_info *cu;
@@ -312,7 +312,7 @@ freeAttribute_SourceFile(attr_info *info)
 }
 
 static int
-loadAttribute_SourceDebugExtension(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_SourceDebugExtension(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     int cap;
 
@@ -339,7 +339,7 @@ freeAttribute_SourceDebugExtension(attr_info *info)
 }
 
 static int
-loadAttribute_LineNumberTable(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_LineNumberTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_LineNumberTable_info *data;
     u2 i, lntl;
@@ -378,7 +378,7 @@ freeAttribute_LineNumberTable(attr_info *info)
 }
 
 static int
-loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_LocalVariableTable_info *data;
     u2 i, lvtl;
@@ -436,7 +436,7 @@ freeAttribute_LocalVariableTable(attr_info *info)
 }
 
 static int
-loadAttribute_Deprecated(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_Deprecated(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     if (info->attribute_length != 0)
     {
@@ -451,7 +451,7 @@ loadAttribute_Deprecated(ClassFile *cf, struct BufferInput *input, attr_info *in
 #endif /* VERSION 45.3 */
 #if VER_CMP(49, 0)
 static int
-loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_EnclosingMethod_info *data;
     CONSTANT_Class_info *cc;
@@ -498,7 +498,7 @@ freeAttribute_EnclosingMethod(attr_info *info)
 }
 
 static int
-loadAttribute_Signature(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_Signature(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Signature_info *data;
     CONSTANT_Utf8_info *cu;
@@ -533,7 +533,7 @@ freeAttribute_Signature(attr_info *info)
 }
 
 static int
-loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_LocalVariableTypeTable_info *data;
     u2 i, lvttl;
@@ -592,7 +592,7 @@ freeAttribute_LocalVariableTypeTable(attr_info *info)
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
 static int
-loadAttribute_StackMapTable(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_StackMapTable_info *data;
     u2 i;
@@ -615,7 +615,7 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferInput *input, attr_info 
 #endif /* VERSION 50.0 */
 
 extern int
-loadAttribute_class(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     CONSTANT_Utf8_info *utf8;
     char *attribute_name;
@@ -663,7 +663,7 @@ loadAttribute_class(ClassFile *cf, struct BufferInput *input, attr_info *info)
 }
 
 extern int
-loadAttribute_field(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_field(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     CONSTANT_Utf8_info *utf8;
     char *attribute_name;
@@ -702,7 +702,7 @@ loadAttribute_field(ClassFile *cf, struct BufferInput *input, attr_info *info)
 }
 
 extern int
-loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_method(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     CONSTANT_Utf8_info *utf8;
     char *attribute_name;
@@ -751,7 +751,7 @@ loadAttribute_method(ClassFile *cf, struct BufferInput *input, attr_info *info)
 }
 
 extern int
-loadAttribute_code(ClassFile *cf, struct BufferInput *input, attr_info *info)
+loadAttribute_code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     CONSTANT_Utf8_info *utf8;
     char *attribute_name;
@@ -788,7 +788,7 @@ loadAttribute_code(ClassFile *cf, struct BufferInput *input, attr_info *info)
 }
 
 extern int
-loadAttributes_class(ClassFile *cf, struct BufferInput *input, u2 *attributes_count, attr_info **attributes)
+loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count, attr_info **attributes)
 {
     u2 i;
 
@@ -899,7 +899,7 @@ freeAttributes_field(u2 attributes_count, attr_info *attributes)
 
 
 extern int
-loadAttributes_field(ClassFile *cf, struct BufferInput *input, u2 *attributes_count, attr_info **attributes)
+loadAttributes_field(ClassFile *cf, struct BufferIO *input, u2 *attributes_count, attr_info **attributes)
 {
     u2 i;
 
@@ -967,7 +967,7 @@ freeAttributes_method(u2 attributes_count, attr_info *attributes)
 }
 
 extern int
-loadAttributes_method(ClassFile *cf, struct BufferInput *input, u2 *attributes_count, attr_info **attributes)
+loadAttributes_method(ClassFile *cf, struct BufferIO *input, u2 *attributes_count, attr_info **attributes)
 {
     u2 i;
 
@@ -1031,7 +1031,7 @@ freeAttributes_code(u2 attributes_count, attr_info *attributes)
 }
 
 extern int
-loadAttributes_code(ClassFile *cf, struct BufferInput *input, u2 *attributes_count, attr_info **attributes)
+loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count, attr_info **attributes)
 {
     u2 i;
 

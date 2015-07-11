@@ -21,7 +21,7 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
     zip_uint64_t entries_count, entry_index;
     char *buffer;
     const char *entry_name;
-    struct BufferInput input;
+    struct BufferIO input;
 
     error = 0;
     buffer = (char *) 0;
@@ -101,7 +101,7 @@ parseJarfile(const char *path, JarFile *jf)
     zip_uint64_t *classes;
     char *buffer, *save, *str;
     const char *entry_name;
-    struct BufferInput input;
+    struct BufferIO input;
 #ifdef DEBUG
     int column;
 #endif

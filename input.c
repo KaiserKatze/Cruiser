@@ -12,6 +12,59 @@
 #include "memory.h"
 #include "input.h"
 
+#define PATH_SEPARATOR '/'
+
+extern char *
+getParentPath(const char *path)
+{
+    char *pp;
+    int i, j, k;
+
+    i = j = k = 0;
+    for (; path[i] != '\0'; i++)
+        if (path[i] == PATH_SEPARATOR) { j = i; k = j; }
+    // path ends with path separator
+    if (j + 1 == i)
+    {
+    }
+
+    return pp;
+}
+
+extern char *
+getName(const char *entry_path)
+{
+    struct stat st;
+    char *name;
+    int i, j, k;
+
+    if (lstat(entry_path, &st) < 0) { perror("getName"); return (char *) 0; }
+    j = k = 0;
+    for (i = 0; entry_path[i] != '\0'; i++)
+    {
+        if (entry_path[i] == PATH_SEPARATOR)
+        {
+            j = i;
+            k = j;
+        }
+    }
+    if (S_ISDIR(st.st_mode))
+    {
+        i = j - k; // length between last two separators
+        name = (char *) malloc(i + 1);
+        memcpy(name, entry_path + k + 1, i);
+        name[i] = 0;
+    }
+    else
+    {
+        i -= j; // length between end and last separator
+        name = (char *) malloc(i + 1);
+        memcpy(name, entry_path + j + 1, i);
+        name[i] = 0;
+    }
+    return name;
+}
+
 extern char *
 getWorkingDirectory()
 {
@@ -115,7 +168,7 @@ findClassfile(const char *dir)
     {
         parent = getWorkingDirectory();
         if (parent[len_parent - 1] != '/')
-             parent[len_parent++] = '/';
+            parent[len_parent++] = '/';
     }
     else if (len_dir == 2 && dir[0] == '.' && dir[1] == '.')
     {
@@ -207,4 +260,326 @@ openFile(const char *path, const char *mode)
     file = fopen(prev, mode);
 
     return file;
+}
+
+
+
+static inline void
+initBufferIO(struct BufferIO *io)
+{
+    if (!io->buffer)
+    {
+        io->bufsize = 16384;
+        io->buffer = (char *) allocMemory(io->bufsize, sizeof (char));
+        if (!io->buffer)
+            return;
+    }
+    io->bufsrc = 0;
+    io->bufdst = 0;
+    io->more = 1;
+}
+
+extern void
+initWithFile(struct BufferIO *io, const char *file_path)
+{
+    struct stat st;
+    char *path_pdir;
+    char *log_name;
+
+    initBufferIO(io);
+    if (stat(file_path, &st) < 0)
+    {
+        perror("initWithFile:file_path");
+        return;
+    }
+    if (!S_ISREG(st.st_mode))
+    {
+        logError("Parameter 'file_path' is not regular file!\r\n");
+        return;
+    }
+    io->file = fopen(file_path, "r");
+    if (!io->file)
+    {
+        logError("Parameter file is NULL!\r\n");
+        return;
+    }
+    io->fp = fillBuffer_f;
+    // analyze parent path
+    path_pdir = getParentPath(file_path);
+    if (lstat(path_pdir, &st) < 0)
+    {
+        perror("initWithFile:path_pdir");
+        return;
+    }
+    if (!S_ISDIR(st.st_mode))
+    {
+        logError("Fail to analyze parent path of file '%s'!\r\n", file_path);
+        return;
+    }
+    // analyze file name
+}
+
+extern void
+initWithZipEntry(struct BufferIO *io, struct zip_file *entry)
+{
+    initBufferIO(io);
+    io->entry = entry;
+    io->fp = fillBuffer_z;
+}
+
+extern int
+ru1(u1 *dst, struct BufferIO * input)
+{
+    char *ptr;
+
+    ptr = (*input->fp)(input, sizeof (u1));
+    if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+
+    memcpy(dst, ptr, sizeof (u1));
+    input->bufsrc += sizeof (u1);
+
+    return 0;
+}
+
+extern int
+ru2(u2 *dst, struct BufferIO * input)
+{
+    char *ptr;
+
+    ptr = (*input->fp)(input, sizeof (u2));
+    if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+
+    memcpy(dst, ptr, sizeof (u2));
+    *dst = htobe16(*dst);
+    input->bufsrc += sizeof (u2);
+
+    return 0;
+}
+
+extern int
+ru4(u4 *dst, struct BufferIO * input)
+{
+    char *ptr;
+
+    ptr = (*input->fp)(input, sizeof (u4));
+    if (!ptr)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+
+    memcpy(dst, ptr, sizeof (u4));
+    *dst = htobe32(*dst);
+    input->bufsrc += sizeof (u4);
+
+    return 0;
+}
+
+extern int
+checkInput(struct BufferIO * input)
+{
+    if (!input)
+    {
+        logError("Member 'input' is NULL!\r\n");
+        return -1;
+    }
+    if (!input->buffer)
+    {
+        logError("Member 'buffer' is NULL!\r\n");
+        return -1;
+    }
+    if (input->bufsrc > input->bufdst)
+    {
+        logError("Assertion error in function %s: "
+                "bufsrc[%i] > bufdst[%i]\r\n",
+                __func__, input->bufsrc, input->bufdst);
+        return -1;
+    }
+
+    return 0;
+}
+
+extern char *
+fillBuffer_f(struct BufferIO * input, int nbits)
+{
+    FILE *file;
+    int bufsize, buflen, cap, rbit;
+
+    if (checkInput(input))
+        return (char *) 0;
+    file = input->file;
+    bufsize = input->bufsize;
+    if (!file)
+    {
+        logError("Member 'file' is NULL!\r\n");
+    }
+    if (nbits < 0)
+    {
+        logError("Parameter 'nbits' in function %s is negative!\r\n", __func__);
+        return (char *) 0;
+    }
+
+    // calculate the length of remaining data
+    buflen = input->bufdst - input->bufsrc;
+    // the remaining data is not enough
+    if (buflen < nbits)
+    {
+        // move memory
+        if (input->bufsrc != 0)
+        {
+            memmove(input->buffer, &(input->buffer[input->bufsrc]), buflen);
+            input->bufsrc = 0;
+            input->bufdst = buflen;
+        }
+        // fill in more data if possible
+        if (input->more)
+        {
+            cap = bufsize - buflen;
+            rbit = fread(&(input->buffer[buflen]), sizeof (u1), cap, file);
+            if (rbit < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return (char *) 0;
+            }
+            else if (rbit < cap)
+                input->more = 0;
+
+            input->bufdst += rbit;
+            if (input->bufdst < bufsize)
+                bzero(&(input->buffer[input->bufdst]), bufsize - input->bufdst);
+        }
+    }
+
+    return &(input->buffer[input->bufsrc]);
+}
+
+extern char *
+fillBuffer_z(struct BufferIO * input, int nbits)
+{
+    struct zip_file *zf;
+    int bufsize, buflen, cap, rbit;
+
+    if (checkInput(input))
+        return (char *) 0;
+    zf = input->entry;
+    bufsize = input->bufsize;
+    if (!zf)
+    {
+        logError("Member 'zf' is NULL!\r\n");
+        return (char *) 0;
+    }
+    if (nbits < 0)
+    {
+        logError("Parameter 'nbits' in function %s is negative!\r\n", __func__);
+        return (char *) 0;
+    }
+
+    // calculate the length of remaining data
+    buflen = input->bufdst - input->bufsrc;
+    // the remaining data is not enough
+    if (buflen < nbits)
+    {
+        // move memory
+        if (input->bufsrc != 0)
+        {
+            memmove(input->buffer, &(input->buffer[input->bufsrc]), buflen);
+            input->bufsrc = 0;
+            input->bufdst = buflen;
+        }
+        // fill in more data if possible
+        if (input->more)
+        {
+            cap = bufsize - buflen;
+            rbit = zip_fread(zf, &(input->buffer[buflen]), cap);
+            if (rbit < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return (char *) 0;
+            }
+            else if (rbit < cap)
+                input->more = 0;
+
+            input->bufdst += rbit;
+            if (input->bufdst < bufsize)
+                bzero(&(input->buffer[input->bufdst]), bufsize - input->bufdst);
+        }
+    }
+
+    return &(input->buffer[input->bufsrc]);
+}
+
+extern int
+rbs(char *out, struct BufferIO * input, int nbits)
+{
+    char *buf;
+    int bufsize, rbits;
+
+    if (!out)
+    {
+        logError("Parameter 'out' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
+
+    bufsize = input->bufsize;
+    rbits = nbits;
+
+    while (rbits > bufsize)
+    {
+        buf = (*input->fp)(input, bufsize);
+        if (buf < 0)
+        {
+            logError("IO exception in function %s!\r\n", __func__);
+            return -1;
+        }
+        memcpy(out, buf, bufsize);
+        rbits -= bufsize;
+        input->bufsrc = bufsize;
+    }
+    buf = (*input->fp)(input, rbits);
+    if (buf < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    memcpy(out, buf, rbits);
+    input->bufsrc += rbits;
+
+    return nbits;
+}
+
+extern int
+skp(struct BufferIO *input, int nbits)
+{
+    char *buf;
+    int bufsize, rbits;
+
+    bufsize = input->bufsize;
+    rbits = nbits;
+
+    while (rbits > bufsize)
+    {
+        if ((*input->fp)(input, bufsize) < 0)
+        {
+            logError("IO exception in function %s!\r\n", __func__);
+            return -1;
+        }
+        rbits -= bufsize;
+        input->bufsrc = bufsize;
+    }
+    if ((*input->fp)(input, rbits) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    input->bufsrc += rbits;
+
+    return nbits;
 }
