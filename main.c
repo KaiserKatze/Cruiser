@@ -32,6 +32,7 @@ main(int argc, char** argv)
 
     if (argc == 2)
     {
+        // absolute path of a class file
         path = argv[1];
         printf("Parsing ClassFile '%s'...\r\n", path);
 
@@ -75,6 +76,7 @@ main(int argc, char** argv)
         fclose(input.file);
         goto good_end;
     }
+    /*
     else if (argc == 3)
     {
         if (!strcmp(argv[1], OPTION_JAR))
@@ -123,12 +125,15 @@ main(int argc, char** argv)
             goto good_end;
         }
     }
-
+    */
 usage:
+    /*
     fprintf(stderr,
             "Usage: %s %s <jarfile>\r\n"
             "   or  %s [%s <path>] <classfile>\r\n",
             argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
+    */
+    fprintf(stderr, "Usage: %s <classfile>\r\n", argv[0]);
     return 0;
 good_end:
     printf("Time used: %.2f seconds.\r\n",

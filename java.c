@@ -31,15 +31,21 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     CONSTANT_InvokeDynamic_info *cidi;
     char *buf;
 
+    if (!input)
+    {
+        logError("Parameter 'input' in function %s is NULL!\r\n", __func__);
+        return -1;
+    }
     if (!cf)
     {
         logError("Parameter 'cf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
-    bzero(cf, sizeof (ClassFile));
-
-    bzero(input->buffer, input->bufsize);
-    input->bufsrc = input->bufdst = 0;
+    
+    // function 'allocMemory' includes bzero feature
+    //bzero(cf, sizeof (ClassFile));
+    //bzero(input->buffer, input->bufsize);
+    //input->bufsrc = input->bufdst = 0;
 
     // validate file structure
     if (ru4(&(cf->magic), input) < 0)
@@ -68,6 +74,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     logInfo("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
 #ifndef DEBUG
+    // check compatibility
     if (compareVersion(cf->major_version, cf->minor_version) > 0)
     {
         logError("Class file version is higher than this implementation!\r\n");
@@ -84,7 +91,9 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
+        // calculate constant pool capacity
         cap = cf->constant_pool_count * sizeof (cp_info);
+        // allocate memory for constant pool
         cf->constant_pool = (cp_info *) malloc(cap);
         if (!cf->constant_pool)
         {
