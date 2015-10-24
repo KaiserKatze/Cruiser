@@ -558,28 +558,46 @@ rbs(char *out, struct BufferIO * input, int nbits)
 extern int
 skp(struct BufferIO *input, int nbits)
 {
-    char *buf;
     int bufsize, rbits;
-
-    bufsize = input->bufsize;
-    rbits = nbits;
-
-    while (rbits > bufsize)
+    
+    /*
+     * buggy
+    if (input->fp == fillBuffer_f)
     {
-        if ((*input->fp)(input, bufsize) < 0)
+        bufsize = input->bufdst - input->bufsrc;
+        if (nbits > bufsize)
+        {
+            fseek(input->file, nbits - bufsize, SEEK_CUR);
+        }
+        if ((*input->fp)(input, input->bufsize) < 0)
         {
             logError("IO exception in function %s!\r\n", __func__);
             return -1;
         }
-        rbits -= bufsize;
-        input->bufsrc = bufsize;
     }
-    if ((*input->fp)(input, rbits) < 0)
+    else
+    */
     {
-        logError("IO exception in function %s!\r\n", __func__);
-        return -1;
+        bufsize = input->bufsize;
+        rbits = nbits;
+        
+        while (rbits > bufsize)
+        {
+            if ((*input->fp)(input, bufsize) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            rbits -= bufsize;
+            input->bufsrc = bufsize;
+        }
+        if ((*input->fp)(input, rbits) < 0)
+        {
+            logError("IO exception in function %s!\r\n", __func__);
+            return -1;
+        }
+        input->bufsrc += rbits;
     }
-    input->bufsrc += rbits;
 
     return nbits;
 }

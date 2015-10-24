@@ -5,6 +5,7 @@
 
 #include "java.h"
 #include "log.h"
+#include "memory.h"
 
 static int get_cp_size(u1);
 static const char *get_cp_name(u1);
@@ -17,7 +18,7 @@ extern int
 parseClassfile(struct BufferIO * input, ClassFile *cf)
 {
     u2 i, j;
-    int cap;
+    //int cap;
     cp_info *info;
     CONSTANT_Class_info *cci;
     CONSTANT_Fieldref_info *cfi;
@@ -91,6 +92,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
+        /*
         // calculate constant pool capacity
         cap = cf->constant_pool_count * sizeof (cp_info);
         // allocate memory for constant pool
@@ -102,6 +104,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         }
         logInfo("Constant pool allocated.\r\n");
         bzero(cf->constant_pool, cap);
+        */
+        cf->constant_pool = (cp_info *) allocMemory(cf->constant_pool_count, sizeof (cp_info));
 
         logInfo("Parsing constant pool...\r\n");
         // jvms7 says "The constant_pool table is indexed
@@ -116,6 +120,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             }
             logInfo("\t#%-5i = %-18s ",
                     i, get_cp_name(info->tag));
+            /*
             cap = get_cp_size(info->tag);
             info->data = malloc(cap);
             if (!info->data)
@@ -124,9 +129,11 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 goto close;
             }
             bzero(info->data, cap);
+            */
             switch (info->tag)
             {
                 case CONSTANT_Class:
+                    info->data = allocMemory(1, sizeof *(cci->data));
                     cci = (CONSTANT_Class_info *) info;
                     if (ru2(&(cci->data->name_index), input) < 0)
                     {
@@ -141,6 +148,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 case CONSTANT_Fieldref:
                 case CONSTANT_Methodref:
                 case CONSTANT_InterfaceMethodref:
+                    info->data = allocMemory(1, sizeof *(cfi->data));
                     cfi = (CONSTANT_Fieldref_info *) info;
                     if (ru2(&(cfi->data->class_index), input) < 0)
                     {
@@ -161,6 +169,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_Integer:
                 case CONSTANT_Float:
+                    info->data = allocMemory(1, sizeof *(cii->data));
                     cii = (CONSTANT_Integer_info *) info;
                     if (ru4(&(cii->data->bytes), input) < 0)
                     {
@@ -177,6 +186,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_Long:
                 case CONSTANT_Double:
+                    info->data = allocMemory(1, sizeof *(cli->data));
                     cli = (CONSTANT_Long_info *) info;
                     if (ru4(&(cli->data->high_bytes), input) < 0)
                     {
@@ -199,6 +209,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cli = (CONSTANT_Long_info *) 0;
                     break;
                 case CONSTANT_NameAndType:
+                    info->data = allocMemory(1, sizeof *(cni->data));
                     cni = (CONSTANT_NameAndType_info *) info;
                     if (ru2(&(cni->data->name_index), input) < 0)
                     {
@@ -216,6 +227,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cni = (CONSTANT_NameAndType_info *) 0;
                     break;
                 case CONSTANT_String:
+                    info->data = allocMemory(1, sizeof *(csi->data));
                     csi = (CONSTANT_String_info *) info;
                     if (ru2(&(csi->data->string_index), input) < 0)
                     {
@@ -228,12 +240,14 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     csi = (CONSTANT_String_info *) 0;
                     break;
                 case CONSTANT_Utf8:
+                    info->data = allocMemory(1, sizeof *(cui->data));
                     cui = (CONSTANT_Utf8_info *) info;
                     if (ru2(&(cui->data->length), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
                         goto close;
                     }
+                    /*
                     cap = cui->data->length;
                     cui->data->bytes = (u1 *) malloc(cap);
                     if (!cui->data->bytes)
@@ -242,6 +256,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                         goto close;
                     }
                     bzero(cui->data->bytes, cap);
+                    */
+                    cui->data->bytes = (u1 *) allocMemory(cui->data->length, sizeof (u1));
 
                     if (rbs(cui->data->bytes, input, cui->data->length) < 0)
                     {
@@ -254,12 +270,13 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                         logError("Runtime error!\r\n");
                         goto close;
                     }
-                    logInfo("%.*s\r\n", cap, (char *) cui->data->bytes);
+                    logInfo("%.*s\r\n", cui->data->length, (char *) cui->data->bytes);
 
                     cui = (CONSTANT_Utf8_info *) 0;
-                    cap = 0;
+                    //cap = 0;
                     break;
                 case CONSTANT_MethodHandle:
+                    info->data = allocMemory(1, sizeof *(cmhi->data));
                     cmhi = (CONSTANT_MethodHandle_info *) info;
                     if (ru1(&(cmhi->data->reference_kind), input) < 0)
                     {
@@ -277,6 +294,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cmhi = (CONSTANT_MethodHandle_info *) 0;
                     break;
                 case CONSTANT_MethodType:
+                    info->data = allocMemory(1, sizeof *(cmti->data));
                     cmti = (CONSTANT_MethodType_info *) info;
                     if (ru2(&(cmti->data->descriptor_index), input) < 0)
                     {
@@ -289,6 +307,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cmti = (CONSTANT_MethodType_info *) 0;
                     break;
                 case CONSTANT_InvokeDynamic:
+                    info->data = allocMemory(1, sizeof *(cidi->data));
                     cidi = (CONSTANT_InvokeDynamic_info *) info;
                     if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
                     {
@@ -332,9 +351,11 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         goto close;
     }
     logInfo("\r\nAccess flags     : 0x%X\r\n"
-            "Class this_class : 0x%X\r\n"
-            "Class super_class: 0x%X\r\n",
-            cf->access_flags, cf->this_class, cf->super_class);
+            "Class this_class : %i\r\n"
+            "Class super_class: %i\r\n",
+            cf->access_flags,
+            cf->this_class,
+            cf->super_class);
 
     if (ru2(&(cf->interfaces_count), input) < 0)
     {
@@ -345,6 +366,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (cf->interfaces_count > 0)
     {
         logInfo("Parsing interfaces...\r\n");
+        /*
         cap = sizeof (u2) * cf->interfaces_count;
         cf->interfaces = (u2 *) malloc(cap);
         if (!cf->interfaces)
@@ -353,6 +375,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             goto close;
         }
         bzero(cf->interfaces, cap);
+        */
+        cf->interfaces = (u2 *) allocMemory(cf->interfaces_count, sizeof (u2));
         for (i = 0u; i < cf->interfaces_count; i++)
         {
             if (ru2(&(cf->interfaces[i]), input) < 0)
@@ -387,6 +411,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (cf->fields_count > 0)
     {
         logInfo("Parsing fields...\r\n");
+        /*
         cap = sizeof (field_info) * cf->fields_count;
         cf->fields = (field_info *) malloc(cap);
         if (!cf->fields)
@@ -395,6 +420,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             goto close;
         }
         bzero(cf->fields, cap);
+        */
+        cf->fields = (field_info *) allocMemory(cf->fields_count, sizeof (field_info));
         for (i = 0u; i < cf->fields_count; i++)
         {
             if (ru2(&(cf->fields[i].access_flags), input) < 0)
@@ -420,42 +447,46 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     i,
                     cf->fields[i].access_flags, buf ? buf : "",
                     cf->fields[i].name_index,
-                    getConstant_Utf8(cf, cf->fields[i].name_index)->data->length,
+                    //getConstant_Utf8(cf, cf->fields[i].name_index)->data->length,
+                    getConstant_Utf8Length(cf, cf->fields[i].name_index),
                     getConstant_Utf8String(cf, cf->fields[i].name_index),
                     cf->fields[i].descriptor_index,
-                    getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->length,
+                    //getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->length,
+                    getConstant_Utf8Length(cf, cf->fields[i].descriptor_index),
                     getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
             loadAttributes_field(cf, input, &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             logInfo("\tField Attribute count: %i\r\n",
                     cf->fields[i].attributes_count);
+            // only list name and length of field attributes
             for (j = 0; j < cf->fields[i].attributes_count; j++)
             {
-                cui = getConstant_Utf8(cf, cf->fields[i].attributes[j].attribute_name_index);
-                buf = cui->data->bytes;
                 logInfo("\tField Attribute [%i]\r\n"
                         "\t\tName index:\t#%i\t// %.*s\r\n"
                         "\t\tLength    :\t%i\r\n",
-                        j,
-                        cf->fields[i].attributes[j].attribute_name_index,
-                        cui->data->length, buf,
-                        cf->fields[i].attributes[j].attribute_length
-                        );
-                buf = (char *) 0;
+                        j, cf->fields[i].attributes[j].attribute_name_index,
+                        getConstant_Utf8Length(cf,
+                            cf->fields[i].attributes[j].attribute_name_index),
+                        getConstant_Utf8String(cf,
+                            cf->fields[i].attributes[j].attribute_name_index),
+                        cf->fields[i].attributes[j].attribute_length);
             }
-        }
-    }
+        } // fields listing end
+    } // if (fields_count > 0)
 
+    // retrieve method count
     if (ru2(&(cf->methods_count), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
         goto close;
     }
     logInfo("\r\nMethod count: %i\r\n", cf->methods_count);
+    // load methods if possible
     if (cf->methods_count > 0)
     {
         logInfo("Parsing methods...\r\n");
+        /*
         cap = sizeof (method_info) * cf->methods_count;
         cf->methods = (method_info *) malloc(cap);
         if (!cf->methods)
@@ -464,6 +495,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             goto close;
         }
         bzero(cf->methods, cap);
+        */
+        cf->methods = (method_info *) allocMemory(cf->methods_count, sizeof (method_info));
         for (i = 0u; i < cf->methods_count; i++)
         {
             if (ru2(&(cf->methods[i].access_flags), input) < 0)
@@ -489,10 +522,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
-                    getConstant_Utf8(cf, cf->methods[i].name_index)->data->length,
+                    //getConstant_Utf8(cf, cf->methods[i].name_index)->data->length,
+                    getConstant_Utf8Length(cf, cf->methods[i].name_index),
                     getConstant_Utf8String(cf, cf->methods[i].name_index),
                     cf->methods[i].descriptor_index,
-                    getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->length,
+                    //getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->length,
+                    getConstant_Utf8Length(cf, cf->methods[i].descriptor_index),
                     getConstant_Utf8String(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
@@ -506,11 +541,13 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                         "\t\tLength    :\t%i\r\n",
                         j,
                         cf->methods[i].attributes[j].attribute_name_index,
-                        getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->length,
+                        //getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->length,
+                        getConstant_Utf8Length(cf,
+                            cf->methods[i].attributes[j].attribute_name_index),
                         getConstant_Utf8String(cf,
                             cf->methods[i].attributes[j].attribute_name_index),
                         cf->methods[i].attributes[j].attribute_length);
-            }
+            } // list method attributes
         }
     }
 
@@ -546,6 +583,25 @@ freeClassfile(ClassFile *cf)
     CONSTANT_Utf8_info *cu;
 
     logInfo("Releasing ClassFile memory...\r\n");
+    if (cf->interfaces)
+    {
+        free(cf->interfaces);
+        cf->interfaces = (u2 *) 0;
+    }
+    if (cf->fields)
+    {
+        freeAttributes_field(cf, cf->fields->attributes_count, cf->fields->attributes);
+        free(cf->fields);
+        cf->fields = (field_info *) 0;
+    }
+    if (cf->methods)
+    {
+        freeAttributes_method(cf, cf->methods->attributes_count, cf->methods->attributes);
+        free(cf->methods);
+        cf->methods = (method_info *) 0;
+    }
+    freeAttributes_class(cf, cf->attributes_count, cf->attributes);
+    // free constant pool at last
     if (cf->constant_pool)
     {
         for (i = 1u; i < cf->constant_pool_count; i++)
@@ -569,24 +625,6 @@ freeClassfile(ClassFile *cf)
         free(cf->constant_pool);
         cf->constant_pool = (cp_info *) 0;
     }
-    if (cf->interfaces)
-    {
-        free(cf->interfaces);
-        cf->interfaces = (u2 *) 0;
-    }
-    if (cf->fields)
-    {
-        freeAttributes_field(cf->fields->attributes_count, cf->fields->attributes);
-        free(cf->fields);
-        cf->fields = (field_info *) 0;
-    }
-    if (cf->methods)
-    {
-        freeAttributes_method(cf->methods->attributes_count, cf->methods->attributes);
-        free(cf->methods);
-        cf->methods = (method_info *) 0;
-    }
-    freeAttributes_class(cf->attributes_count, cf->attributes);
 
     return 0;
 }
@@ -717,6 +755,8 @@ parse_method_descriptor(int desc_len, char * desc)
 }
 #endif
 
+/*
+ * Buggy function, deprecated
 static int
 get_cp_size(u1 tag)
 {
@@ -754,6 +794,7 @@ get_cp_size(u1 tag)
             return 0;
     }
 }
+*/
 
 static const char *
 get_cp_name(u1 tag)
@@ -808,8 +849,8 @@ convertAccessFlags_field(u2 i, u2 af)
         return (char *) 0;
     if (af & ~ACC_FIELD)
     {
-        logError("Unknown flags [%X] detected @ cf->fields[%i]!\r\n",
-                af & ~ACC_FIELD, i);
+        logError("Unknown flags [0x%X] detected @ cf->fields[%i]:0x%X!\r\n",
+                af & ~ACC_FIELD, i, af);
         return (char *) 0;
     }
     buf = (char *) malloc(initBufSize);
@@ -1015,7 +1056,7 @@ getConstant_Utf8Length(ClassFile *cf, u2 index)
 
     cu = getConstant_Utf8(cf, index);
     if (!cu || !cu->data)
-        return 0;
+        return -1;
 
     return cu->data->length;
 }
@@ -1312,7 +1353,9 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     CONSTANT_MethodType_info *cmti;
     CONSTANT_InvokeDynamic_info *cidi;
     u2 j;
+#if VER_CMP(51, 0)
     struct attr_BootstrapMethods_info *dataBootstrapMethods;
+#endif
 
     //logInfo("Examing constant pool[%i]...\r\n", i);
     info = &(cf->constant_pool[i]);

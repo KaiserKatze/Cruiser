@@ -5,15 +5,19 @@
 #include "java.h"
 #include "log.h"
 #include "opcode.h"
+#include "memory.h"
 
 static int
 loadAttribute(struct BufferIO *input, attr_info *info)
 {
     if (ru2(&(info->attribute_name_index), input) < 0)
-        return -1;
+        goto error;
     if (ru4(&(info->attribute_length), input) < 0)
-        return -1;
+        goto error;
     return 0;
+error:
+    logError("Vital error: fail to initialize attribute!\r\n");
+    return -1;
 }
 
 static int
@@ -102,10 +106,11 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         logInfo("%02X ", data->code[j]);
     }
     logInfo("\r\n");
+    /*
     logInfo("\t\t// Human-readable =\r\n");
     for (j = 0u; j < data->code_length; j++)
     {
-        logInfo("\t\t");
+        logInfo("\t\t%8i: ", j);
         switch (data->code[j])
         {
             case OPCODE_nop:break;
@@ -158,7 +163,9 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
             case OPCODE_laload:break;
             case OPCODE_faload:break;
             case OPCODE_daload:break;
-            case OPCODE_aaload:break;
+            case OPCODE_aaload:
+                logInfo("aaload");
+                break;
             case OPCODE_baload:break;
             case OPCODE_caload:break;
             case OPCODE_saload:break;
@@ -316,8 +323,9 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
             default:
                 logError("Unknow OPCODE %i!\r\n", data->code[j]);
                 break;
-        }
-    }
+        } // switch
+    } // human-readable
+    */
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
@@ -346,7 +354,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 }
 
 static int
-freeAttribute_Code(attr_info *info)
+freeAttribute_Code(ClassFile * cf, attr_info *info)
 {
     struct attr_Code_info *data;
 
@@ -357,7 +365,7 @@ freeAttribute_Code(attr_info *info)
     data->code = (u1 *) 0;
     free(data->exception_table);
     data->exception_table = 0;
-    freeAttributes_code(data->attributes_count, data->attributes);
+    freeAttributes_code(cf, data->attributes_count, data->attributes);
     free(data->attributes);
     data->attributes = (attr_info *) 0;
     free(data);
@@ -422,6 +430,11 @@ freeAttribute_Exceptions(attr_info *info)
     return 0;
 }
 
+// If the constant pool of a class or interface C
+// contains a CONSTANT_Class_info entry which
+// represents a class or interface that
+// is not a member of a package, then C 's ClassFile structure
+// must have exactly one InnerClasses attribute in its attributes table.
 static int
 loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
@@ -438,12 +451,9 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
     if (ru2(&(data->number_of_classes), input) < 0)
         return -1;
     data->classes = (struct classes_entry *)
-        malloc(sizeof (struct classes_entry) * data->number_of_classes);
-    if (!data->classes)
-    {
-        logError("Fail to allocate memory!\r\n");
-        return -1;
-    }
+            allocMemory(data->number_of_classes,
+                sizeof (struct classes_entry));
+    if (!data->classes) return -1;
     for (i = 0u; i < data->number_of_classes; i++)
     {
         if (ru2(&(data->classes[i].inner_class_info_index), input) < 0)
@@ -456,26 +466,52 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
         }
         if (ru2(&(data->classes[i].outer_class_info_index), input) < 0)
             return -1;
-        cc = getConstant_Class(cf, data->classes[i].outer_class_info_index);
-        if (!cc)
+        /*
+         * If C is not a member of a class or an interface
+         * (that is, if C is a top-level class or interface (JLS §7.6)
+         * or a local class (JLS §14.3) or an anonymous class (JLS §15.9.5)),
+         * the value of the outer_class_info_index item must be zero.
+         * Otherwise, the value of the outer_class_info_index item must be a
+         * valid index into the constant_pool table, and the entry
+         * at that index must be a CONSTANT_Class_info (§4.4.1)
+         * structure representing the class or interface of which C is a member.
+         */
+        if (data->classes[i].outer_class_info_index != 0)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].outer_class_info_index);
-            return -1;
+            cc = getConstant_Class(cf, data->classes[i].outer_class_info_index);
+            if (!cc)
+            {
+                logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].outer_class_info_index);
+                return -1;
+            }
         }
         if (ru2(&(data->classes[i].inner_name_index), input) < 0)
             return -1;
-        cu = getConstant_Utf8(cf, data->classes[i].inner_name_index);
-        if (!cu)
+        /*
+         * If C is anonymous (JLS §15.9.5), the value of
+         * the inner_name_index item must be zero.
+         */
+        if (data->classes[i].inner_name_index != 0) // not anonymous
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].inner_name_index);
-            return -1;
+            cu = getConstant_Utf8(cf, data->classes[i].inner_name_index);
+            if (!cu)
+            {
+                logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].inner_name_index);
+                return -1;
+            }
         }
         if (ru2(&(data->classes[i].inner_class_access_flags), input) < 0)
             return -1;
-        if (data->classes[i].inner_class_access_flags & ACC_NESTED_CLASS)
+        if (data->classes[i].inner_class_access_flags & ~ACC_NESTED_CLASS)
         {
-            logError("Assertion error: data->classes[%i].inner_class_access_flags != 0x%X!\r\n", i, ACC_NESTED_CLASS);
-            return -1;
+            logError("Assertion error: data->classes[%i] has unknown inner_class_access_flags: 0x%X!\r\n",
+                    i, data->classes[i].inner_class_access_flags & ~ACC_NESTED_CLASS);
+            /*
+             * All bits of the inner_class_access_flags item not assigned in Table 4.8
+             * are reserved for future use. They should be set to zero in generated class
+             * files and should be ignored by Java Virtual Machine implementations.
+             */
+            //return -1;
         }
     }
 
@@ -896,6 +932,7 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
+    logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
     return skipAttribute(input, info);
 }
 
@@ -934,7 +971,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
-
+    logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
     return skipAttribute(input, info);
 }
 
@@ -983,7 +1020,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
-
+    logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
     return skipAttribute(input, info);
 }
 
@@ -1020,7 +1057,7 @@ loadAttribute_code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
-
+    logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
     return skipAttribute(input, info);
 }
 
@@ -1037,15 +1074,17 @@ loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     for (i = 0u; i < *attributes_count; i++)
-        if (loadAttribute_class(cf, input, &((*attributes)[i])) < 0)
-            return -1;
+        loadAttribute_class(cf, input, &((*attributes)[i]));
     return 0;
 }
 
 static int
-freeAttribute_class(attr_info *info)
+freeAttribute_class(ClassFile * cf, attr_info *info)
 {
-    logError("Free class attribute tagged %i\r\n", info->tag);
+    CONSTANT_Utf8_info *utf8;
+    char *attribute_name;
+    
+    //logError("Free class attribute tagged %i\r\n", info->tag);
 #if VER_CMP(45, 3)
     if (!freeAttribute_SourceFile(info))
         return 0;
@@ -1074,13 +1113,16 @@ freeAttribute_class(attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-
-    logError("Fail to free attriute %p!\r\n", info);
+    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    if (!utf8) return -1;
+    if (utf8->tag != CONSTANT_Utf8) return -1;
+    attribute_name = utf8->data->bytes;
+    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
     return -1;
 }
 
 extern int
-freeAttributes_class(u2 attributes_count, attr_info *attributes)
+freeAttributes_class(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 {
     u2 i;
 
@@ -1088,15 +1130,17 @@ freeAttributes_class(u2 attributes_count, attr_info *attributes)
         return 0;
 
     for (i = 0; i < attributes_count; i++)
-        if (freeAttribute_class(&(attributes[i])) < 0)
-            return -1;
+        freeAttribute_class(cf, &(attributes[i]));
 
     return 0;
 }
 
 static int
-freeAttribute_field(attr_info *info)
+freeAttribute_field(ClassFile * cf, attr_info *info)
 {
+    CONSTANT_Utf8_info *utf8;
+    char *attribute_name;
+    
 #if VER_CMP(45, 3)
     if (!freeAttribute_ConstantValue(info))
         return 0;
@@ -1115,12 +1159,16 @@ freeAttribute_field(attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-
+    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    if (!utf8) return -1;
+    if (utf8->tag != CONSTANT_Utf8) return -1;
+    attribute_name = utf8->data->bytes;
+    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
     return -1;
 }
 
 extern int
-freeAttributes_field(u2 attributes_count, attr_info *attributes)
+freeAttributes_field(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 {
     u2 i;
 
@@ -1128,8 +1176,7 @@ freeAttributes_field(u2 attributes_count, attr_info *attributes)
         return 0;
 
     for (i = 0; i < attributes_count; i++)
-        if (freeAttribute_field(&(attributes[i])) < 0)
-            return -1;
+        freeAttribute_field(cf, &(attributes[i]));
 
     return 0;
 }
@@ -1146,18 +1193,21 @@ loadAttributes_field(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
         return -1;
     if (ru2(attributes_count, input) < 0)
         return -1;
-    *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
+    //*attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
+    *attributes = (attr_info *) allocMemory(*attributes_count, sizeof (attr_info));
     for (i = 0u; i < *attributes_count; i++)
-        if (loadAttribute_field(cf, input, &((*attributes)[i])) < 0)
-            return -1;
+        loadAttribute_field(cf, input, &((*attributes)[i]));
     return 0;
 }
 
 static int
-freeAttribute_method(attr_info *info)
+freeAttribute_method(ClassFile * cf, attr_info *info)
 {
+    CONSTANT_Utf8_info *utf8;
+    char *attribute_name;
+    
 #if VER_CMP(45, 3)
-    if (!freeAttribute_Code(info))
+    if (!freeAttribute_Code(cf, info))
         return 0;
     if (!freeAttribute_Exceptions(info))
         return 0;
@@ -1184,12 +1234,16 @@ freeAttribute_method(attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-
+    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    if (!utf8) return -1;
+    if (utf8->tag != CONSTANT_Utf8) return -1;
+    attribute_name = utf8->data->bytes;
+    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
     return -1;
 }
 
 extern int
-freeAttributes_method(u2 attributes_count, attr_info *attributes)
+freeAttributes_method(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 {
     u2 i;
 
@@ -1197,8 +1251,7 @@ freeAttributes_method(u2 attributes_count, attr_info *attributes)
         return 0;
 
     for (i = 0; i < attributes_count; i++)
-        if (freeAttribute_method(&(attributes[i])) < 0)
-            return -1;
+        freeAttribute_method(cf, &(attributes[i]));
 
     return 0;
 }
@@ -1216,18 +1269,17 @@ loadAttributes_method(ClassFile *cf, struct BufferIO *input, u2 *attributes_coun
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     for (i = 0u; i < *attributes_count; i++)
-        if (loadAttribute_method(cf, input, &((*attributes)[i])) < 0)
-        {
-            logError("Fail to load method attributes!\r\n");
-            return -1;
-        }
+        loadAttribute_method(cf, input, &((*attributes)[i]));
 
     return 0;
 }
 
 static int
-freeAttribute_code(attr_info *info)
+freeAttribute_code(ClassFile * cf, attr_info *info)
 {
+    CONSTANT_Utf8_info *utf8;
+    char *attribute_name;
+    
 #if VER_CMP(45, 3)
     if (!freeAttribute_LineNumberTable(info))
         return 0;
@@ -1248,12 +1300,16 @@ freeAttribute_code(attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-
+    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    if (!utf8) return -1;
+    if (utf8->tag != CONSTANT_Utf8) return -1;
+    attribute_name = utf8->data->bytes;
+    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
     return -1;
 }
 
 extern int
-freeAttributes_code(u2 attributes_count, attr_info *attributes)
+freeAttributes_code(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 {
     u2 i;
 
@@ -1261,8 +1317,7 @@ freeAttributes_code(u2 attributes_count, attr_info *attributes)
         return 0;
 
     for (i = 0; i < attributes_count; i++)
-        if (freeAttribute_code(&(attributes[i])) < 0)
-            return -1;
+        freeAttribute_code(cf, &(attributes[i]));
 
     return 0;
 }
@@ -1280,7 +1335,6 @@ loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count,
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     for (i = 0u; i < *attributes_count; i++)
-        if (loadAttribute_code(cf, input, &((*attributes)[i])) < 0)
-            return -1;
+        loadAttribute_code(cf, input, &((*attributes)[i]));
     return 0;
 }

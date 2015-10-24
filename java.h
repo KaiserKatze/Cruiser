@@ -431,10 +431,10 @@ extern "C" {
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_method(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_code(ClassFile *, struct BufferIO *, u2 *, attr_info **);
-    extern int freeAttributes_class(u2, attr_info *);
-    extern int freeAttributes_field(u2, attr_info *);
-    extern int freeAttributes_method(u2, attr_info *);
-    extern int freeAttributes_code(u2, attr_info *);
+    extern int freeAttributes_class(ClassFile *, u2, attr_info *);
+    extern int freeAttributes_field(ClassFile *, u2, attr_info *);
+    extern int freeAttributes_method(ClassFile *, u2, attr_info *);
+    extern int freeAttributes_code(ClassFile *, u2, attr_info *);
 
     extern int parseClassfile(struct BufferIO *, ClassFile *);
     extern int freeClassfile(ClassFile *);
