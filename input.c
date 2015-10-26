@@ -375,6 +375,10 @@ ru4(u4 *dst, struct BufferIO * input)
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
+    
+    logInfo("$$ PTR: %p.\r\n", ptr);
+    logInfo("$$ TRS: %i.\r\n", * ((u4 *) ptr));
+    logInfo("$$ DST: %p.\r\n", dst);
 
     memcpy(dst, ptr, sizeof (u4));
     *dst = htobe32(*dst);

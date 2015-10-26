@@ -6,28 +6,24 @@
 
 #include "jar.h"
 #include "memory.h"
+#include "log.h"
 
 #define OPTION_JAR                          "-jar"
 #define OPTION_CLASSPATH                    "-cp"
 
-JarFile *jf;
-ClassFile *cf;
-struct BufferIO input;
-
-static void freeAll();
-static void handleInterruption(int);
-static void loadJar(char *, char *);
-
 int
 main(int argc, char** argv)
 {
+    JarFile *jf;
+    ClassFile *cf;
+    struct BufferIO input;
     char *path, *name;
     time_t t;
 
     cf = (ClassFile *) 0;
     jf = (JarFile *) 0;
     path = name = (char *) 0;
-    signal(SIGINT, handleInterruption);
+    //signal(SIGINT, handleInterruption);
     time(&t);
 
     if (argc == 2)
@@ -76,12 +72,16 @@ main(int argc, char** argv)
         fclose(input.file);
         goto good_end;
     }
-    /*
     else if (argc == 3)
     {
         if (!strcmp(argv[1], OPTION_JAR))
         {
             path = argv[2];
+            if (strcmp(path + strlen(path) - 3, "jar"))
+            {
+                logError("Target file extension not supported, please try '.jar' file!\r\n");
+                goto bad_end;
+            }
             printf("Parsing JarFile '%s'...\r\n", path);
 
             jf = (JarFile *) allocMemory(1, sizeof (JarFile));
@@ -93,6 +93,8 @@ main(int argc, char** argv)
             if (parseJarfile(path, jf) < 0)
             {
                 freeJarfile(jf);
+                free(jf);
+                jf = 0;
                 goto bad_end;
             }
 
@@ -125,15 +127,13 @@ main(int argc, char** argv)
             goto good_end;
         }
     }
-    */
 usage:
-    /*
-    fprintf(stderr,
-            "Usage: %s %s <jarfile>\r\n"
+    //*
+    logError("Usage: %s %s <jarfile>\r\n"
             "   or  %s [%s <path>] <classfile>\r\n",
             argv[0], OPTION_JAR, argv[0], OPTION_CLASSPATH);
-    */
-    fprintf(stderr, "Usage: %s <classfile>\r\n", argv[0]);
+    //*/
+    //logError(stderr, "Usage: %s <classfile>\r\n", argv[0]);
     return 0;
 good_end:
     printf("Time used: %.2f seconds.\r\n",
@@ -143,38 +143,4 @@ bad_end:
     printf("Time used: %.2f seconds.\r\n",
             difftime(time(0), t));
     return -1;
-}
-
-static void
-loadJar(char *path_jar, char *name_pattern)
-{
-}
-
-static void
-freeAll()
-{
-    if (cf)
-    {
-        freeClassfile(cf);
-        free(cf);
-        cf = (ClassFile *) 0;
-        fclose(input.file);
-        input.file = (FILE *) 0;
-        free(input.buffer);
-        input.buffer = (char *) 0;
-    }
-    if (jf)
-    {
-        freeJarfile(jf);
-        free(jf);
-        jf = (JarFile *) 0;
-    }
-}
-
-static void
-handleInterruption(int param)
-{
-    logError("Interrupted[%i]!\r\n", param);
-    freeAll();
-    exit(SIGINT);
 }

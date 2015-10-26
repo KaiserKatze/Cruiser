@@ -63,6 +63,9 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     struct attr_Code_info *data;
     u2 i;
     u4 j;
+    CONSTANT_Class_info *cc;
+    u2 len;
+    u1 *str;
 
     info->tag = TAG_ATTR_CODE;
     data = (struct attr_Code_info *)
@@ -89,7 +92,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         logError("Assertion error: data->code_length >= 65536!\r\n");
         return -1;
     }
-    data->code = malloc(data->code_length);
+    data->code = (u1 *) allocMemory(data->code_length, sizeof (u1));
     if (!data->code)
     {
         logError("Fail to allocate memory!\r\n");
@@ -325,29 +328,50 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
                 break;
         } // switch
     } // human-readable
-    */
+    //*/
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
-    data->exception_table = (struct exception_table_entry *)
-        malloc(sizeof (struct exception_table_entry) * data->exception_table_length);
-    if (!data->exception_table)
+    logInfo("\t\t// Exception table length = %i.\r\n");
+    if (data->exception_table_length > 0)
     {
-        logError("Fail to allocate memory!\r\n");
-        return -1;
+        data->exception_table = (struct exception_table_entry *)
+            allocMemory(data->exception_table_length,
+                sizeof (struct exception_table_entry));
+        if (!data->exception_table)
+        {
+            logError("Fail to allocate memory!\r\n");
+            return -1;
+        }
+        for (i = 0u; i < data->exception_table_length; i++)
+        {
+            if (ru2(&(data->exception_table[i].start_pc), input) < 0)
+                return -1;
+            if (ru2(&(data->exception_table[i].end_pc), input) < 0)
+                return -1;
+            if (ru2(&(data->exception_table[i].handler_pc), input) < 0)
+                return -1;
+            if (ru2(&(data->exception_table[i].catch_type), input) < 0)
+                return -1;
+            if (data->exception_table[i].catch_type != 0)
+            {
+                cc = getConstant_Class(cf, data->exception_table[i].catch_type);
+                if (!cc) continue;
+                len = getConstant_Utf8Length(cf, cc->data->name_index);
+                str = getConstant_Utf8String(cf, cc->data->name_index);
+                logInfo("\t\t// Exception[%i] -> %.*s\r\n",
+                        i, len, str);
+            }
+            /*
+             * If the value of the catch_type item is zero,
+             * this exception handler is called for all exceptions.
+             * This is used to implement finally (§3.13).
+             */
+        }
     }
-    for (i = 0u; i < data->exception_table_length; i++)
-    {
-        if (ru2(&(data->exception_table[i].start_pc), input) < 0)
-            return -1;
-        if (ru2(&(data->exception_table[i].end_pc), input) < 0)
-            return -1;
-        if (ru2(&(data->exception_table[i].handler_pc), input) < 0)
-            return -1;
-        if (ru2(&(data->exception_table[i].catch_type), input) < 0)
-            return -1;
-    }
-    loadAttributes_code(cf, input, &(data->attributes_count), &(data->attributes));
+    loadAttributes_code(cf, input,
+            &(data->attributes_count),
+            &(data->attributes));
 
     info->data = data;
     return 0;

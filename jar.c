@@ -234,6 +234,7 @@ parseJarfile(const char *path, JarFile *jf)
             entry_name = st.name;
             k = strlen(entry_name);
             str = ".class\0";
+            // check file extension
             j = strlen(str);
             for (i = 0; i < j; i++)
                 if (str[i] != entry_name[k - j + i])
@@ -278,7 +279,7 @@ parseJarfile(const char *path, JarFile *jf)
         zf = zip_fopen_index(z, classes[entry_index], 0);
         if (!zf)
         {
-            logError("Fail to open manifest!\r\n");
+            logError("Fail to open class file!\r\n");
             goto close;
         }
 
@@ -287,9 +288,10 @@ parseJarfile(const char *path, JarFile *jf)
         if (parseClassfile(&input, &(jf->classes[entry_index])) < 0)
         {
             logError("Fail to parse class file [%i]!\r\n", entry_index);
+            zip_fclose(zf);
             goto close;
         }
-
+        zip_fclose(zf);
         logInfo("\r\n");
     }
 

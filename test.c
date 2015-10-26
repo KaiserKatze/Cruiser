@@ -3,6 +3,7 @@
 
 #include "memory.h"
 #include "input.h"
+#include "java.h"
 
 int main(int argc, char **argv)
 {
@@ -10,13 +11,14 @@ int main(int argc, char **argv)
     char *name;
     char *parent;
     int i;
-
-    for (i = 0; i < 3; i++)
-    {
-        printf("%i\r\n", i);
-    }
-    printf("%i\r\n", i);
-
+    
+    printf("%x %x\r\n",
+            ACC_FIELD,
+            ~ACC_FIELD);
+    printf("%x %x\r\n",
+            ACC_FIELD & ~ACC_FIELD,
+            0x72 & ~ACC_FIELD);
+    
     /*
     path = "/home/donizyo/";
     name = getName(path);
