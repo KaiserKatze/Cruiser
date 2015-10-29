@@ -435,6 +435,8 @@ extern "C" {
     extern int freeAttributes_field(ClassFile *, u2, attr_info *);
     extern int freeAttributes_method(ClassFile *, u2, attr_info *);
     extern int freeAttributes_code(ClassFile *, u2, attr_info *);
+    
+    extern int disassembleCode(u4, u1 *);
 
     extern int parseClassfile(struct BufferIO *, ClassFile *);
     extern int freeClassfile(ClassFile *);
