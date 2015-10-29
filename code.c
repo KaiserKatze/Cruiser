@@ -617,7 +617,7 @@ disassembleCode(u4 code_length, u1 *code)
                 logInfo("lookupswitch %i %i {\r\n", _defaultbyte, _npairs);
                 for (i = 0; i < _npairs; i++)
                 {
-                    logInfo("\t\t%i: %i\r\n",
+                    logInfo("\t\t\t%i: %i\r\n",
                             (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j],
                             (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
                 }
