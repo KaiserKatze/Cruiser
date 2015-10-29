@@ -18,6 +18,7 @@ extern int
 disassembleCode(u4 code_length, u1 *code)
 {
     u4 j;
+    int _defaultbyte, _lowbyte, _highbyte, _npairs, i;
     logInfo("\t\t// Human-readable =\r\n");
     for (j = 0u; j < code_length; j++)
     {
@@ -599,17 +600,29 @@ disassembleCode(u4 code_length, u1 *code)
                 break;
             /* switch */
             case OPCODE_tableswitch:
-                // TODO not implemented
-                // access jump table by index and jump
-                // @see jvms7.pdf:p560
-                logError("Unsupported!\r\n");
-                return -1;
+                // make sure 'defaultbyte1' begins at an address that is a multiple of four bytes
+                // move 'j' across padding part to 'defaultbyte1' location
+                j += 4 - j % 4;
+                _defaultbyte = (code[j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
+                _lowbyte = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
+                _highbyte = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
+                logInfo("tableswitch %i %i %i\r\n", _defaultbyte, _lowbyte, _highbyte);
+                // both _lowbyte and _highbyte are inclusive
             case OPCODE_lookupswitch:
-                // TODO not implemented
-                // access jump table by key match and jump
-                // @see jvms7.pdf:p525
-                logError("Unsupported!\r\n");
-                return -1;
+                // make sure 'defaultbyte1' begins at an address that is a multiple of four bytes
+                // move 'j' across padding part to 'defaultbyte1' location
+                j += 4 - j % 4;
+                _defaultbyte = (code[j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
+                _npairs = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
+                logInfo("lookupswitch %i %i {\r\n", _defaultbyte, _npairs);
+                for (i = 0; i < _npairs; i++)
+                {
+                    logInfo("\t\t%i: %i\r\n",
+                            (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j],
+                            (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
+                }
+                logInfo("}\r\n");
+                break;
             /* return value from method */
             case OPCODE_ireturn:
                 logInfo("dreturn\r\n");
@@ -726,10 +739,51 @@ disassembleCode(u4 code_length, u1 *code)
                 break;
             case OPCODE_wide:
                 // extend local variable index by additional bytes
-                // TODO not implemented
-                // @see jvms7.pdf:p562
-                logError("Unsupported!\r\n");
-                return -1;
+                switch (code[++j])
+                {
+                    // (1) where <opcode> is one of <T>load or ret
+                    case OPCODE_iload:
+                        logInfo("wide iload %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_fload:
+                        logInfo("wide fload %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_aload:
+                        logInfo("wide aload %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_lload:
+                        logInfo("wide lload %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_dload:
+                        logInfo("wide dload %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_istore:
+                        logInfo("wide istore %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_fstore:
+                        logInfo("wide fstore %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_astore:
+                        logInfo("wide astore %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_lstore:
+                        logInfo("wide lstore %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_dstore:
+                        logInfo("wide dstore %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    case OPCODE_ret:
+                        logInfo("wide ret %i\r\n", (code[++j] << 8) | code[++j]);
+                        break;
+                    // (2) iinc
+                    case OPCODE_iinc:
+                        logInfo("wide iinc %i %i\r\n", (code[++j] << 8) | code[++j], (code[++j] << 8) | code[++j]);
+                        break;
+                    default:
+                        logError("Unsupported wide opcode[%i]!\r\n", code[j]);
+                        return -1;
+                }
+                break;
             case OPCODE_multianewarray:
                 logInfo("multianewarray %i %i\r\n", (code[++j] << 8) | code[++j], code[++j]);
                 // create new multi-dimensional array
