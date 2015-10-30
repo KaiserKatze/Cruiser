@@ -104,8 +104,13 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     logInfo("\t\t");
     for (j = 0u; j < data->code_length; j++)
     {
-        if (j != 0u && j % 20 == 0)
-            logInfo("\r\n\t\t");
+        if (j != 0)
+        {
+            if (j % 20 == 0)
+                logInfo("\r\n\t\t");
+            else if (j % 10 == 0)
+                logInfo(" ");
+        }
         logInfo("%02X ", data->code[j]);
     }
     logInfo("\r\n");
