@@ -11,9 +11,10 @@
 
 #include "memory.h"
 #include "input.h"
+#include "sys.h"
 
 #define PATH_SEPARATOR '/'
-
+/*
 extern char *
 getParentPath(const char *path)
 {
@@ -30,7 +31,8 @@ getParentPath(const char *path)
 
     return pp;
 }
-
+*/
+#ifdef LINUX
 extern char *
 getName(const char *entry_path)
 {
@@ -261,7 +263,7 @@ openFile(const char *path, const char *mode)
 
     return file;
 }
-
+#endif
 
 
 static inline void
@@ -282,6 +284,7 @@ initBufferIO(struct BufferIO *io)
 extern void
 initWithFile(struct BufferIO *io, const char *file_path)
 {
+#ifdef LINUX
     struct stat st;
     char *path_pdir;
     char *log_name;
@@ -297,6 +300,7 @@ initWithFile(struct BufferIO *io, const char *file_path)
         logError("Parameter 'file_path' is not regular file!\r\n");
         return;
     }
+#endif
     io->file = fopen(file_path, "r");
     if (!io->file)
     {
@@ -304,6 +308,7 @@ initWithFile(struct BufferIO *io, const char *file_path)
         return;
     }
     io->fp = fillBuffer_f;
+#ifdef LINUX
     // analyze parent path
     path_pdir = getParentPath(file_path);
     if (lstat(path_pdir, &st) < 0)
@@ -317,6 +322,7 @@ initWithFile(struct BufferIO *io, const char *file_path)
         return;
     }
     // analyze file name
+#endif
 }
 
 extern void
