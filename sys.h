@@ -12,8 +12,16 @@
 extern "C" {
 #endif
     
-#define WIN7
-
+/*
+ * Pre-defined macros:
+ * https://gcc.gnu.org/onlinedocs/cpp/Predefined-Macros.html
+ * https://msdn.microsoft.com/en-us/library/b0084kay.aspx
+ */
+#if defined _WIN32    
+#define WINDOWS
+#elif defined unix
+#define LINUX
+#endif
 
 #ifdef	__cplusplus
 }

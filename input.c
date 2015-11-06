@@ -3,15 +3,39 @@
 #include <string.h>
 #include <errno.h>
 
+#include "sys.h"
+#include "memory.h"
+#include "input.h"
+#include "log.h"
+
+#ifdef LINUX
+
 #include <endian.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "memory.h"
-#include "input.h"
-#include "sys.h"
+#elif defined WINDOWS
+
+#include <WinSock2.h>
+
+#define __func__ __FUNCTION__
+
+#if LITTLEENDIAN
+#define htobe16(x) htons(x)
+#define htobe32(x) htonl(x)
+#else
+#define htobe16(x) (x)
+#define htobe32(x) (x)
+#endif
+
+void bzero(void *ptr, size_t s)
+{
+	memset(ptr, 0, s);
+}
+
+#endif
 
 #define PATH_SEPARATOR '/'
 /*
@@ -301,13 +325,18 @@ initWithFile(struct BufferIO *io, const char *file_path)
         return;
     }
 #endif
+#if defined WINDOWS
+	fopen_s(&(io->file), file_path, "r");
+#else
     io->file = fopen(file_path, "r");
+#endif
     if (!io->file)
     {
         logError("Parameter file is NULL!\r\n");
         return;
     }
     io->fp = fillBuffer_f;
+    /*
 #ifdef LINUX
     // analyze parent path
     path_pdir = getParentPath(file_path);
@@ -323,6 +352,7 @@ initWithFile(struct BufferIO *io, const char *file_path)
     }
     // analyze file name
 #endif
+    */
 }
 
 extern void
