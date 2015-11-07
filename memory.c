@@ -50,6 +50,7 @@ deque_createDeque()
     struct Deque *deque;
 
     deque = (struct Deque *) allocMemory(1, sizeof (struct Deque));
+    if (!deque) return (struct Deque *) 0;
     deque->first = deque->last = (struct DequeEntry *) 0;
 
     return deque;
@@ -116,6 +117,7 @@ deque_addFirst(struct Deque *deque, int size, void *value)
         return -1;
     }
     entry = (struct DequeEntry *) allocMemory(1, sizeof (struct DequeEntry));
+    if (!entry) return -1;
     entry->size = size;
     entry->value = value;
     entry->prev = (struct DequeEntry *) 0;
@@ -140,6 +142,7 @@ deque_addLast(struct Deque *deque, int size, void *value)
         return -1;
     }
     entry = (struct DequeEntry *) allocMemory(1, sizeof (struct DequeEntry));
+    if (!entry) return -1;
     entry->size = size;
     entry->value = value;
     entry->prev = deque->last;

@@ -52,12 +52,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru4(&(cf->magic), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     if (cf->magic != 0XCAFEBABE)
     {
         logError("File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
-        goto close;
+        return -1;
     }
     logInfo("File structure is valid[0x%X], proceeding...\r\n", cf->magic);
 
@@ -65,12 +65,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->minor_version), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     if (ru2(&(cf->major_version), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("Class version: %i.%i\r\n",
             cf->major_version, cf->minor_version);
@@ -87,7 +87,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->constant_pool_count), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
@@ -100,12 +100,13 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         if (!cf->constant_pool)
         {
             logError("Fail to allocate memory.\r\n");
-            goto close;
+            return -1;
         }
         logInfo("Constant pool allocated.\r\n");
         bzero(cf->constant_pool, cap);
         */
         cf->constant_pool = (cp_info *) allocMemory(cf->constant_pool_count, sizeof (cp_info));
+        if (!cf->constant_pool) return -1;
 
         logInfo("Parsing constant pool...\r\n");
         // jvms7 says "The constant_pool table is indexed
@@ -116,7 +117,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             if (ru1(&(info->tag), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             logInfo("\t#%-5i = %-18s ",
                     i, get_cp_name(info->tag));
@@ -126,7 +127,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             if (!info->data)
             {
                 logError("Fail to allocate memory!\r\n");
-                goto close;
+                return -1;
             }
             bzero(info->data, cap);
             */
@@ -134,11 +135,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             {
                 case CONSTANT_Class:
                     info->data = allocMemory(1, sizeof *(cci->data));
+                    if (!info->data) return -1;
                     cci = (CONSTANT_Class_info *) info;
                     if (ru2(&(cci->data->name_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i\r\n", cci->data->name_index);
@@ -149,16 +151,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 case CONSTANT_Methodref:
                 case CONSTANT_InterfaceMethodref:
                     info->data = allocMemory(1, sizeof *(cfi->data));
+                    if (!info->data) return -1;
                     cfi = (CONSTANT_Fieldref_info *) info;
                     if (ru2(&(cfi->data->class_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     if (ru2(&(cfi->data->name_and_type_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i.#%i\r\n", cfi->data->class_index, cfi->data->name_and_type_index);
@@ -170,11 +173,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 case CONSTANT_Integer:
                 case CONSTANT_Float:
                     info->data = allocMemory(1, sizeof *(cii->data));
+                    if (!info->data) return -1;
                     cii = (CONSTANT_Integer_info *) info;
                     if (ru4(&(cii->data->bytes), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     if (info->tag == CONSTANT_Integer)
@@ -187,16 +191,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 case CONSTANT_Long:
                 case CONSTANT_Double:
                     info->data = allocMemory(1, sizeof *(cli->data));
+                    if (!info->data) return -1;
                     cli = (CONSTANT_Long_info *) info;
                     if (ru4(&(cli->data->high_bytes), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     if (ru4(&(cli->data->low_bytes), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     // all 8-byte constants take up two entries in the constant_pool table of the class file
                     ++i;
@@ -210,16 +215,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_NameAndType:
                     info->data = allocMemory(1, sizeof *(cni->data));
+                    if (!info->data) return -1;
                     cni = (CONSTANT_NameAndType_info *) info;
                     if (ru2(&(cni->data->name_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     if (ru2(&(cni->data->descriptor_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i.#%i\r\n", cni->data->name_index, cni->data->descriptor_index);
@@ -228,11 +234,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_String:
                     info->data = allocMemory(1, sizeof *(csi->data));
+                    if (!info->data) return -1;
                     csi = (CONSTANT_String_info *) info;
                     if (ru2(&(csi->data->string_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i\r\n", csi->data->string_index);
@@ -241,11 +248,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_Utf8:
                     info->data = allocMemory(1, sizeof *(cui->data));
+                    if (!info->data) return -1;
                     cui = (CONSTANT_Utf8_info *) info;
                     if (ru2(&(cui->data->length), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     /*
                     cap = cui->data->length;
@@ -253,22 +261,23 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     if (!cui->data->bytes)
                     {
                         logError("Fail to allocate memory!\r\n");
-                        goto close;
+                        return -1;
                     }
                     bzero(cui->data->bytes, cap);
                     */
                     cui->data->bytes = (u1 *) allocMemory(cui->data->length, sizeof (u1));
+                    if (cui->data->bytes) return -1;
 
                     if (rbs(cui->data->bytes, input, cui->data->length) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     if (!cui->data->bytes)
                     {
                         logError("Runtime error!\r\n");
-                        goto close;
+                        return -1;
                     }
                     logInfo("%.*s\r\n", cui->data->length, (char *) cui->data->bytes);
 
@@ -277,16 +286,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_MethodHandle:
                     info->data = allocMemory(1, sizeof *(cmhi->data));
+                    if (!info->data) return -1;
                     cmhi = (CONSTANT_MethodHandle_info *) info;
                     if (ru1(&(cmhi->data->reference_kind), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     if (ru2(&(cmhi->data->reference_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("%i #%i\r\n", cmhi->data->reference_kind, cmhi->data->reference_index);
@@ -295,11 +305,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_MethodType:
                     info->data = allocMemory(1, sizeof *(cmti->data));
+                    if (!info->data) return -1;
                     cmti = (CONSTANT_MethodType_info *) info;
                     if (ru2(&(cmti->data->descriptor_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i\r\n", cmti->data->descriptor_index);
@@ -308,16 +319,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 case CONSTANT_InvokeDynamic:
                     info->data = allocMemory(1, sizeof *(cidi->data));
+                    if (!info->data) return -1;
                     cidi = (CONSTANT_InvokeDynamic_info *) info;
                     if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
                     if (ru2(&(cidi->data->name_and_type_index), input) < 0)
                     {
                         logError("IO exception in function %s!\r\n", __func__);
-                        goto close;
+                        return -1;
                     }
 
                     logInfo("#%i.#%i\r\n",
@@ -328,7 +340,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     break;
                 default:
                     logError("Unknown TAG:%X\r\n", info->tag);
-                    goto close;
+                    return -1;
             }
         } // LOOP
     } // constant pool parsed
@@ -338,17 +350,17 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->access_flags), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     if (ru2(&(cf->this_class), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     if (ru2(&(cf->super_class), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("\r\nAccess flags     : 0x%X\r\n"
             "Class this_class : %i\r\n"
@@ -360,7 +372,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->interfaces_count), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("\r\nInterface count: %i\r\n", cf->interfaces_count);
     if (cf->interfaces_count > 0)
@@ -372,29 +384,30 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         if (!cf->interfaces)
         {
             logError("Fail to allocate memory!\r\n");
-            goto close;
+            return -1;
         }
         bzero(cf->interfaces, cap);
         */
         cf->interfaces = (u2 *) allocMemory(cf->interfaces_count, sizeof (u2));
+        if (!cf->interfaces) return -1;
         for (i = 0u; i < cf->interfaces_count; i++)
         {
             if (ru2(&(cf->interfaces[i]), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             cci = (CONSTANT_Class_info *) &(cf->constant_pool[cf->interfaces[i]]);
             if (!cci || cci->tag != CONSTANT_Class)
             {
                 logError("Invalid constant pool index!\r\n");
-                goto close;
+                return -1;
             }
             cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cci->data->name_index]);
             if (!cui || cui->tag != CONSTANT_Utf8)
             {
                 logError("Invalid constant pool index!\r\n");
-                goto close;
+                return -1;
             }
             logInfo("Interface[%i] #%i\t// %.*s\r\n",
                     i, cf->interfaces[i],
@@ -405,7 +418,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->fields_count), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("\r\nField count: %i\r\n", cf->fields_count);
     if (cf->fields_count > 0)
@@ -417,27 +430,28 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         if (!cf->fields)
         {
             logError("Fail to allocate memory!\r\n");
-            goto close;
+            return -1;
         }
         bzero(cf->fields, cap);
         */
         cf->fields = (field_info *) allocMemory(cf->fields_count, sizeof (field_info));
+        if (!cf->fields) return -1;
         for (i = 0u; i < cf->fields_count; i++)
         {
             if (ru2(&(cf->fields[i].access_flags), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             if (ru2(&(cf->fields[i].name_index), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             if (ru2(&(cf->fields[i].descriptor_index), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
             logInfo("Field[%i]\r\n"
@@ -479,7 +493,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (ru2(&(cf->methods_count), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
-        goto close;
+        return -1;
     }
     logInfo("\r\nMethod count: %i\r\n", cf->methods_count);
     // load methods if possible
@@ -492,27 +506,28 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         if (!cf->methods)
         {
             logError("Fail to allocate memory!\r\n");
-            goto close;
+            return -1;
         }
         bzero(cf->methods, cap);
         */
         cf->methods = (method_info *) allocMemory(cf->methods_count, sizeof (method_info));
+        if (!cf->methods) return -1;
         for (i = 0u; i < cf->methods_count; i++)
         {
             if (ru2(&(cf->methods[i].access_flags), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             if (ru2(&(cf->methods[i].name_index), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             if (ru2(&(cf->methods[i].descriptor_index), input) < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                goto close;
+                return -1;
             }
             buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
             logInfo("Method[%i]\r\n"
@@ -570,8 +585,6 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
 
     if (validateConstantPool(cf) < 0)
         return -1;
-close:
-
     return 0;
 }
 

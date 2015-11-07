@@ -93,11 +93,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         return -1;
     }
     data->code = (u1 *) allocMemory(data->code_length, sizeof (u1));
-    if (!data->code)
-    {
-        logError("Fail to allocate memory!\r\n");
-        return -1;
-    }
+    if (!data->code) return -1;
     if (rbs(data->code, input, data->code_length) < 0)
         return -1;
     logInfo("\t\t// Hex code =\r\n");
@@ -125,11 +121,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         data->exception_table = (struct exception_table_entry *)
             allocMemory(data->exception_table_length,
                 sizeof (struct exception_table_entry));
-        if (!data->exception_table)
-        {
-            logError("Fail to allocate memory!\r\n");
-            return -1;
-        }
+        if (!data->exception_table) return -1;
         for (i = 0u; i < data->exception_table_length; i++)
         {
             if (ru2(&(data->exception_table[i].start_pc), input) < 0)
@@ -146,8 +138,26 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
                 if (!cc) continue;
                 len = getConstant_Utf8Length(cf, cc->data->name_index);
                 str = getConstant_Utf8String(cf, cc->data->name_index);
-                logInfo("\t\t// Exception[%i] -> %.*s\r\n",
-                        i, len, str);
+                logInfo("\t\t%.*s\t\t"
+                        "%i\t"
+                        "%i\t"
+                        "%i\r\n",
+                        len, str,
+                        data->exception_table[i].start_pc,
+                        data->exception_table[i].end_pc,
+                        data->exception_table[i].handler_pc);
+                len = 0;
+                str = (char *) 0;
+            }
+            else
+            {
+                logInfo("\t\tFINALLY\t\t"
+                        "%i\t"
+                        "%i\t"
+                        "%i\r\n",
+                        data->exception_table[i].start_pc,
+                        data->exception_table[i].end_pc,
+                        data->exception_table[i].handler_pc);
             }
             /*
              * If the value of the catch_type item is zero,
@@ -190,7 +200,9 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Exceptions_info *data;
     CONSTANT_Class_info *cc;
-    u2 i;
+    CONSTANT_Utf8_info *utf8;
+    u2 i, len;
+    u1 *str;
 
     info->tag = TAG_ATTR_EXCEPTIONS;
     data = (struct attr_Exceptions_info *)
@@ -203,6 +215,12 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
     bzero(data, sizeof (struct attr_Exceptions_info));
     if (ru2(&(data->number_of_exceptions), input) < 0)
         return -1;
+    // Validate Exception attribute
+    if ((data->number_of_exceptions + 2) * sizeof (u2) + sizeof (u4)
+            != info->attribute_length)
+    {
+        logError("Exception attribute is not valid!\r\n");
+    }
     data->exception_index_table = (u2 *)
         malloc(sizeof (u2) * data->number_of_exceptions);
     if (!data->exception_index_table)
@@ -210,6 +228,7 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
         logError("Fail to allocate memory!\r\n");
         return -1;
     }
+    logInfo("\t\tExceptions:\r\n");
     for (i = 0u; i < data->number_of_exceptions; i++)
     {
         if (ru2(&(data->exception_index_table[i]), input) < 0)
@@ -220,6 +239,22 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
             logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->exception_index_table[i]);
             return -1;
         }
+        if (!cc->data)
+        {
+            logError("Assertion error: constant_pool[%i] has no data!\r\n", data->exception_index_table[i]);
+            return -1;
+        }
+        utf8 = getConstant_Utf8(cf, cc->data->name_index);
+        if (!utf8->data)
+        {
+            logError("Assertion error: constant_pool[%i] has no data!\r\n", cc->data->name_index);
+            return -1;
+        }
+        len = utf8->data->length;
+        str = utf8->data->bytes;
+        logInfo("\t\t\t%.*s\r\n", len, str);
+        len = 0;
+        str = (u1 *) 0;
     }
 
     info->data = data;
@@ -1006,6 +1041,7 @@ loadAttributes_field(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
         return -1;
     //*attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     *attributes = (attr_info *) allocMemory(*attributes_count, sizeof (attr_info));
+    if (!*attributes) return -1;
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_field(cf, input, &((*attributes)[i]));
     return 0;
