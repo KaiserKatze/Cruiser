@@ -115,7 +115,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
-    logInfo("\t\t// Exception table length = %i.\r\n");
+    logInfo("\t\t// Exception table length = %i.\r\n", data->exception_table_length);
     if (data->exception_table_length > 0)
     {
         data->exception_table = (struct exception_table_entry *)
@@ -165,6 +165,15 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
              * This is used to implement finally (§3.13).
              */
         }
+    }
+    else if (data->exception_table_length == 0)
+    {
+        data->exception_table = (struct exception_table_entry *) 0;
+    }
+    else
+    {
+        logError("Assertion error: Exception table length is negative!\r\n");
+        return -1;
     }
     loadAttributes_code(cf, input,
             &(data->attributes_count),
