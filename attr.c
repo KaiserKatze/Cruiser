@@ -422,7 +422,7 @@ loadAttribute_SourceFile(ClassFile *cf, struct BufferIO *input, attr_info *info)
 static int
 freeAttribute_SourceFile(attr_info *info)
 {
-    if (info->tag == TAG_ATTR_SOURCEFILE)
+    if (info->tag != TAG_ATTR_SOURCEFILE)
         return -1;
     free(info->data);
     info->data = 0;

@@ -136,11 +136,11 @@ usage:
     //logError(stderr, "Usage: %s <classfile>\r\n", argv[0]);
     return 0;
 good_end:
-    printf("Time used: %.2f seconds.\r\n",
+    printf("Succeed! Time used: %.2f seconds.\r\n",
             difftime(time(0), t));
     return 0;
 bad_end:
-    printf("Time used: %.2f seconds.\r\n",
+    printf("Fail! Time used: %.2f seconds.\r\n",
             difftime(time(0), t));
     return -1;
 }

@@ -266,7 +266,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     bzero(cui->data->bytes, cap);
                     */
                     cui->data->bytes = (u1 *) allocMemory(cui->data->length, sizeof (u1));
-                    if (cui->data->bytes) return -1;
+                    if (!cui->data->bytes) return -1;
 
                     if (rbs(cui->data->bytes, input, cui->data->length) < 0)
                     {
