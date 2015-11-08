@@ -17,11 +17,12 @@
 extern int
 disassembleCode(u4 code_length, u1 *code)
 {
-    u4 j;
+    u4 j, k;
     int _defaultbyte, _lowbyte, _highbyte, _npairs, i;
     logInfo("\t\t// Human-readable =\r\n");
     for (j = 0u; j < code_length; j++)
     {
+        k = j;
         logInfo("\t\t%8i: ", j);
         switch (code[j])
         {
@@ -86,16 +87,16 @@ disassembleCode(u4 code_length, u1 *code)
                 // ... -> ..., value
                 break;
             case OPCODE_ldc:
-                logInfo("ldc %i\r\n", code[++j]);
+                logInfo("ldc #%i\r\n", code[++j]);
                 // push item from runtime constant pool
                 // ... -> ..., value
                 break;
             case OPCODE_ldc_w:
-                logInfo("ldc_w %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ldc_w #%i\r\n", (code[++j] << 8) | code[++j]);
                 // push item from runtime constant pool (wide index)
                 break;
             case OPCODE_ldc2_w:
-                logInfo("ldc2_w %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ldc2_w #%i\r\n", (code[++j] << 8) | code[++j]);
                 // push long or double from runtime constant pool (wide index)
                 break;
             /* load value from local variable */
@@ -465,7 +466,9 @@ disassembleCode(u4 code_length, u1 *code)
             case OPCODE_ior:
                 logInfo("ior\r\n");
                 break;
-            case OPCODE_lor:break;
+            case OPCODE_lor:
+                logInfo("lor\r\n");
+                break;
             case OPCODE_ixor:
                 logInfo("ixor\r\n");
                 break;
@@ -544,54 +547,54 @@ disassembleCode(u4 code_length, u1 *code)
                 break;
             /* branch if int comparison with zero succeeds */
             case OPCODE_ifeq:
-                logInfo("ifeq %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifeq %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_ifne:
-                logInfo("ifne %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifne %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_iflt:
-                logInfo("iflt %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("iflt %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_ifge:
-                logInfo("ifge %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifge %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_ifgt:
-                logInfo("ifgt %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifgt %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_ifle:
-                logInfo("ifle %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifle %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             /* int value comparison */
             case OPCODE_if_icmpeq:
-                logInfo("if_icmpeq %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmpeq %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_icmpne:
-                logInfo("if_icmpne %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmpne %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_icmplt:
-                logInfo("if_icmplt %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmplt %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_icmpge:
-                logInfo("if_icmpge %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmpge %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_icmpgt:
-                logInfo("if_icmpgt %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmpgt %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_icmple:
-                logInfo("if_icmple %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_icmple %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             /* branch if 'reference' comparison succeeds */
             case OPCODE_if_acmpeq:
-                logInfo("if_acmpeq %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_acmpeq %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_if_acmpne:
-                logInfo("if_acmpne %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("if_acmpne %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_goto:
-                logInfo("goto %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("goto %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_jsr:
-                logInfo("jsr %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("jsr %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_ret:
                 logInfo("ret %i\r\n", code[++j]);
@@ -607,6 +610,11 @@ disassembleCode(u4 code_length, u1 *code)
                 _lowbyte = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
                 _highbyte = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
                 logInfo("tableswitch %i %i %i\r\n", _defaultbyte, _lowbyte, _highbyte);
+                for (i = _lowbyte; i <= _highbyte; i++)
+                {
+                    logInfo("\t\t\t\t%i: %i\r\n", i,
+                            k + (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
+                }
                 // both _lowbyte and _highbyte are inclusive
             case OPCODE_lookupswitch:
                 // make sure 'defaultbyte1' begins at an address that is a multiple of four bytes
@@ -614,14 +622,19 @@ disassembleCode(u4 code_length, u1 *code)
                 j += 4 - j % 4;
                 _defaultbyte = (code[j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
                 _npairs = (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j];
-                logInfo("lookupswitch %i %i {\r\n", _defaultbyte, _npairs);
+                if (_npairs < 0)
+                {
+                    logError("Assertion Error: npairs < 0!\r\n");
+                    return -1;
+                }
+                logInfo("lookupswitch %i %i {\r\n", _defaultbyte + k, _npairs);
                 for (i = 0; i < _npairs; i++)
                 {
-                    logInfo("\t\t\t%i: %i\r\n",
-                            (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j],
+                    logInfo("\t\t\t\t%i: %i\r\n",
+                            k + ((code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]),
                             (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
                 }
-                logInfo("}\r\n");
+                logInfo("\t\t}\r\n");
                 break;
             /* return value from method */
             case OPCODE_ireturn:
@@ -658,26 +671,26 @@ disassembleCode(u4 code_length, u1 *code)
                 logInfo("putfield %i\r\n", (code[++j] << 8) | code[++j]);
                 break;
             case OPCODE_invokevirtual:
-                logInfo("invokevirtual %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("invokevirtual #%i\r\n", (code[++j] << 8) | code[++j]);
                 break;
             case OPCODE_invokespecial:
-                logInfo("invokespecial %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("invokespecial #%i\r\n", (code[++j] << 8) | code[++j]);
                 break;
             case OPCODE_invokestatic:
-                logInfo("invokestatic %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("invokestatic #%i\r\n", (code[++j] << 8) | code[++j]);
                 break;
             case OPCODE_invokeinterface:
-                logInfo("invokeinterface %i %i\r\n", (code[++j] << 8) | code[++j], code[++j]);
+                logInfo("invokeinterface #%i %i\r\n", (code[++j] << 8) | code[++j], code[++j]);
                 ++j;
                 // @see jvm7.pdf:p479
                 break;
             case OPCODE_invokedynamic:
-                logInfo("invokedynamic %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("invokedynamic #%i\r\n", (code[++j] << 8) | code[++j]);
                 j += 2;
                 // @see jvms7.pdf:p474
                 break;
             case OPCODE_new:
-                logInfo("new %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("new #%i\r\n", (code[++j] << 8) | code[++j]);
                 // create new object
                 break;
             case OPCODE_newarray:
@@ -790,17 +803,17 @@ disassembleCode(u4 code_length, u1 *code)
                 break;
             /* branch if reference null */
             case OPCODE_ifnull:
-                logInfo("ifnull %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifnull %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             /* branch if reference not null */
             case OPCODE_ifnonnull:
-                logInfo("ifnonnull %i\r\n", (code[++j] << 8) | code[++j]);
+                logInfo("ifnonnull %i\r\n", k + ((code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_goto_w:
-                logInfo("goto_w %lli\r\n", (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
+                logInfo("goto_w %lli\r\n", k + ((code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]));
                 break;
             case OPCODE_jsr_w:
-                logInfo("jsr_w %lli\r\n", (code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]);
+                logInfo("jsr_w %lli\r\n", k + ((code[++j] << 24) | (code[++j] << 16) | (code[++j] << 8) | code[++j]));
                 break;
             /* reserved */
             case OPCODE_breakpoint:
