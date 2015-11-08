@@ -1,6 +1,6 @@
 # Cruiser
 A Java disassembler and decompiler.
-This project is under construction and both disassembling and decompiling is not supported yet.
+This project is under construction. Disassembling is, I think, fully supported. However decompiling is not supported yet.
 
 ## Usage
 1. Install libzip;
