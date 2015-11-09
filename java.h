@@ -426,6 +426,7 @@ extern "C" {
 
     extern u2 getConstant_Utf8Length(ClassFile *, u2);
     extern char *getConstant_Utf8String(ClassFile *, u2);
+    extern char *getConstant_ClassName(ClassFile *, u2);
 
     extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, u2 *, attr_info **);

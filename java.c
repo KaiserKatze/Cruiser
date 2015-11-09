@@ -1082,14 +1082,26 @@ getConstant_Utf8String(ClassFile *cf, u2 index)
 
     cu = getConstant_Utf8(cf, index);
     if (!cu)
-        return "";
+        return (char *) 0;
     if (!cu->data)
-        return "";
+        return (char *) 0;
     str = cu->data->bytes;
-    if (!str)
-        str = "";
 
     return str;
+}
+
+extern char *
+getConstant_ClassName(ClassFile *cf, u2 index)
+{
+    CONSTANT_Class_info *cc;
+    
+    cc = getConstant_Class(cf, index);
+    if (!cc)
+        return (char *) 0;
+    if (!cc->data)
+        return (char *) 0;
+
+    return getConstant_Utf8String(cf, cc->data->name_index);
 }
 
 extern CONSTANT_Class_info *
