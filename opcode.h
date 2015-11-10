@@ -5,7 +5,7 @@
 
 #define OPCODE_nop              0x00
 #define OPCODE_aconst_null      0x01
-#define OPCODE_iconst_ml        0x02
+#define OPCODE_iconst_m1        0x02
 #define OPCODE_iconst_0         0x03
 #define OPCODE_iconst_1         0x04
 #define OPCODE_iconst_2         0x05
