@@ -1,7 +1,7 @@
 #ifndef JAVA_H
 #define	JAVA_H
 
-#include <zip.h>
+#include <stdio.h>
 
 #include "input.h"
 

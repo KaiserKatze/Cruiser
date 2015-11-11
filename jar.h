@@ -1,6 +1,8 @@
 #ifndef JAR_H
 #define JAR_H
 
+#include <zip.h>
+
 #include "java.h"
 
 #ifdef  __cplusplus

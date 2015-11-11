@@ -3,6 +3,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include <zip.h>
+
 #include "sys.h"
 #include "memory.h"
 #include "input.h"
@@ -538,7 +540,9 @@ fillBuffer_z(struct BufferIO * input, int nbits)
         if (input->more)
         {
             cap = bufsize - buflen;
-            rbit = zip_fread(zf, &(input->buffer[buflen]), cap);
+            rbit = zip_fread(zf,
+                    (void *) &(input->buffer[buflen]),
+                    (zip_uint64_t) cap);
             if (rbit < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
