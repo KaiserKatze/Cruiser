@@ -265,7 +265,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     }
                     bzero(cui->data->bytes, cap);
                     */
-                    cui->data->bytes = (u1 *) allocMemory(cui->data->length, sizeof (u1));
+                    cui->data->bytes = (u1 *) allocMemory(cui->data->length + 1, sizeof (u1));
                     if (!cui->data->bytes) return -1;
 
                     if (rbs(cui->data->bytes, input, cui->data->length) < 0)
@@ -273,6 +273,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                         logError("IO exception in function %s!\r\n", __func__);
                         return -1;
                     }
+                    cui->data->bytes[cui->data->length] = '\0';
 
                     if (!cui->data->bytes)
                     {
@@ -1102,6 +1103,35 @@ getConstant_ClassName(ClassFile *cf, u2 index)
         return (char *) 0;
 
     return getConstant_Utf8String(cf, cc->data->name_index);
+}
+
+// index should be valid entry into constant pool and the entry must be a method reference
+extern char *
+getConstant_MethodName(ClassFile *cf, u2 index)
+{
+    CONSTANT_Methodref_info *cmi;
+    CONSTANT_NameAndType_info *cni;
+    char *name;
+    
+    cmi = getConstant_Methodref(cf, index);
+    if (!cmi) return (char *) 0;
+    cni = getConstant_NameAndType(cf, cmi->data->name_and_type_index);
+    if (!cni) return (char *) 0;
+    name = getConstant_Utf8String(cf, cni->data->name_index);
+    if (!name) return (char *) 0;
+    if (strcmp(name, "<init>"))
+        return name;
+    return getConstant_ClassName(cf, cmi->data->class_index);
+}
+
+extern int
+getConstant_MethodNParameters(ClassFile *cf, u2 index)
+{
+    CONSTANT_Methodref_info *cmi;
+    
+    cmi = getConstant_Methodref(cf, index);
+    if (!cmi) return -1;
+    
 }
 
 extern CONSTANT_Class_info *

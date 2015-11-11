@@ -261,20 +261,22 @@ extern "C" {
         attr_info *attributes;
 
 #ifdef QUICK_REFERENCE
+#if VER_CMP(45, 3)
         attr_info *attrCode;
         attr_info *attrExceptions;
-
-        attr_info *attrRuntimeVisibleAnnotations;
-        attr_info *attrRuntimeInvisibleAnnotations;
-
+#endif
+#if VER_CMP(49, 0)
         attr_info *attrRuntimeVisibleParameterAnnotations;
         attr_info *attrRuntimeInvisibleParameterAnnotations;
-
+        attr_info *attrAnnotationDefault;
+        attr_info *attrRuntimeVisibleAnnotations;
+        attr_info *attrRuntimeInvisibleAnnotations;
+#endif
+#if VER_CMP(52, 0)
+        attr_info *attrMethodParameters;
         attr_info *attrRuntimeVisibleTypeAnnotations;
         attr_info *attrRuntimeInvisibleTypeAnnotations;
-
-        attr_info *attrAnnotationDefault;
-        attr_info *attrMethodParameters;
+#endif
 #endif
     } method_info;
     
