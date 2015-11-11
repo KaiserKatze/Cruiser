@@ -283,6 +283,7 @@ parseJarfile(const char *path, JarFile *jf)
             goto close;
         }
 
+        input.bufsrc = input.bufdst = 0;
         input.entry = zf;
         input.more = 1;
         if (parseClassfile(&input, &(jf->classes[entry_index])) < 0)
