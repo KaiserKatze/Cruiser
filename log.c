@@ -30,9 +30,11 @@ logError(const char *format, ...)
 
     va_start(vl, format);
     len = strlen(format);
-    fmt = (char *) malloc(9 + len);
+    fmt = (char *) malloc(11 + len);
     memcpy(fmt, "[Error > ", 9);
     memcpy(fmt + 9, format, len);
+    memcpy(fmt + 9 + len, "\r\n", 2);
+    fmt[10 + len] = '\0';
     res = vfprintf(stderr, fmt, vl);
     va_end(vl);
 
