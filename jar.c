@@ -73,10 +73,12 @@ parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
                 input.entry = zf;
                 input.bufsize = BUFSIZE;
                 input.buffer = buffer;
+                input.bufsrc = input.bufdst = 0;
                 input.fp = fillBuffer_z;
                 input.more = 1;
 
                 parseClassfile(&input, cf);
+                zip_fclose(zf);
 
                 break;
             }
