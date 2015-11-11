@@ -837,6 +837,7 @@ disassembleCode(u4 code_length, u1 *code)
     return 0;
 }
 
+#if 0 // disabled
 struct _StackOutput
 {
     u2 max;
@@ -912,7 +913,7 @@ static inline int sop_flush(struct _StackOutput *output)
     // create a copy of output
     temp = sop_newStackOutput(output->max);
     memcpy(temp, output, sizeof (struct _StackOutput));
-    while (!sop_isEmpty(output))
+    while (output->max != output->off)
     {
         str = sop_pop(output);
         split = _countPercentMark(str, &count);
@@ -922,40 +923,58 @@ static inline int sop_flush(struct _StackOutput *output)
             sprintf(buff, str, sop_pop(output));
         else
         {
-            // TODO FIFO? FILO?
+            for (;count >= 0; count--)
+            {
+                // TODO
+            }
         }
     }
     return 0;
 }
 
 extern int
-decompileCode(ClassFile *cf, struct attr_Code_info *info)
+decompileCode(ClassFile *cf, method_info *method,
+        struct attr_Code_info *code_info)
 {
+    struct _StackOutput *output;
     u4 i, j, k, p;
-    u1 inCatch;
+    u1 inCatch, *code;
+    char **localNames, *buf;
+    cp_info *info;
+    CONSTANT_Fieldref_info *cfi;
+    CONSTANT_Integer_info *cii;
+    CONSTANT_Long_info *cli;
+    int _defaultbyte, _lowbyte, _highbyte, _npairs;
 
-    for (i = j = k = inCatch = 0; i < info->code_length; i++)
+    output = sop_newStackOutput(code_info->max_stack);
+    if (!output)
+        return -1;
+    localNames = (char **) allocMemory(code_info->max_locals, sizeof (char *));
+    if (!localNames)
+        return -1;
+    code = code_info->code;
+    for (i = j = k = inCatch = 0; i < code_info->code_length; i++)
     {
-        if (k < info->exception_table_length)
+        if (k < code_info->exception_table_length)
         {
-            if (i == info->exception_table[j].start_pc)
+            if (i == code_info->exception_table[j].start_pc)
             {
                 logInfo("try {\r\n");
                 inCatch = 1;
             }
-            else if (i == info->exception_table[j].handler_pc)
+            else if (i == code_info->exception_table[j].handler_pc)
             {
-                if (info->exception_table[j].catch_type != 0)
+                if (code_info->exception_table[j].catch_type != 0)
                     logInfo("} catch (%s ex%i) {\r\n",
-                            getConstant_ClassName(cf, info->exception_table[j].catch_type), j);
+                            getConstant_ClassName(cf, code_info->exception_table[j].catch_type), j);
                 else
                     logInfo("} finally {");
                 --j;
                 if (j == 0)
                     j = ++k;
             }
-            else if (j + 1 < info->exception_table_length
-                    && i == info->exception_table[j + 1].start_pc)
+            else if (j + 1 < code_info->exception_table_length
+                    && i == code_info->exception_table[j + 1].start_pc)
             {
                 ++j;
                 if (j > k)
@@ -965,64 +984,97 @@ decompileCode(ClassFile *cf, struct attr_Code_info *info)
         }
         // store opcode offset
         p = i;
-        switch (info->code[i])
+        switch (code_info->code[i])
         {
             case OPCODE_nop:
                 break;
             case OPCODE_aconst_null:
-                logInfo("null\r\n");
+                sop_push(output, "null\r\n");
                 // ... -> ..., null
                 break;
             case OPCODE_iconst_m1:
-                logInfo("-1");
+                sop_push(output, "-1");
                 break;
             /* push value */
             case OPCODE_iconst_0:
-                logInfo("0");
+                sop_push(output, "0");
                 break;
             case OPCODE_iconst_1:
-                logInfo("1");
+                sop_push(output, "1");
                 break;
             case OPCODE_iconst_2:
-                logInfo("2");
+                sop_push(output, "2");
                 break;
             case OPCODE_iconst_3:
-                logInfo("3");
+                sop_push(output, "3");
                 break;
             case OPCODE_iconst_4:
-                logInfo("4");
+                sop_push(output, "4");
                 break;
             case OPCODE_iconst_5:
-                logInfo("5");
+                sop_push(output, "5");
                 break;
             case OPCODE_lconst_0:
-                logInfo("0L");
+                sop_push(output, "0L");
                 break;
             case OPCODE_lconst_1:
-                logInfo("1L");
+                sop_push(output, "1L");
                 break;
             case OPCODE_fconst_0:
-                logInfo("0.0f");
+                sop_push(output, "0.0F");
                 break;
             case OPCODE_fconst_1:
-                logInfo("1.0f");
+                sop_push(output, "1.0F");
                 break;
             case OPCODE_fconst_2:
-                logInfo("2.0f");
+                sop_push(output, "2.0F");
                 break;
             case OPCODE_dconst_0:
-                logInfo("0.0");
+                sop_push(output, "0.0");
                 break;
             case OPCODE_dconst_1:
-                logInfo("1.0");
+                sop_push(output, "1.0");
                 break;
             case OPCODE_bipush:
-                logInfo("%i\r\n", code[++j]);
+                buf = (char *) allocMemory(4, sizeof (char));
+                sprintf(buf, "%i", code[++j]);
+                sop_push(output, buf);
+                buf = (char *) 0;
                 break;
             case OPCODE_sipush:
-                logInfo("%i\r\n", (code[++j] << 8) | code[++j]);
+                buf = (char *) allocMemory(6, sizeof (char));
+                sprintf(buf, "%i", (code[++j] << 8) | code[++j]);
+                sop_push(output, buf);
+                buf = (char *) 0;
                 break;
             case OPCODE_ldc:
+                info = &(cf->constant_pool[code[++j]]);
+                if (!info->data)
+                    return -1;
+                switch (info->tag)
+                {
+                    case CONSTANT_Integer:
+                        cii = (CONSTANT_Integer_info *) info;
+                        if (!cii->data->bytes)
+                            return -1;
+                        buf = (char *) allocMemory(11, sizeof (char));
+                        sprintf(buf, "%i", cii->data->bytes);
+                        sop_push(output, buf);
+                        buf = (char *) 0;
+                        break;
+                    case CONSTANT_Float:
+                        cii = (CONSTANT_Integer_info *) info;
+                        if (!cii->data->float_value)
+                            return -1;
+                        buf = (char *) allocMemory(16, sizeof (char));
+                        sprintf(buf, "%fF", cii->data->float_value);
+                        sop_push(output, buf);
+                        buf = (char *) 0;
+                        break;
+                    case CONSTANT_String:
+                        // TODO
+                        break;
+                }
                 // TODO
                 logInfo("ldc #%i\r\n", code[++j]);
                 break;
@@ -1603,7 +1655,15 @@ decompileCode(ClassFile *cf, struct attr_Code_info *info)
                 logInfo("putfield %i\r\n", (code[++j] << 8) | code[++j]);
                 break;
             case OPCODE_invokevirtual:
-                logInfo("invokevirtual #%i\r\n", (code[++j] << 8) | code[++j]);
+                info = &(cf->constant_pool[(code[++j] << 8) | code[++j]]);
+                if (info->tag != CONSTANT_Methodref)
+                    return -1;
+                cfi = (CONSTANT_Methodref_info *) info;
+                buf = (char *) allocMemory(1024, sizeof (char));
+                if (!buf) return -1;
+                sprintf(buf, "%s", cfi->data->name_and_type_index);
+                sop_push(output, "%s.%s(%s);");
+                logInfo("invokevirtual #%i\r\n", );
                 break;
             case OPCODE_invokespecial:
                 logInfo("invokespecial #%i\r\n", (code[++j] << 8) | code[++j]);
@@ -1764,3 +1824,4 @@ decompileCode(ClassFile *cf, struct attr_Code_info *info)
     }
     return 0;
 }
+#endif
