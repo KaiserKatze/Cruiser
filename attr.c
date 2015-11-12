@@ -788,6 +788,7 @@ loadElementValue(ClassFile *cf, struct BufferIO *input,
         struct element_value *value)
 {
     CONSTANT_Fieldref_info *cfi;
+    CONSTANT_NameAndType_info *cni;
     CONSTANT_Utf8_info *cui;
     u2 i;
     
@@ -809,6 +810,21 @@ loadElementValue(ClassFile *cf, struct BufferIO *input,
                 return -1;
             cfi = getConstant_Fieldref(cf, value->const_value_index);
             if (!cfi) return -1;
+            cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
+            if (!cni) return -1;
+            cui = getConstant_Utf8(cf, cni->data->descriptor_index);
+            if (!cui) return -1;
+            if (value->tag == 's')
+            {
+                if (strcmp(cui->data->bytes, "Ljava/lang/String;"))
+                    return -1;
+            }
+            else
+            {
+                if (cui->data->length != 1
+                        || cui->data->bytes[0] != value->tag)
+                    return -1;
+            }
             break;
         // enum
         case 'e':
