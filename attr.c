@@ -869,7 +869,11 @@ loadElementValue(ClassFile *cf, struct BufferIO *input,
 static int
 freeElementValue(ClassFile *cf, struct element_value *value)
 {
-    // TODO unimplemented
+    if (value->tag == '[' && value->array_value.values)
+    {
+        free(value->array_value.values);
+        value->array_value.values = (struct element_value *) 0;
+    }
     return 0;
 }
 
