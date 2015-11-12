@@ -719,22 +719,49 @@ freeAttribute_LocalVariableTypeTable(attr_info *info)
 }
 
 static int
+loadElementValue(ClassFile *, struct BufferIO *, struct element_value *);
+
+static int
 loadAnnotation(ClassFile *cf, struct BufferIO *input,
         struct annotation *anno)
 {
+    CONSTANT_Utf8_info *utf8;
+    u2 i;
+    
     if (ru2(&(anno->type_index), input) < 0)
+        return -1;
+    utf8 = getConstant_Utf8(cf, anno->type_index);
+    if (!utf8)
+        return -1;
+    if (!isFieldDescriptor(utf8->data->length, utf8->data->bytes))
         return -1;
     if (ru2(&(anno->num_element_value_pairs), input) < 0)
         return -1;
+    
     if (anno->num_element_value_pairs < 0)
         return -1;
     if (anno->num_element_value_pairs == 0)
+    {
         anno->element_value_pairs = (struct element_value_pair *) 0;
-    else
-        anno->element_value_pairs = (struct element_value_pair *)
+        return 0;
+    }
+    anno->element_value_pairs = (struct element_value_pair *)
             allocMemory(anno->num_element_value_pairs,
             sizeof (struct element_value_pair));
-    // TODO unimplemented
+    for (i = 0; i < anno->num_element_value_pairs; i++)
+    {
+        if (ru2(&(anno->element_value_pairs[i].element_name_index), input) < 0)
+            return -1;
+        utf8 = getConstant_Utf8(cf, anno->element_value_pairs[i].element_name_index);
+        if (!utf8)
+            return -1;
+        if (!isFieldDescriptor(utf8->data->length, utf8->data->bytes))
+            return -1;
+        anno->element_value_pairs[i].value = (struct element_value *)
+                allocMemory(1, sizeof (struct element_value));
+        if (loadElementValue(cf, input, anno->element_value_pairs[i].value) < 0)
+            return -1;
+    }
     return 0;
 }
 
