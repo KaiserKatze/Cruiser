@@ -128,8 +128,11 @@ parseJarfile(const char *path, JarFile *jf)
     {
         logError("Fail to open jar archieve!\r\n");
         zip_error_get(z, &ze, &se);
-        zip_error_to_str(strError, sizeof (strError), ze, se);
-        logError("Libzip: %s\r\n", strError);
+        if (ze != ZIP_ER_OK && se != ZIP_ER_OK)
+        {
+            zip_error_to_str(strError, sizeof (strError), ze, se);
+            logError("Libzip: %s\r\n", strError);
+        }
         goto close;
     }
     buffer = (char *) malloc(BUFSIZE);
@@ -298,8 +301,11 @@ parseJarfile(const char *path, JarFile *jf)
         {
             logError("Fail to parse class file [%i]!\r\n", entry_index);
             zip_file_error_get(zf, &ze, &se);
-            zip_error_to_str(strError, sizeof (strError), ze, se);
-            logError("Libzip: %s\r\n", strError);
+            if (ze != ZIP_ER_OK && se != ZIP_ER_OK)
+            {
+                zip_error_to_str(strError, sizeof (strError), ze, se);
+                logError("Libzip: %s\r\n", strError);
+            }
             zf = (struct zip_file *) 0;
             goto close;
         }
