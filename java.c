@@ -1589,3 +1589,35 @@ validateConstantPool(ClassFile *cf)
 
     return 0;
 }
+
+extern int isFieldDescriptor(u2 len, u1 *str)
+{
+    u2 i;
+    
+    if (len == 1)
+    {
+        switch (str[0])
+        {
+            case 'B':case 'C':
+            case 'D':case 'F':
+            case 'I':case 'J':
+            case 'S':case 'Z':
+                return 1;
+            default:
+                return 0;
+        }
+    }
+    if (str[0] == '[')
+        return isFieldDescriptor(len - 1, str + 1);
+    else if (str[0] == 'L' && str[len - 1] == ';')
+    {
+        for (i = 1; i < len - 1; i++)
+            if (str[i] != '/' && str[i] != '$'
+                    && (str[i] < 'a' || str[i] > 'z')
+                    && (str[i] < 'A' || str[i] > 'Z')
+                    && (str[i] < '0' || str[i] > '9'))
+                return 0;
+        return 1;
+    }
+    return 0;
+}

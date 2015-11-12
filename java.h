@@ -185,6 +185,7 @@ extern "C" {
         u2 class_index;
         u2 method_index;
     };
+    struct element_value;
     struct annotation
     {
         u2 type_index;
@@ -192,7 +193,7 @@ extern "C" {
         struct element_value_pair
         {
             u2 element_name_index;
-            char *value;
+            struct element_value *value;
         } *element_value_pairs;
     };
     struct element_value
@@ -503,6 +504,8 @@ extern "C" {
     extern int freeClassfile(ClassFile *);
 
     extern int compareVersion(u2, u2);
+    
+    extern int isFieldDescriptor(u2, u1 *);
 #ifdef	__cplusplus
 }
 #endif
