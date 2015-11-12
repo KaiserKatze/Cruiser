@@ -720,6 +720,8 @@ freeAttribute_LocalVariableTypeTable(attr_info *info)
 
 static int
 loadElementValue(ClassFile *, struct BufferIO *, struct element_value *);
+static int
+freeElementValue(ClassFile *, struct element_value *);
 
 static int
 loadAnnotation(ClassFile *cf, struct BufferIO *input,
@@ -768,6 +770,14 @@ loadAnnotation(ClassFile *cf, struct BufferIO *input,
 static int
 freeAnnotation(ClassFile *cf, struct annotation *anno)
 {
+    u2 i;
+    
+    for (i = 0; i < anno->num_element_value_pairs; i++)
+    {
+        freeElementValue(cf, anno->element_value_pairs[i].value);
+        free(anno->element_value_pairs[i].value);
+        anno->element_value_pairs[i].value = (struct element_value *) 0;
+    }
     free(anno->element_value_pairs);
     anno->element_value_pairs = (struct element_value_pair *) 0;
     return 0;
