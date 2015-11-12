@@ -787,7 +787,82 @@ static int
 loadElementValue(ClassFile *cf, struct BufferIO *input,
         struct element_value *value)
 {
-    // TODO unimplemented
+    CONSTANT_Fieldref_info *cfi;
+    CONSTANT_Utf8_info *cui;
+    u2 i;
+    
+    if (ru1(&(value->tag), input) < 0)
+        return -1;
+    switch (value->tag)
+    {
+        // const_value_index
+        case 'B':
+        case 'C':
+        case 'D':
+        case 'F':
+        case 'I':
+        case 'J':
+        case 'S':
+        case 'Z':
+        case 's':
+            if (ru2(&(value->const_value_index), input) < 0)
+                return -1;
+            cfi = getConstant_Fieldref(cf, value->const_value_index);
+            if (!cfi) return -1;
+            break;
+        // enum
+        case 'e':
+            if (ru2(&(value->enum_const_value.type_name_index), input) < 0)
+                return -1;
+            cui = getConstant_Utf8(cf, value->enum_const_value.type_name_index);
+            if (!cui) return -1;
+            // representing a valid field descriptor (§4.3.2)
+            // that denotes the internal form of the binary
+            // name (§4.2.1) of the type of the enum constant represented by this
+            // element_value structure.
+            if (!isFieldDescriptor(cui->data->length, cui->data->bytes)) return -1;
+            if (ru2(&(value->enum_const_value.const_name_index), input) < 0)
+                return -1;
+            cui = getConstant_Utf8(cf, value->enum_const_value.const_name_index);
+            if (!cui) return -1;
+            // representing the simple name of the enum constant
+            // represented by this element_value structure
+            break;
+        case 'c':
+            if (ru2(&(value->class_info_index), input) < 0)
+                return -1;
+            cui = getConstant_Utf8(cf, value->class_info_index);
+            if (!cui) return -1;
+            // representing the return descriptor (§4.3.3)
+            // of the type that is reified by the class
+            // represented by this element_value structure
+        case '@':
+            if (loadAnnotation(cf, input, &(value->annotation_value)) < 0)
+                return -1;
+            // The element_value structure represents a "nested" annotation
+            break;
+        case '[':
+            if (ru2(&(value->array_value.num_values), input) < 0)
+                return -1;
+            if (value->array_value.num_values == 0)
+            {
+                value->array_value.values = (struct element_value *) 0;
+            }
+            else
+            {
+                value->array_value.values = (struct element_value *)
+                        allocMemory(value->array_value.num_values,
+                            sizeof (struct element_value));
+                if (!value->array_value.values)
+                    return -1;
+                for (i = 0; i < value->array_value.num_values; i++)
+                    loadElementValue(cf, input, &(value->array_value.values[i]));
+            }
+            break;
+        default:
+            logError("Assertion error: Invalid element_value tag!\r\n");
+            return -1;
+    }
     return 0;
 }
 
