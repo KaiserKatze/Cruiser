@@ -347,6 +347,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     } // constant pool parsed
 
     // constant pool validation
+    if (validateConstantPool(cf) < 0)
+        return -1;
 
     if (ru2(&(cf->access_flags), input) < 0)
     {
@@ -584,8 +586,6 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         buf = (char *) 0;
     }
 
-    if (validateConstantPool(cf) < 0)
-        return -1;
     return 0;
 }
 
@@ -1426,6 +1426,8 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     }
     if (bul[i])
         return 0;
+    if (!info->data)
+        return -1;
     switch (info->tag)
     {
         case CONSTANT_Class:
