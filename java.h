@@ -9,8 +9,8 @@
 extern "C" {
 #endif
 
-#define MINOR_VERSION                   3
-#define MAJOR_VERSION                   45
+#define MINOR_VERSION                   0
+#define MAJOR_VERSION                   49
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
@@ -185,15 +185,73 @@ extern "C" {
         u2 class_index;
         u2 method_index;
     };
-    struct attr_RuntimeVisibleParameterAnnotations;
-    struct attr_RuntimeInvisibleParameterAnnotations;
-    struct attr_AnnotationDefault_info;
+    struct annotation
+    {
+        u2 type_index;
+        u2 num_element_value_pairs;
+        struct element_value_pair
+        {
+            u2 element_name_index;
+            char *value;
+        } *element_value_pairs;
+    };
+    struct element_value
+    {
+        u1 tag;
+        union
+        {
+            u2 const_value_index;
+            
+            struct enum_const
+            {
+                u2 type_name_index;
+                u2 const_name_index;
+            } enum_const_value;
+            
+            u2 class_info_index;
+            
+            struct annotation annotation_value;
+            
+            struct array
+            {
+                u2 num_values;
+                struct element_value *values;
+            } array_value;
+        };
+    };
+    struct parameter_annotation
+    {
+        u2 num_annotations;
+        struct annotation *annotations;
+    };
+    struct attr_RuntimeVisibleParameterAnnotations_info
+    {
+        u1 num_parameters;
+        struct parameter_annotation parameter_annotations[];
+    };
+    struct attr_RuntimeInvisibleParameterAnnotations_info
+    {
+        u1 num_parameters;
+        struct parameter_annotation parameter_annotations[];
+    };
+    struct attr_AnnotationDefault_info
+    {
+        struct element_value default_value;
+    };
     struct attr_Signature_info
     {
         u2 signature_index;
     };
-    struct attr_RuntimeVisibleAnnotations;
-    struct attr_RuntimeInvisibleAnnotations;
+    struct attr_RuntimeVisibleAnnotations_info
+    {
+        u2 num_annotations;
+        struct annotation annotations[];
+    };
+    struct attr_RuntimeInvisibleAnnotations_info
+    {
+        u2 num_annotations;
+        struct annotation annotations[];
+    };
     struct local_variable_type_table_entry
     {
         u2 start_pc;

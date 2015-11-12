@@ -710,13 +710,284 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr
 static int
 freeAttribute_LocalVariableTypeTable(attr_info *info)
 {
-    if (info->data != TAG_ATTR_LOCALVARIABLETYPETABLE)
+    if (info->tag != TAG_ATTR_LOCALVARIABLETYPETABLE)
         return -1;
     free(info->data);
     info->data = (void *) 0;
 
     return 0;
 }
+
+static int
+loadAnnotation(ClassFile *cf, struct BufferIO *input,
+        struct annotation *anno)
+{
+    if (ru2(&(anno->type_index), input) < 0)
+        return -1;
+    if (ru2(&(anno->num_element_value_pairs), input) < 0)
+        return -1;
+    if (anno->num_element_value_pairs < 0)
+        return -1;
+    if (anno->num_element_value_pairs == 0)
+        anno->element_value_pairs = (struct element_value_pair *) 0;
+    else
+        anno->element_value_pairs = (struct element_value_pair *)
+            allocMemory(anno->num_element_value_pairs,
+            sizeof (struct element_value_pair));
+    // TODO unimplemented
+    return 0;
+}
+
+static int
+freeAnnotation(ClassFile *cf, struct annotation *anno)
+{
+    free(anno->element_value_pairs);
+    anno->element_value_pairs = (struct element_value_pair *) 0;
+    return 0;
+}
+
+static int
+loadElementValue(ClassFile *cf, struct BufferIO *input,
+        struct element_value *value)
+{
+    // TODO unimplemented
+    return 0;
+}
+
+static int
+freeElementValue(ClassFile *cf, struct element_value *value)
+{
+    // TODO unimplemented
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeVisibleAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
+{
+    struct attr_RuntimeVisibleAnnotations_info *data;
+    u2 num_annotations, i;
+    
+    info->tag = TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS;
+    if (ru2(&num_annotations, input) < 0)
+        return -1;
+    data = (struct attr_RuntimeVisibleAnnotations_info *)
+            allocMemory(1, sizeof (struct attr_RuntimeVisibleAnnotations_info)
+                + sizeof (struct annotation) * num_annotations);
+    if (!data)
+        return -1;
+    data->num_annotations = num_annotations;
+    for (i = 0; i < num_annotations; i++)
+        if (loadAnnotation(cf, input, &(data->annotations[i])) < 0)
+            return -1;
+    
+    info->data = data;
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeVisibleAnnotations(ClassFile *cf, attr_info *info)
+{
+    struct attr_RuntimeVisibleAnnotations_info *data;
+    u2 i;
+    
+    if (info->tag != TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS)
+        return -1;
+    data = info->data;
+    for (i = 0; i < data->num_annotations; i++)
+        freeAnnotation(cf, &(data->annotations[i]));
+    
+    free(info->data);
+    info->data = (struct attr_RuntimeVisibleAnnotations_info *) 0;
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeInvisibleAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
+{
+    struct attr_RuntimeInvisibleAnnotations_info *data;
+    u2 num_annotations, i;
+    struct annotation *anno;
+    
+    info->tag = TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS;
+    if (ru2(&num_annotations, input) < 0)
+        return -1;
+    data = (struct attr_RuntimeInvisibleAnnotations_info *)
+            allocMemory(1, sizeof (struct attr_RuntimeInvisibleAnnotations_info)
+                + sizeof (struct annotation) * num_annotations);
+    if (!data)
+        return -1;
+    data->num_annotations = num_annotations;
+    for (i = 0; i < num_annotations; i++)
+        if (loadAnnotation(cf, input, &(data->annotations[i])) < 0)
+            return -1;
+    
+    info->data = data;
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeInvisibleAnnotations(ClassFile *cf, attr_info *info)
+{
+    struct attr_RuntimeInvisibleAnnotations_info *data;
+    u2 i;
+    
+    if (info->tag != TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS)
+        return -1;
+    data = info->data;
+    for (i = 0; i < data->num_annotations; i++)
+        freeAnnotation(cf, &(data->annotations[i]));
+    
+    free(info->data);
+    info->data = (struct attr_RuntimeInvisibleAnnotations_info *) 0;
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
+{
+    struct attr_RuntimeVisibleParameterAnnotations_info *data;
+    u1 num_parameters, i;
+    u2 j;
+    
+    info->tag = TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS;
+    if (ru1(&num_parameters, input) < 0)
+        return -1;
+    data = (struct attr_RuntimeVisibleParameterAnnotations_info *)
+            allocMemory(1, sizeof (struct attr_RuntimeVisibleParameterAnnotations_info)
+            + num_parameters * sizeof (struct parameter_annotation));
+    if (!data)
+        return -1;
+    data->num_parameters = num_parameters;
+    for (i = 0; i < num_parameters; i++)
+    {
+        if (ru2(&(data->parameter_annotations[i].num_annotations), input) < 0)
+            return -1;
+        data->parameter_annotations[i].annotations = (struct annotation *)
+                allocMemory(data->parameter_annotations[i].num_annotations,
+                    sizeof (struct annotation));
+        if (!data->parameter_annotations[i].annotations)
+            return -1;
+        for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
+            if (loadAnnotation(cf, input,
+                    &(data->parameter_annotations[i].annotations[j])) < 0)
+                return -1;
+    }
+    
+    info->data = data;
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, attr_info *info)
+{
+    struct attr_RuntimeVisibleParameterAnnotations_info *data;
+    u1 i;
+    u2 j;
+    
+    if (info->tag != TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS)
+        return -1;
+    data = (struct attr_RuntimeVisibleParameterAnnotations_info *) info->data;
+    for (i = 0; i < data->num_parameters; i++)
+    {
+        for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
+            freeAnnotation(cf, &(data->parameter_annotations[i].annotations[j]));
+        free(data->parameter_annotations[i].annotations);
+    }
+    free(info->data);
+    info->data = (struct attr_RuntimeVisibleParameterAnnotations_info *) 0;
+    
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
+{
+    struct attr_RuntimeInvisibleParameterAnnotations_info *data;
+    u1 num_parameters, i;
+    u2 j;
+    
+    info->tag = TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS;
+    if (ru1(&num_parameters, input) < 0)
+        return -1;
+    data = (struct attr_RuntimeInvisibleParameterAnnotations_info *)
+            allocMemory(1, sizeof (struct attr_RuntimeInvisibleParameterAnnotations_info)
+            + num_parameters * sizeof (struct parameter_annotation));
+    if (!data)
+        return -1;
+    data->num_parameters = num_parameters;
+    for (i = 0; i < num_parameters; i++)
+    {
+        if (ru2(&(data->parameter_annotations[i].num_annotations), input) < 0)
+            return -1;
+        data->parameter_annotations[i].annotations = (struct annotation *)
+                allocMemory(data->parameter_annotations[i].num_annotations,
+                    sizeof (struct annotation));
+        if (!data->parameter_annotations[i].annotations)
+            return -1;
+        for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
+            if (loadAnnotation(cf, input,
+                    &(data->parameter_annotations[i].annotations[j])) < 0)
+                return -1;
+    }
+    
+    info->data = data;
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, attr_info *info)
+{
+    struct attr_RuntimeInvisibleParameterAnnotations_info *data;
+    u1 i;
+    u2 j;
+    
+    if (info->tag != TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS)
+        return -1;
+    data = (struct attr_RuntimeInvisibleParameterAnnotations_info *) info->data;
+    for (i = 0; i < data->num_parameters; i++)
+    {
+        for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
+            freeAnnotation(cf, &(data->parameter_annotations[i].annotations[j]));
+        free(data->parameter_annotations[i].annotations);
+    }
+    free(info->data);
+    info->data = (struct attr_RuntimeInvisibleParameterAnnotations_info *) 0;
+    
+    return 0;
+}
+
+static int
+loadAttribute_AnnotationDefault(ClassFile *cf, struct BufferIO *input, attr_info *info)
+{
+    struct attr_AnnotationDefault_info *data;
+    
+    info->tag = TAG_ATTR_ANNOTATIONDEFAULT;
+    data = (struct attr_AnnotationDefault_info *)
+            allocMemory(1, sizeof (struct attr_AnnotationDefault_info));
+    if (!data)
+        return -1;
+    if (loadElementValue(cf, input, &(data->default_value)) < 0)
+        return -1;
+    info->data = data;
+    
+    return 0;
+}
+
+static int
+freeAttribute_AnnotationDefault(ClassFile *cf, attr_info *info)
+{
+    struct attr_AnnotationDefault_info *data;
+    
+    if (info->tag != TAG_ATTR_ANNOTATIONDEFAULT)
+        return -1;
+    data = (struct attr_AnnotationDefault_info *) info->data;
+    freeElementValue(cf, &(data->default_value));
+    free(info->data);
+    info->data = (struct attr_AnnotationDefault_info *) 0;
+    
+    return 0;
+}
+
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
 static int
@@ -953,9 +1224,9 @@ freeAttribute_class(ClassFile * cf, attr_info *info)
         return 0;
     if (!freeAttribute_Signature(info))
         return 0;
-    if (!freeAttribute_RuntimeVisibleAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleAnnotations(cf, info))
         return 0;
 #endif
 #if VER_CMP(51, 0)
@@ -1003,9 +1274,9 @@ freeAttribute_field(ClassFile * cf, attr_info *info)
 #if VER_CMP(49, 0)
     if (!freeAttribute_Signature(info))
         return 0;
-    if (!freeAttribute_RuntimeVisibleAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleAnnotations(cf, info))
         return 0;
 #endif
 #if VER_CMP(52, 0)
@@ -1069,17 +1340,17 @@ freeAttribute_method(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(49, 0)
-    if (!freeAttribute_RuntimeVisibleParameterAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleParameterAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleParameterAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleParameterAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_AnnotationDefault(info))
+    if (!freeAttribute_AnnotationDefault(cf, info))
         return 0;
     if (!freeAttribute_Signature(info))
         return 0;
-    if (!freeAttribute_RuntimeVisibleAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleAnnotations(cf, info))
         return 0;
 #endif
 #if VER_CMP(52, 0)
