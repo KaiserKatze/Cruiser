@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 #define MINOR_VERSION                   0
-#define MAJOR_VERSION                   49
+#define MAJOR_VERSION                   50
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
@@ -268,12 +268,63 @@ extern "C" {
     };
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
+#define SMF_SAME_MIN        0
+#define SMF_SAME_MAX        63
+#define SMF_SL1SI_MIN       64
+#define SMF_SL1SI_MAX       127
+#define SMF_SLISIE          247
+#define SMF_CHOP_MIN        248
+#define SMF_CHOP_MAX        250
+#define SMF_SAMEE           251
+#define SMF_APPEND_MIN      252
+#define SMF_APPEND_MAX      254
+#define SMF_FULL            255    
     struct attr_StackMapTable_info
     {
         u2 number_of_entries;
-        struct stack_map_frame
+        union stack_map_frame
         {
-        } *entries;
+            struct
+            {
+                u1 frame_type;
+            } same_frame;
+            struct
+            {
+                u1 frame_type;
+                struct verification_type_info stack;
+            } same_locals_1_stack_item_frame;
+            struct
+            {
+                u1 frame_type;
+                u2 offset_delta;
+                struct verification_type_info stack;
+            } same_locals_1_stack_item_frame_extended;
+            struct
+            {
+                u1 frame_type;
+                u2 offset_delta;
+            } chop_frame;
+            struct
+            {
+                u1 frame_type;
+                u2 offset_delta;
+            } same_frame_extended;
+            struct
+            {
+                u1 frame_type;
+                u2 offset_delta;
+                struct verification_type_info *stack;
+            } append_frame;
+            struct
+            {
+                u1 frame_type;
+                u2 offset_delta;
+                u2 number_of_locals;
+                struct verification_type_info *locals;
+                u2 number_of_stack_items;
+                struct verification_type_info *stack;
+            } full_frame;
+        } entries[];
     };
 #endif /* VERSION 50.0 */
 #if VER_CMP(51, 0)
