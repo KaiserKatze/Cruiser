@@ -1449,6 +1449,10 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             if (validateConstantPoolEntry(cf, csi->data->string_index, bul, CONSTANT_Utf8) < 0)
                 return -1;
             break;
+        case CONSTANT_Long:
+        case CONSTANT_Double:
+            bul[i + 1] = 1;
+            break;
         case CONSTANT_NameAndType:
             cni = (CONSTANT_NameAndType_info *) info;
             if (validateConstantPoolEntry(cf, cni->data->name_index, bul, CONSTANT_Utf8) < 0)
