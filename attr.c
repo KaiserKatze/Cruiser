@@ -1126,6 +1126,47 @@ static int
 loadVerificationTypeInfo(ClassFile *cf, struct BufferIO *input,
         union verification_type_info *stack)
 {
+    u1 tag;
+    
+    if (ru1(&tag, input) < 0)
+        return -1;
+    switch (tag)
+    {
+        case ITEM_Top:
+            stack->Top_variable_info.tag = tag;
+            break;
+        case ITEM_Integer:
+            stack->Integer_variable_info.tag = tag;
+            break;
+        case ITEM_Float:
+            stack->Float_variable_info.tag = tag;
+            break;
+        case ITEM_Long:
+            stack->Long_variable_info.tag = tag;
+            break;
+        case ITEM_Double:
+            stack->Double_variable_info.tag = tag;
+            break;
+        case ITEM_Null:
+            stack->Null_variable_info.tag = tag;
+            break;
+        case ITEM_UninitializedThis:
+            stack->UninitializedThis_variable_info.tag = tag;
+            break;
+        case ITEM_Object:
+            stack->Object_variable_info.tag = tag;
+            if (ru2(&(stack->Object_variable_info.cpool_index), input) < 0)
+                return -1;
+            break;
+        case ITEM_Uninitialized:
+            stack->Uninitialized_variable_info.tag = tag;
+            if (ru2(&(stack->Uninitialized_variable_info.offset), input) < 0)
+                return -1;
+            break;
+        default:
+            logError("Assertion error: Unknown tag [%i]!\r\n", tag);
+            return -1;
+    }
     return 0;
 }
 
