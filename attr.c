@@ -225,7 +225,7 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (ru2(&(data->number_of_exceptions), input) < 0)
         return -1;
     // Validate Exception attribute
-    if ((data->number_of_exceptions + 2) * sizeof (u2) + sizeof (u4)
+    if ((data->number_of_exceptions + 1) * sizeof (u2)
             != info->attribute_length)
     {
         logError("Exception attribute is not valid!\r\n");
