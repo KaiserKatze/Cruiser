@@ -1130,6 +1130,13 @@ loadVerificationTypeInfo(ClassFile *cf, struct BufferIO *input,
 }
 
 static int
+freeVerificationTypeInfo(ClassFile *cf,
+        union verification_type_info *stack)
+{
+    return 0;
+}
+
+static int
 loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_StackMapTable_info *data;
@@ -1195,7 +1202,7 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *in
             cap = frame_type - 251;
             entry->append_frame.stack = (union verification_type_info *)
                     allocMemory(cap, sizeof (union verification_type_info));
-            if (!entry->append_frame)
+            if (!entry->append_frame.stack)
                 return -1;
             for (j = 0; j < cap; j++)
                 if (loadVerificationTypeInfo(cf, input,
@@ -1267,6 +1274,67 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *in
 static int
 freeAttribute_StackMapTable(ClassFile *cf, attr_info *info)
 {
+    struct attr_StackMapTable_info *data;
+    union stack_map_frame *entry;
+    u2 i;
+    u1 frame_type, j;
+    
+    if (info->tag != TAG_ATTR_STACKMAPTABLE)
+        return -1;
+    data = (struct attr_StackMapTable_info *) info->data;
+    for (i = 0; i < data->number_of_entries; i++)
+    {
+        entry = &(data->entries[i]);
+        frame_type = entry->same_frame.frame_type;
+        if (frame_type >= SMF_SL1SI_MIN
+                && frame_type <= SMF_SL1SI_MAX)
+        {
+            if (freeVerificationTypeInfo(cf, &(entry->same_locals_1_stack_item_frame.stack)) < 0)
+                return -1;
+        }
+        else if (frame_type == SMF_SL1SIE)
+        {
+            if (freeVerificationTypeInfo(cf, &(entry->same_locals_1_stack_item_frame_extended.stack)) < 0)
+                return -1;
+        }
+        else if (frame_type >= SMF_APPEND_MIN
+                && frame_type <= SMF_APPEND_MAX)
+        {
+            if (entry->append_frame.stack)
+            {
+                for (j = 0; j < frame_type - 251; j++)
+                {
+                    if (freeVerificationTypeInfo(cf, &(entry->append_frame.stack[j])) < 0)
+                        return -1;
+                }
+                free(entry->append_frame.stack);
+            }
+        }
+        else if (frame_type == SMF_FULL)
+        {
+            if (entry->full_frame.locals)
+            {
+                for (j = 0; j < entry->full_frame.number_of_locals; j++)
+                {
+                    if (freeVerificationTypeInfo(cf, &(entry->full_frame.locals[j])) < 0)
+                        return -1;
+                }
+                free(entry->full_frame.locals);
+            }
+            if (entry->full_frame.stack)
+            {
+                for (j = 0; j < entry->full_frame.number_of_stack_items; j++)
+                {
+                    if (freeVerificationTypeInfo(cf, &(entry->full_frame.stack[j])) < 0)
+                        return -1;
+                }
+                free(entry->full_frame.stack);
+            }
+        }
+    }
+    free(info->data);
+    info->data = (void *) 0;
+    
     return 0;
 }
 #endif /* VERSION 50.0 */
