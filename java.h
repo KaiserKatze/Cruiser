@@ -342,13 +342,13 @@ extern "C" {
             struct
             {
                 u1 frame_type;
-                struct verification_type_info stack;
+                union verification_type_info stack;
             } same_locals_1_stack_item_frame;
             struct
             {
                 u1 frame_type;
                 u2 offset_delta;
-                struct verification_type_info stack;
+                union verification_type_info stack;
             } same_locals_1_stack_item_frame_extended;
             struct
             {
@@ -364,16 +364,16 @@ extern "C" {
             {
                 u1 frame_type;
                 u2 offset_delta;
-                struct verification_type_info *stack;
+                union verification_type_info *stack;
             } append_frame;
             struct
             {
                 u1 frame_type;
                 u2 offset_delta;
                 u2 number_of_locals;
-                struct verification_type_info *locals;
+                union verification_type_info *locals;
                 u2 number_of_stack_items;
-                struct verification_type_info *stack;
+                union verification_type_info *stack;
             } full_frame;
         } entries[];
     };
