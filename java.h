@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 #define MINOR_VERSION                   0
-#define MAJOR_VERSION                   50
+#define MAJOR_VERSION                   51
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
@@ -382,7 +382,7 @@ extern "C" {
     struct attr_BootstrapMethods_info
     {
         u2 num_bootstrap_methods;
-        strcut bootstrap_method
+        struct bootstrap_method
         {
             u2 bootstrap_method_ref;
             u2 num_bootstrap_arguments;

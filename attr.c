@@ -1379,6 +1379,58 @@ freeAttribute_StackMapTable(ClassFile *cf, attr_info *info)
     return 0;
 }
 #endif /* VERSION 50.0 */
+#if VER_CMP(51, 0)
+static int
+loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
+        attr_info *info)
+{
+    struct attr_BootstrapMethods_info *data;
+    u2 num_bootstrap_methods, i, j;
+    struct bootstrap_method *m;
+    
+    if (ru2(&num_bootstrap_methods, input) < 0)
+        return -1;
+    data = (struct attr_BootstrapMethods_info *) allocMemory(1,
+            sizeof (struct attr_BootstrapMethods_info)
+            + sizeof (struct bootstrap_method) * num_bootstrap_methods);
+    if (!data)
+        return -1;
+    data->num_bootstrap_methods = num_bootstrap_methods;
+    for (i = 0; i < num_bootstrap_methods; i++)
+    {
+        m = &(data->bootstrap_methods[i]);
+        if (ru2(&(m->bootstrap_method_ref), input) < 0)
+            return -1;
+        if (ru2(&(m->num_bootstrap_arguments), input) < 0)
+            return -1;
+        if (m->num_bootstrap_arguments == 0)
+        {
+            m->bootstrap_arguments = (u2 *) 0;
+        }
+        else if (m->num_bootstrap_arguments > 0)
+        {
+            m->bootstrap_arguments = (u2 *) allocMemory(m->num_bootstrap_arguments, sizeof (u2));
+            if (!m->bootstrap_arguments)
+                return -1;
+            for (j = 0; j < m->num_bootstrap_arguments; j++)
+                if (ru2(&(m->bootstrap_arguments[j]), input) < 0)
+                    return -1;
+        }
+        else
+        {
+            logError("Assertion error: num_bootstrap_arguments is negative!\r\n");
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static int
+freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
+{
+    return 0;
+}
+#endif /* VERSION 51.0 */
 
 extern int
 loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
@@ -1597,7 +1649,7 @@ freeAttribute_class(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(51, 0)
-    if (!freeAttribute_BootstrapMethods(info))
+    if (!freeAttribute_BootstrapMethods(cf, info))
         return 0;
 #endif
 #if VER_CMP(52, 0)
