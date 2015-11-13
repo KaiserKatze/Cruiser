@@ -1123,24 +1123,150 @@ freeAttribute_AnnotationDefault(ClassFile *cf, attr_info *info)
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
 static int
+loadVerificationTypeInfo(ClassFile *cf, struct BufferIO *input,
+        union verification_type_info *stack)
+{
+    return 0;
+}
+
+static int
 loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_StackMapTable_info *data;
-    u2 i;
+    union stack_map_frame *entry;
+    u2 i, number_of_entries;
+    u1 frame_type, cap, j;
 
     info->tag = TAG_ATTR_STACKMAPTABLE;
+    if (ru2(&number_of_entries, input) < 0)
+        return -1;
     data = (struct attr_StackMapTable_info *)
-            malloc(sizeof (struct attr_StackMapTable_info));
+            allocMemory(1, sizeof (struct attr_StackMapTable_info)
+                + number_of_entries * sizeof (union stack_map_frame));
     if (!data)
         return -1;
-    if (ru2(&(data->number_of_entries), input) < 0)
-        return -1;
-    for (i = 0u; i < data->number_of_entries; i++)
+    data->number_of_entries = number_of_entries;
+    for (i = 0u; i < number_of_entries; i++)
     {
-        // TODO need implementation
+        if (ru1(&frame_type, input) < 0)
+            return -1;
+        entry = &(data->entries[i]);
+        if (frame_type >= SMF_SAME_MIN
+                && frame_type <= SMF_SAME_MAX)
+        {
+            entry->same_frame.frame_type = frame_type;
+        }
+        else if (frame_type >= SMF_SL1SI_MIN
+                && frame_type <= SMF_SL1SI_MAX)
+        {
+            entry->same_locals_1_stack_item_frame.frame_type = frame_type;
+            if (loadVerificationTypeInfo(cf, input,
+                    &(entry->same_locals_1_stack_item_frame.stack)) < 0)
+                return -1;
+        }
+        else if (frame_type == SMF_SL1SIE)
+        {
+            entry->same_locals_1_stack_item_frame_extended.frame_type = frame_type;
+            if (ru2(&(entry->same_locals_1_stack_item_frame_extended.offset_delta), input) < 0)
+                return -1;
+            if (loadVerificationTypeInfo(cf, input,
+                    &(entry->same_locals_1_stack_item_frame_extended.stack)) < 0)
+                return -1;
+        }
+        else if (frame_type >= SMF_CHOP_MIN
+                && frame_type <= SMF_CHOP_MAX)
+        {
+            entry->chop_frame.frame_type = frame_type;
+            if (ru2(&(entry->chop_frame.offset_delta), input) < 0)
+                return -1;
+        }
+        else if (frame_type == SMF_SAMEE)
+        {
+            entry->same_frame_extended.frame_type = frame_type;
+            if (ru2(&(entry->same_frame_extended.offset_delta), input) < 0)
+                return -1;
+        }
+        else if (frame_type >= SMF_APPEND_MIN
+                && frame_type <= SMF_APPEND_MAX)
+        {
+            entry->append_frame.frame_type = frame_type;
+            if (ru2(&(entry->append_frame.offset_delta), input) < 0)
+                return -1;
+            cap = frame_type - 251;
+            entry->append_frame.stack = (union verification_type_info *)
+                    allocMemory(cap, sizeof (union verification_type_info));
+            if (!entry->append_frame)
+                return -1;
+            for (j = 0; j < cap; j++)
+                if (loadVerificationTypeInfo(cf, input,
+                        &(entry->append_frame.stack[j])) < 0)
+                    return -1;
+        }
+        else if (frame_type == SMF_FULL)
+        {
+            entry->full_frame.frame_type = frame_type;
+            if (ru2(&(entry->full_frame.offset_delta), input) < 0)
+                return -1;
+            if (ru2(&(entry->full_frame.number_of_locals), input) < 0)
+                return -1;
+            if (entry->full_frame.number_of_locals > 0)
+            {
+                entry->full_frame.locals = (union verification_type_info *)
+                        allocMemory(entry->full_frame.number_of_locals,
+                            sizeof (union verification_type_info));
+                if (!entry->full_frame.locals)
+                    return -1;
+            }
+            else if (entry->full_frame.number_of_locals == 0)
+            {
+                entry->full_frame.locals = (union verification_type_info *) 0;
+            }
+            else
+            {
+                logError("Assertion error: number_of_locals is negative!\r\n");
+                return -1;
+            }
+            for (j = 0; j < entry->full_frame.number_of_locals; j++)
+                if (loadVerificationTypeInfo(cf, input,
+                        &(entry->full_frame.locals[j])) < 0)
+                    return -1;
+            if (ru2(&(entry->full_frame.number_of_stack_items), input) < 0)
+                return -1;
+            if (entry->full_frame.number_of_stack_items > 0)
+            {
+                entry->full_frame.stack = (union verification_type_info *)
+                        allocMemory(entry->full_frame.number_of_stack_items,
+                            sizeof (union verification_type_info));
+                if (!entry->full_frame.stack)
+                    return -1;
+            }
+            else if (entry->full_frame.number_of_stack_items == 0)
+            {
+                entry->full_frame.stack = (union verification_type_info *) 0;
+            }
+            else if (entry->full_frame.number_of_stack_items < 0)
+            {
+                logError("Assertion error: number_of_stack_items is negative!\r\n");
+                return -1;
+            }
+            for (j = 0; j < entry->full_frame.number_of_stack_items; j++)
+                if (loadVerificationTypeInfo(cf, input,
+                        &(entry->full_frame.stack[j])) < 0)
+                    return -1;
+        }
+        else
+        {
+            logError("Unknown frame type: %i\r\n", frame_type);
+        }
     }
 
     info->data = data;
+    return 0;
+}
+
+static int
+freeAttribute_StackMapTable(ClassFile *cf, attr_info *info)
+{
     return 0;
 }
 #endif /* VERSION 50.0 */
@@ -1550,7 +1676,7 @@ freeAttribute_code(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(50, 0)
-    if (!freeAttribute_StackMapTable(info))
+    if (!freeAttribute_StackMapTable(cf, info))
         return 0;
 #endif
 #if VER_CMP(52, 0)
