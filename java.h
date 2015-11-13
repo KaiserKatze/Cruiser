@@ -278,7 +278,58 @@ extern "C" {
 #define SMF_SAMEE           251
 #define SMF_APPEND_MIN      252
 #define SMF_APPEND_MAX      254
-#define SMF_FULL            255    
+#define SMF_FULL            255
+    
+#define ITEM_Top                0
+#define ITEM_Integer            1
+#define ITEM_Float              2
+#define ITEM_Long               4
+#define ITEM_Double             3
+#define ITEM_Null               5
+#define ITEM_UninitializedThis  6
+#define ITEM_Object             7
+#define ITEM_Uninitialized      8
+    union verification_type_info
+    {
+        struct
+        {
+            u1 tag;
+        } Top_variable_info;
+        struct
+        {
+            u1 tag;
+        } Integer_variable_info;
+        struct
+        {
+            u1 tag;
+        } Float_variable_info;
+        struct
+        {
+            u1 tag;
+        } Long_variable_info;
+        struct
+        {
+            u1 tag;
+        } Double_variable_info;
+        struct
+        {
+            u1 tag;
+        } Null_variable_info;
+        struct
+        {
+            u1 tag;
+        } UninitializedThis_variable_info;
+        struct
+        {
+            u1 tag;
+            u2 cpool_index;
+        } Object_variable_info;
+        struct
+        {
+            u1 tag;
+            u2 offset;
+        } Uninitialized_variable_info;
+    };
     struct attr_StackMapTable_info
     {
         u2 number_of_entries;
