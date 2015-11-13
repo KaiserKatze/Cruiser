@@ -1388,6 +1388,7 @@ loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
     u2 num_bootstrap_methods, i, j;
     struct bootstrap_method *m;
     
+    info->tag = TAG_ATTR_BOOTSTRAPMETHODS;
     if (ru2(&num_bootstrap_methods, input) < 0)
         return -1;
     data = (struct attr_BootstrapMethods_info *) allocMemory(1,
@@ -1428,6 +1429,20 @@ loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
 static int
 freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
 {
+    struct attr_BootstrapMethods_info *data;
+    u2 i;
+    
+    if (info->tag != TAG_ATTR_BOOTSTRAPMETHODS)
+        return -1;
+    data = (struct attr_BootstrapMethods_info *) info->data;
+    for (i = 0; i < data->num_bootstrap_methods; i++)
+    {
+        free(data->bootstrap_methods[i].bootstrap_arguments);
+        data->bootstrap_methods[i].bootstrap_arguments = (u2 *) 0;
+    }
+    free(info->data);
+    info->data = (void *) 0;
+    
     return 0;
 }
 #endif /* VERSION 51.0 */
