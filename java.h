@@ -272,7 +272,7 @@ extern "C" {
 #define SMF_SAME_MAX        63
 #define SMF_SL1SI_MIN       64
 #define SMF_SL1SI_MAX       127
-#define SMF_SLISIE          247
+#define SMF_SL1SIE          247
 #define SMF_CHOP_MIN        248
 #define SMF_CHOP_MAX        250
 #define SMF_SAMEE           251
