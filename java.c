@@ -1673,3 +1673,128 @@ extern int getMethodParametersCount(ClassFile *cf, u2 descriptor_index)
     
     return -1;
 }
+
+extern char *getClassSimpleName(ClassFile *cf, u2 class_index)
+{
+    CONSTANT_Class_info *cci;
+    CONSTANT_Utf8_info *cui;
+    u2 i, j, len;
+    u1 *str;
+    char *res;
+    
+    cci = getConstant_Class(cf, class_index);
+    if (!cci)
+        return (char *) 0;
+    cui = getConstant_Utf8(cf, cci->data->name_index);
+    len = cui->data->length;
+    str = cui->data->bytes;
+    i = 0;
+    // count array dimension: i
+    switch (str[0])
+    {
+        case '[':
+            for (i = 1; i < len; i++)
+                if (str[i] != '[')
+                    break;
+            break;
+    }
+    switch (str[i])
+    {
+        case 'B':
+            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "byte", 4);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 4 + 2 * j, "[]", 2);
+            break;
+        case 'C':
+            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "char", 4);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 4 + 2 * j, "[]", 2);
+            break;
+        case 'D':
+            res = (char *) allocMemory(7 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "double", 6);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 6 + 2 * j, "[]", 2);
+            break;
+        case 'F':
+            res = (char *) allocMemory(6 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "float", 5);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 5 + 2 * j, "[]", 2);
+            break;
+        case 'I':
+            res = (char *) allocMemory(4 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "int", 3);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 3 + 2 * j, "[]", 2);
+            break;
+        case 'J':
+            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "long", 4);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 4 + 2 * j, "[]", 2);
+            break;
+        case 'S':
+            res = (char *) allocMemory(6 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "short", 5);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 5 + 2 * j, "[]", 2);
+            break;
+        case 'Z':
+            res = (char *) allocMemory(8 + i * 2, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            memcpy(res, "boolean", 7);
+            if (i)
+                for (j = 0; j < i; j++)
+                    memcpy(res + 7 + 2 * j, "[]", 2);
+            break;
+        case 'L':
+            j = i;
+            // calculate class name length
+            for (; i < len;)
+                if (str[++i] == ';')
+                    break;
+            len = i - (j + 1);
+            res = (char *) allocMemory(len + j * 2 + 1, sizeof (char));
+            if (!res)
+                return (char *) 0;
+            for (i = 0; i < len; i++)
+            {
+                res[i] = *(str + j + 1 + i);
+                if (res[i] == '/')
+                    res[i] = '.';
+            }
+            for (i = 0; i < j; i++)
+                memcpy(res + len + 2 * i, "[]", 2);
+            break;
+        default:
+            logError("Assertion error: Unknown token [%c]!\r\n", str[i]);
+            return (char *) 0;
+    }
+    
+    return res;
+}

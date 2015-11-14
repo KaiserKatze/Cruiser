@@ -609,6 +609,7 @@ extern "C" {
     
     extern int isFieldDescriptor(u2, u1 *);
     extern int getMethodParametersCount(ClassFile *, u2);
+    extern char *getClassSimpleName(ClassFile *, u2);
 #ifdef	__cplusplus
 }
 #endif
