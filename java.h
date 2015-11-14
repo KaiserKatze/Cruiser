@@ -608,6 +608,7 @@ extern "C" {
     extern int compareVersion(u2, u2);
     
     extern int isFieldDescriptor(u2, u1 *);
+    extern int getMethodParametersCount(ClassFile *, u2);
 #ifdef	__cplusplus
 }
 #endif

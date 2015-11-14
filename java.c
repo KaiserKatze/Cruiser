@@ -536,7 +536,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
             logInfo("Method[%i]\r\n"
                     "\tAccess flag     : 0x%X\t// %s\r\n"
                     "\tName index      : #%i\t// %.*s\r\n"
-                    "\tDescriptor index: #%i\t// %.*s\r\n", i,
+                    "\tDescriptor index: #%i\t// %.*s (%i)\r\n", i,
                     cf->methods[i].access_flags,
                     buf ? buf : "",
                     cf->methods[i].name_index,
@@ -546,7 +546,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     cf->methods[i].descriptor_index,
                     //getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->length,
                     getConstant_Utf8Length(cf, cf->methods[i].descriptor_index),
-                    getConstant_Utf8String(cf, cf->methods[i].descriptor_index));
+                    getConstant_Utf8String(cf, cf->methods[i].descriptor_index),
+                    getMethodParametersCount(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
             loadAttributes_method(cf, input, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
@@ -1624,4 +1625,51 @@ extern int isFieldDescriptor(u2 len, u1 *str)
         return 1;
     }
     return 0;
+}
+
+extern int getMethodParametersCount(ClassFile *cf, u2 descriptor_index)
+{
+    CONSTANT_Utf8_info *cui;
+    u2 len, i;
+    u1 *str;
+    int count;
+    
+    cui = getConstant_Utf8(cf, descriptor_index);
+    if (!cui)
+        return -1;
+    len = cui->data->length;
+    str = cui->data->bytes;
+    count = 0;
+    for (i = 1; i < len; i++)
+    {
+        switch (str[i])
+        {
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'F':
+            case 'I':
+            case 'J':
+            case 'S':
+            case 'Z':
+                ++count;
+                break;
+            case 'L':
+                ++count;
+                while (++i < len)
+                    if (str[i] == ';')
+                        break;
+                break;
+            case '[':
+                break;
+            case ')':
+                return count;
+            default:
+                logError("Assertion error: Unknown token [%c]!\r\n", str[i]);
+                return -1;
+        }
+    }
+    logError("Assertion error: Method descriptor has no end ')'!\r\n");
+    
+    return -1;
 }
