@@ -1674,18 +1674,14 @@ extern int getMethodParametersCount(ClassFile *cf, u2 descriptor_index)
     return -1;
 }
 
-extern char *getClassSimpleName(ClassFile *cf, u2 class_index)
+extern char *getClassSimpleName(ClassFile *cf, u2 class_name_index)
 {
-    CONSTANT_Class_info *cci;
     CONSTANT_Utf8_info *cui;
     u2 i, j, len;
     u1 *str;
     char *res;
     
-    cci = getConstant_Class(cf, class_index);
-    if (!cci)
-        return (char *) 0;
-    cui = getConstant_Utf8(cf, cci->data->name_index);
+    cui = getConstant_Utf8(cf, class_name_index);
     len = cui->data->length;
     str = cui->data->bytes;
     i = 0;
