@@ -4,6 +4,7 @@
 extern void * allocMemory(size_t, size_t);
 extern void reallocMemory(void **, size_t);
 extern void freeMemory(void *);
+extern void *trimMemory(void *);
 
 struct Deque;
 struct DequeEntry;

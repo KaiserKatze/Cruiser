@@ -44,6 +44,22 @@ freeMemory(void *mem)
     free(mem);
 }
 
+extern void *
+trimMemory(void *mem)
+{
+    int len;
+    void *res;
+    
+    len = strlen(mem);
+    res = allocMemory(len + 1, sizeof (char));
+    if (!res)
+        return (void *) 0;
+    memcpy(res, mem, len);
+    freeMemory(mem);
+    
+    return res;
+}
+
 extern struct Deque *
 deque_createDeque()
 {
