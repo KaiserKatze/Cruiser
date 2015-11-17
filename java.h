@@ -166,10 +166,13 @@ extern "C" {
         attr_info *attributes;
 
 #ifdef QUICK_REFERENCE
-        attr_info *attrStackMapTable;
-
-        attr_info *attrRuntimeVisibleTypeAnnotations;
-        attr_info *attrRuntimeInvisibleTypeAnnotations;
+#if VER_CMP(50, 0)
+        u2 off_StackMapTable;
+#endif
+#if VER_CMP(52, 0)
+        u2 off_RuntimeVisibleTypeAnnotations;
+        u2 off_RuntimeInvisibleTypeAnnotations;
+#endif
 #endif
     };
 
@@ -403,14 +406,18 @@ extern "C" {
         u2 attributes_count;
         attr_info *attributes;
 
-#if QUICK_REFERENCE
-        attr_info *attrConstantValue;
-
-        attr_info *attrRuntimeVisibleAnnotations;
-        attr_info *attrRuntimeInvisibleAnnotations;
-
-        attr_info *attrRuntimeVisibleTypeAnnotations;
-        attr_info *attrRuntimeInvisibleTypeAnnotations;
+#ifdef QUICK_REFERENCE
+#if VER_CMP(45, 3)
+        u2 off_ConstantValue;
+#endif
+#if VER_CMP(49, 0)
+        u2 off_RuntimeVisibleAnnotations;
+        u2 off_RuntimeInvisibleAnnotations;
+#endif
+#if VER_CMP(52, 0)
+        u2 off_RuntimeVisibleTypeAnnotations;
+        u2 off_RuntimeInvisibleTypeAnnotations;
+#endif
 #endif
     } field_info;
 
@@ -423,20 +430,20 @@ extern "C" {
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
-        attr_info *attrCode;
-        attr_info *attrExceptions;
+        u2 off_Code;
+        u2 off_Exceptions;
 #endif
 #if VER_CMP(49, 0)
-        attr_info *attrRuntimeVisibleParameterAnnotations;
-        attr_info *attrRuntimeInvisibleParameterAnnotations;
-        attr_info *attrAnnotationDefault;
-        attr_info *attrRuntimeVisibleAnnotations;
-        attr_info *attrRuntimeInvisibleAnnotations;
+        u2 off_RuntimeVisibleParameterAnnotations;
+        u2 off_RuntimeInvisibleParameterAnnotations;
+        u2 off_AnnotationDefault;
+        u2 off_RuntimeVisibleAnnotations;
+        u2 off_RuntimeInvisibleAnnotations;
 #endif
 #if VER_CMP(52, 0)
-        attr_info *attrMethodParameters;
-        attr_info *attrRuntimeVisibleTypeAnnotations;
-        attr_info *attrRuntimeInvisibleTypeAnnotations;
+        u2 off_MethodParameters;
+        u2 off_RuntimeVisibleTypeAnnotations;
+        u2 off_RuntimeInvisibleTypeAnnotations;
 #endif
 #endif
     } method_info;
@@ -558,17 +565,22 @@ extern "C" {
         attr_info * attributes;
 
 #ifdef QUICK_REFERENCE
-        attr_info *attrEnclosingMethod;
-        attr_info *attrSourceFile;
-        attr_info *attrSourceDebugExtension;
-
-        attr_info *attrRuntimeVisibleAnnotations;
-        attr_info *attrRuntimeInvisibleAnnotations;
-
-        attr_info *attrRuntimeVisibleTypeAnnotations;
-        attr_info *attrRuntimeInvisibleTypeAnnotations;
-
-        attr_info *attrBootstrapMethods;
+#if VER_CMP(45, 3)
+        u2 off_EnclosingMethod;
+        u2 off_SourceFile;
+        u2 off_SourceDebugExtension;
+#endif
+#if VER_CMP(49, 0)
+        u2 off_RuntimeVisibleAnnotations;
+        u2 off_RuntimeInvisibleAnnotations;
+#endif
+#if VER_CMP(51, 0)
+        u2 off_BootstrapMethods;
+#endif
+#if VER_CMP(52, 0)
+        u2 off_RuntimeVisibleTypeAnnotations;
+        u2 off_RuntimeInvisibleTypeAnnotations;
+#endif
 #endif
     } ClassFile;
 
