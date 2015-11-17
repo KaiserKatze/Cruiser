@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "java.h"
 #include "log.h"
+#include "rt.h"
 
 extern void *
 allocMemory(size_t count, size_t size)
@@ -176,4 +177,18 @@ extern int
 deque_push(struct Deque *deque, int size, void *value)
 {
     return deque_addFirst(deque, size, value);
+}
+
+// Horner's hash method
+static int hash_str(int m, int len, char *str)
+{
+    int h, i;
+    
+    h = 0;
+    for (i = 0; i < len; i++)
+        h = str[i] + (31 * h);
+    h &= 0x7fffffff;
+    h %= m;
+    
+    return h;
 }
