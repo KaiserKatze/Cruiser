@@ -346,10 +346,6 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         } // LOOP
     } // constant pool parsed
 
-    // constant pool validation
-    if (validateConstantPool(cf) < 0)
-        return -1;
-
     if (ru2(&(cf->access_flags), input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
@@ -573,6 +569,12 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     }
 
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
+#ifdef RT_H
+    // constant pool validation
+    if (validateConstantPool(cf) < 0)
+        return -1;
+#endif
+    
     logInfo("Class Attribute count: %i\r\n", cf->attributes_count);
     for (i = 0; i < cf->attributes_count; i++)
     {
