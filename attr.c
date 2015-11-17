@@ -1423,6 +1423,8 @@ loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
             return -1;
         }
     }
+    info->data = data;
+    
     return 0;
 }
 
