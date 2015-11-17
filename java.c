@@ -473,7 +473,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            loadAttributes_field(cf, input, &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
+            loadAttributes_field(cf, input, &(cf->fields[i]),
+                    &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             logInfo("\tField Attribute count: %i\r\n",
                     cf->fields[i].attributes_count);
             // only list name and length of field attributes
@@ -550,7 +551,8 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     getMethodParametersCount(cf, cf->methods[i].descriptor_index));
             free(buf);
             buf = (char *) 0;
-            loadAttributes_method(cf, input, &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+            loadAttributes_method(cf, input, &(cf->methods[i]),
+                    &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
             logInfo("\tAttribute count : %i\r\n",
                     cf->methods[i].attributes_count);
             for (j = 0; j < cf->methods[i].attributes_count; j++)

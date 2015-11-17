@@ -441,7 +441,6 @@ extern "C" {
         u2 off_RuntimeInvisibleAnnotations;
 #endif
 #if VER_CMP(52, 0)
-        u2 off_MethodParameters;
         u2 off_RuntimeVisibleTypeAnnotations;
         u2 off_RuntimeInvisibleTypeAnnotations;
 #endif
@@ -566,11 +565,10 @@ extern "C" {
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
-        u2 off_EnclosingMethod;
-        u2 off_SourceFile;
-        u2 off_SourceDebugExtension;
+        u2 off_InnerClasses;
 #endif
 #if VER_CMP(49, 0)
+        u2 off_EnclosingMethod;
         u2 off_RuntimeVisibleAnnotations;
         u2 off_RuntimeInvisibleAnnotations;
 #endif
@@ -604,8 +602,8 @@ extern "C" {
     extern char *getConstant_ClassName(ClassFile *, u2);
 
     extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
-    extern int loadAttributes_field(ClassFile *, struct BufferIO *, u2 *, attr_info **);
-    extern int loadAttributes_method(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+    extern int loadAttributes_field(ClassFile *, struct BufferIO *, field_info *, u2 *, attr_info **);
+    extern int loadAttributes_method(ClassFile *, struct BufferIO *, method_info *, u2 *, attr_info **);
     extern int loadAttributes_code(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int freeAttributes_class(ClassFile *, u2, attr_info *);
     extern int freeAttributes_field(ClassFile *, u2, attr_info *);
