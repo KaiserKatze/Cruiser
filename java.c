@@ -6,32 +6,35 @@
 #include "java.h"
 #include "log.h"
 #include "memory.h"
+#include "rt.h"
 
-static int get_cp_size(u1);
-static const char *get_cp_name(u1);
-static int validateConstantPool(ClassFile *);
+static const char *
+get_cp_name(u1);
 
-static u1 *convertAccessFlags_field(u2, u2);
-static u1 *convertAccessFlags_method(u2, u2);
+static int
+loadConstantPool(struct BufferIO *, ClassFile *);
+
+static int
+loadInterfaces(struct BufferIO *, ClassFile *);
+
+static int
+loadFields(struct BufferIO *, ClassFile *);
+
+static int
+loadMethods(struct BufferIO *, ClassFile *);
+
+static int
+validateConstantPool(ClassFile *);
+
+static u1 *
+convertAccessFlags_field(u2, u2);
+
+static u1 *
+convertAccessFlags_method(u2, u2);
 
 extern int
 parseClassfile(struct BufferIO * input, ClassFile *cf)
 {
-    u2 i, j;
-    //int cap;
-    cp_info *info;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Fieldref_info *cfi;
-    CONSTANT_Integer_info *cii;
-    CONSTANT_Long_info *cli;
-    CONSTANT_NameAndType_info *cni;
-    CONSTANT_String_info *csi;
-    CONSTANT_Utf8_info *cui;
-    CONSTANT_MethodHandle_info *cmhi;
-    CONSTANT_MethodType_info *cmti;
-    CONSTANT_InvokeDynamic_info *cidi;
-    u1 *buf;
-
     if (!input)
     {
         logError("Parameter 'input' in function %s is NULL!\r\n", __func__);
@@ -42,11 +45,6 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         logError("Parameter 'cf' in function %s is NULL!\r\n", __func__);
         return -1;
     }
-    
-    // function 'allocMemory' includes bzero feature
-    //bzero(cf, sizeof (ClassFile));
-    //bzero(input->buffer, input->bufsize);
-    //input->bufsrc = input->bufdst = 0;
 
     // validate file structure
     if (ru4(&(cf->magic), input) < 0)
@@ -59,21 +57,11 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         logError("File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
         return -1;
     }
-    logInfo("File structure is valid[0x%X], proceeding...\r\n", cf->magic);
-
     // retrieve version
     if (ru2(&(cf->minor_version), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
         return -1;
-    }
     if (ru2(&(cf->major_version), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
         return -1;
-    }
-    logInfo("Class version: %i.%i\r\n",
-            cf->major_version, cf->minor_version);
 #ifndef DEBUG
     // check compatibility
     if (compareVersion(cf->major_version, cf->minor_version) > 0)
@@ -82,491 +70,25 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         goto close;
     }
 #endif
-
-    // retrieve constant pool size
-    if (ru2(&(cf->constant_pool_count), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
+    
+    if (loadConstantPool(input, cf) < 0)
         return -1;
-    }
-    logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
-    if (cf->constant_pool_count > 0)
-    {
-        /*
-        // calculate constant pool capacity
-        cap = cf->constant_pool_count * sizeof (cp_info);
-        // allocate memory for constant pool
-        cf->constant_pool = (cp_info *) malloc(cap);
-        if (!cf->constant_pool)
-        {
-            logError("Fail to allocate memory.\r\n");
-            return -1;
-        }
-        logInfo("Constant pool allocated.\r\n");
-        bzero(cf->constant_pool, cap);
-        */
-        cf->constant_pool = (cp_info *) allocMemory(cf->constant_pool_count, sizeof (cp_info));
-        if (!cf->constant_pool) return -1;
-
-        logInfo("Parsing constant pool...\r\n");
-        // jvms7 says "The constant_pool table is indexed
-        // from 1 to constant_pool_count - 1
-        for (i = 1u; i < cf->constant_pool_count; i++)
-        { // LOOP
-            info = &(cf->constant_pool[i]);
-            if (ru1(&(info->tag), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            logInfo("\t#%-5i = %-18s ",
-                    i, get_cp_name(info->tag));
-            /*
-            cap = get_cp_size(info->tag);
-            info->data = malloc(cap);
-            if (!info->data)
-            {
-                logError("Fail to allocate memory!\r\n");
-                return -1;
-            }
-            bzero(info->data, cap);
-            */
-            switch (info->tag)
-            {
-                case CONSTANT_Class:
-                    info->data = allocMemory(1, sizeof *(cci->data));
-                    if (!info->data) return -1;
-                    cci = (CONSTANT_Class_info *) info;
-                    if (ru2(&(cci->data->name_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i\r\n", cci->data->name_index);
-
-                    cci = (CONSTANT_Class_info *) 0;
-                    break;
-                case CONSTANT_Fieldref:
-                case CONSTANT_Methodref:
-                case CONSTANT_InterfaceMethodref:
-                    info->data = allocMemory(1, sizeof *(cfi->data));
-                    if (!info->data) return -1;
-                    cfi = (CONSTANT_Fieldref_info *) info;
-                    if (ru2(&(cfi->data->class_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cfi->data->name_and_type_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i.#%i\r\n", cfi->data->class_index, cfi->data->name_and_type_index);
-
-                    cfi = (CONSTANT_Fieldref_info *) 0;
-                    cci = (CONSTANT_Class_info *) 0;
-                    buf = (u1 *) 0;
-                    break;
-                case CONSTANT_Integer:
-                case CONSTANT_Float:
-                    info->data = allocMemory(1, sizeof *(cii->data));
-                    if (!info->data) return -1;
-                    cii = (CONSTANT_Integer_info *) info;
-                    if (ru4(&(cii->data->bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    if (info->tag == CONSTANT_Integer)
-                        logInfo("%i\r\n", cii->data->bytes);
-                    else
-                        logInfo("%fF\r\n", cii->data->float_value);
-
-                    cii = (CONSTANT_Integer_info *) 0;
-                    break;
-                case CONSTANT_Long:
-                case CONSTANT_Double:
-                    info->data = allocMemory(1, sizeof *(cli->data));
-                    if (!info->data) return -1;
-                    cli = (CONSTANT_Long_info *) info;
-                    if (ru4(&(cli->data->high_bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru4(&(cli->data->low_bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    // all 8-byte constants take up two entries in the constant_pool table of the class file
-                    ++i;
-
-                    if (info->tag == CONSTANT_Long)
-                        logInfo("%lliL\r\n", cli->data->long_value);
-                    else
-                        logInfo("%dD\r\n", cli->data->double_value);
-
-                    cli = (CONSTANT_Long_info *) 0;
-                    break;
-                case CONSTANT_NameAndType:
-                    info->data = allocMemory(1, sizeof *(cni->data));
-                    if (!info->data) return -1;
-                    cni = (CONSTANT_NameAndType_info *) info;
-                    if (ru2(&(cni->data->name_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cni->data->descriptor_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i.#%i\r\n", cni->data->name_index, cni->data->descriptor_index);
-
-                    cni = (CONSTANT_NameAndType_info *) 0;
-                    break;
-                case CONSTANT_String:
-                    info->data = allocMemory(1, sizeof *(csi->data));
-                    if (!info->data) return -1;
-                    csi = (CONSTANT_String_info *) info;
-                    if (ru2(&(csi->data->string_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i\r\n", csi->data->string_index);
-
-                    csi = (CONSTANT_String_info *) 0;
-                    break;
-                case CONSTANT_Utf8:
-                    info->data = allocMemory(1, sizeof *(cui->data));
-                    if (!info->data) return -1;
-                    cui = (CONSTANT_Utf8_info *) info;
-                    if (ru2(&(cui->data->length), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    /*
-                    cap = cui->data->length;
-                    cui->data->bytes = (u1 *) malloc(cap);
-                    if (!cui->data->bytes)
-                    {
-                        logError("Fail to allocate memory!\r\n");
-                        return -1;
-                    }
-                    bzero(cui->data->bytes, cap);
-                    */
-                    cui->data->bytes = (u1 *) allocMemory(cui->data->length + 1, sizeof (u1));
-                    if (!cui->data->bytes) return -1;
-
-                    if (rbs(cui->data->bytes, input, cui->data->length) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cui->data->bytes[cui->data->length] = '\0';
-
-                    if (!cui->data->bytes)
-                    {
-                        logError("Runtime error!\r\n");
-                        return -1;
-                    }
-                    logInfo("%.*s\r\n", cui->data->length, (u1 *) cui->data->bytes);
-
-                    cui = (CONSTANT_Utf8_info *) 0;
-                    //cap = 0;
-                    break;
-                case CONSTANT_MethodHandle:
-                    info->data = allocMemory(1, sizeof *(cmhi->data));
-                    if (!info->data) return -1;
-                    cmhi = (CONSTANT_MethodHandle_info *) info;
-                    if (ru1(&(cmhi->data->reference_kind), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cmhi->data->reference_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("%i #%i\r\n", cmhi->data->reference_kind, cmhi->data->reference_index);
-
-                    cmhi = (CONSTANT_MethodHandle_info *) 0;
-                    break;
-                case CONSTANT_MethodType:
-                    info->data = allocMemory(1, sizeof *(cmti->data));
-                    if (!info->data) return -1;
-                    cmti = (CONSTANT_MethodType_info *) info;
-                    if (ru2(&(cmti->data->descriptor_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i\r\n", cmti->data->descriptor_index);
-
-                    cmti = (CONSTANT_MethodType_info *) 0;
-                    break;
-                case CONSTANT_InvokeDynamic:
-                    info->data = allocMemory(1, sizeof *(cidi->data));
-                    if (!info->data) return -1;
-                    cidi = (CONSTANT_InvokeDynamic_info *) info;
-                    if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cidi->data->name_and_type_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-
-                    logInfo("#%i.#%i\r\n",
-                            cidi->data->bootstrap_method_attr_index,
-                            cidi->data->name_and_type_index);
-
-                    cidi = (CONSTANT_InvokeDynamic_info *) 0;
-                    break;
-                default:
-                    logError("Unknown TAG:%X\r\n", info->tag);
-                    return -1;
-            }
-        } // LOOP
-    } // constant pool parsed
 
     if (ru2(&(cf->access_flags), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
         return -1;
-    }
     if (ru2(&(cf->this_class), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
         return -1;
-    }
     if (ru2(&(cf->super_class), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
         return -1;
-    }
-    logInfo("\r\nAccess flags     : 0x%X\r\n"
-            "Class this_class : %i\r\n"
-            "Class super_class: %i\r\n",
-            cf->access_flags,
-            cf->this_class,
-            cf->super_class);
 
-    if (ru2(&(cf->interfaces_count), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
+    if (loadInterfaces(input, cf) < 0)
         return -1;
-    }
-    logInfo("\r\nInterface count: %i\r\n", cf->interfaces_count);
-    if (cf->interfaces_count > 0)
-    {
-        logInfo("Parsing interfaces...\r\n");
-        /*
-        cap = sizeof (u2) * cf->interfaces_count;
-        cf->interfaces = (u2 *) malloc(cap);
-        if (!cf->interfaces)
-        {
-            logError("Fail to allocate memory!\r\n");
-            return -1;
-        }
-        bzero(cf->interfaces, cap);
-        */
-        cf->interfaces = (u2 *) allocMemory(cf->interfaces_count, sizeof (u2));
-        if (!cf->interfaces) return -1;
-        for (i = 0u; i < cf->interfaces_count; i++)
-        {
-            if (ru2(&(cf->interfaces[i]), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            cci = (CONSTANT_Class_info *) &(cf->constant_pool[cf->interfaces[i]]);
-            if (!cci || cci->tag != CONSTANT_Class)
-            {
-                logError("Invalid constant pool index!\r\n");
-                return -1;
-            }
-            cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cci->data->name_index]);
-            if (!cui || cui->tag != CONSTANT_Utf8)
-            {
-                logError("Invalid constant pool index!\r\n");
-                return -1;
-            }
-            logInfo("Interface[%i] #%i\t// %.*s\r\n",
-                    i, cf->interfaces[i],
-                    cui->data->length, cui->data->bytes);
-        }
-    }
 
-    if (ru2(&(cf->fields_count), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
+    if (loadFields(input, cf) < 0)
         return -1;
-    }
-    logInfo("\r\nField count: %i\r\n", cf->fields_count);
-    if (cf->fields_count > 0)
-    {
-        logInfo("Parsing fields...\r\n");
-        /*
-        cap = sizeof (field_info) * cf->fields_count;
-        cf->fields = (field_info *) malloc(cap);
-        if (!cf->fields)
-        {
-            logError("Fail to allocate memory!\r\n");
-            return -1;
-        }
-        bzero(cf->fields, cap);
-        */
-        cf->fields = (field_info *) allocMemory(cf->fields_count, sizeof (field_info));
-        if (!cf->fields) return -1;
-        for (i = 0u; i < cf->fields_count; i++)
-        {
-            if (ru2(&(cf->fields[i].access_flags), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            if (ru2(&(cf->fields[i].name_index), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            if (ru2(&(cf->fields[i].descriptor_index), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            buf = convertAccessFlags_field(i, cf->fields[i].access_flags);
-            logInfo("Field[%i]\r\n"
-                    "\tAccess flag     : 0x%X\t// %s\r\n"
-                    "\tName index      : #%i\t// %.*s\r\n"
-                    "\tDescriptor index: #%i\t// %.*s\r\n",
-                    i,
-                    cf->fields[i].access_flags, buf ? buf : (u1 *) "",
-                    cf->fields[i].name_index,
-                    //getConstant_Utf8(cf, cf->fields[i].name_index)->data->length,
-                    getConstant_Utf8Length(cf, cf->fields[i].name_index),
-                    getConstant_Utf8String(cf, cf->fields[i].name_index),
-                    cf->fields[i].descriptor_index,
-                    //getConstant_Utf8(cf, cf->fields[i].descriptor_index)->data->length,
-                    getConstant_Utf8Length(cf, cf->fields[i].descriptor_index),
-                    getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
-            free(buf);
-            buf = (u1 *) 0;
-            loadAttributes_field(cf, input, &(cf->fields[i]),
-                    &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
-            logInfo("\tField Attribute count: %i\r\n",
-                    cf->fields[i].attributes_count);
-            // only list name and length of field attributes
-            for (j = 0; j < cf->fields[i].attributes_count; j++)
-            {
-                logInfo("\tField Attribute [%i]\r\n"
-                        "\t\tName index:\t#%i\t// %.*s\r\n"
-                        "\t\tLength    :\t%i\r\n",
-                        j, cf->fields[i].attributes[j].attribute_name_index,
-                        getConstant_Utf8Length(cf,
-                            cf->fields[i].attributes[j].attribute_name_index),
-                        getConstant_Utf8String(cf,
-                            cf->fields[i].attributes[j].attribute_name_index),
-                        cf->fields[i].attributes[j].attribute_length);
-            }
-        } // fields listing end
-    } // if (fields_count > 0)
 
-    // retrieve method count
-    if (ru2(&(cf->methods_count), input) < 0)
-    {
-        logError("IO exception in function %s!\r\n", __func__);
+    if (loadMethods(input, cf) < 0)
         return -1;
-    }
-    logInfo("\r\nMethod count: %i\r\n", cf->methods_count);
-    // load methods if possible
-    if (cf->methods_count > 0)
-    {
-        logInfo("Parsing methods...\r\n");
-        /*
-        cap = sizeof (method_info) * cf->methods_count;
-        cf->methods = (method_info *) malloc(cap);
-        if (!cf->methods)
-        {
-            logError("Fail to allocate memory!\r\n");
-            return -1;
-        }
-        bzero(cf->methods, cap);
-        */
-        cf->methods = (method_info *) allocMemory(cf->methods_count, sizeof (method_info));
-        if (!cf->methods) return -1;
-        for (i = 0u; i < cf->methods_count; i++)
-        {
-            if (ru2(&(cf->methods[i].access_flags), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            if (ru2(&(cf->methods[i].name_index), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            if (ru2(&(cf->methods[i].descriptor_index), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            buf = convertAccessFlags_method(i, cf->methods[i].access_flags);
-            logInfo("Method[%i]\r\n"
-                    "\tAccess flag     : 0x%X\t// %s\r\n"
-                    "\tName index      : #%i\t// %.*s\r\n"
-                    "\tDescriptor index: #%i\t// %.*s (%i)\r\n", i,
-                    cf->methods[i].access_flags,
-                    buf ? buf : (u1 *) "",
-                    cf->methods[i].name_index,
-                    //getConstant_Utf8(cf, cf->methods[i].name_index)->data->length,
-                    getConstant_Utf8Length(cf, cf->methods[i].name_index),
-                    getConstant_Utf8String(cf, cf->methods[i].name_index),
-                    cf->methods[i].descriptor_index,
-                    //getConstant_Utf8(cf, cf->methods[i].descriptor_index)->data->length,
-                    getConstant_Utf8Length(cf, cf->methods[i].descriptor_index),
-                    getConstant_Utf8String(cf, cf->methods[i].descriptor_index),
-                    getMethodParametersCount(cf, cf->methods[i].descriptor_index));
-            free(buf);
-            buf = (u1 *) 0;
-            loadAttributes_method(cf, input, &(cf->methods[i]),
-                    &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
-            logInfo("\tAttribute count : %i\r\n",
-                    cf->methods[i].attributes_count);
-            for (j = 0; j < cf->methods[i].attributes_count; j++)
-            {
-                logInfo("\tAttribute[%i]\r\n"
-                        "\t\tName index:\t#%i\t// %.*s\r\n"
-                        "\t\tLength    :\t%i\r\n",
-                        j,
-                        cf->methods[i].attributes[j].attribute_name_index,
-                        //getConstant_Utf8(cf, cf->methods[i].attributes[j].attribute_name_index)->data->length,
-                        getConstant_Utf8Length(cf,
-                            cf->methods[i].attributes[j].attribute_name_index),
-                        getConstant_Utf8String(cf,
-                            cf->methods[i].attributes[j].attribute_name_index),
-                        cf->methods[i].attributes[j].attribute_length);
-            } // list method attributes
-        }
-    }
 
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
 #ifdef RT_H
@@ -574,22 +96,6 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (validateConstantPool(cf) < 0)
         return -1;
 #endif
-    
-    logInfo("Class Attribute count: %i\r\n", cf->attributes_count);
-    for (i = 0; i < cf->attributes_count; i++)
-    {
-        cui = getConstant_Utf8(cf, cf->attributes[i].attribute_name_index);
-        buf = cui->data->bytes;
-        logInfo("Class Attribute      : [%i]\r\n"
-                "\tName index:\t#%i\t// %.*s\r\n"
-                "\tLength    :\t%i\r\n",
-                i,
-                cf->attributes[i].attribute_name_index,
-                cui->data->length,
-                buf,
-                cf->attributes[i].attribute_length);
-        buf = (u1 *) 0;
-    }
 
     return 0;
 }
@@ -604,19 +110,19 @@ freeClassfile(ClassFile *cf)
     logInfo("Releasing ClassFile memory...\r\n");
     if (cf->interfaces)
     {
-        free(cf->interfaces);
+        freeMemory(cf->interfaces);
         cf->interfaces = (u2 *) 0;
     }
     if (cf->fields)
     {
         freeAttributes_field(cf, cf->fields->attributes_count, cf->fields->attributes);
-        free(cf->fields);
+        freeMemory(cf->fields);
         cf->fields = (field_info *) 0;
     }
     if (cf->methods)
     {
         freeAttributes_method(cf, cf->methods->attributes_count, cf->methods->attributes);
-        free(cf->methods);
+        freeMemory(cf->methods);
         cf->methods = (method_info *) 0;
     }
     freeAttributes_class(cf, cf->attributes_count, cf->attributes);
@@ -633,187 +139,20 @@ freeClassfile(ClassFile *cf)
                     cu = (CONSTANT_Utf8_info *) cp;
                     if (cu->data->bytes)
                     {
-                        free(cu->data->bytes);
+                        freeMemory(cu->data->bytes);
                         cu->data->bytes = (u1 *) 0;
                     }
                 }
-                free(cp->data);
+                freeMemory(cp->data);
                 cp->data = (void *) 0;
             }
         }
-        free(cf->constant_pool);
+        freeMemory(cf->constant_pool);
         cf->constant_pool = (cp_info *) 0;
     }
 
     return 0;
 }
-
-#if 0
-
-static int
-getTypeString(int len, u1 *ft, u1 *buffer)
-{
-    u1 *res, *name;
-    int i, j, k;
-
-    res = buffer;
-    if (len <= 0)
-        return 0;
-    i = 0;
-    if (ft[0] == '[')
-        for (; i < len; i++)
-            if (ft[i] != '[')
-                break;
-    if (ft[i] == 'L')
-    {
-        j = len - i - 1;
-        name = ft + i + 1;
-        memcpy(res, name, j);
-        for (k = 0; k < j; k++)
-            if (res[k] == '/')
-                res[k] = '.';
-    }
-    else
-    {
-        switch (ft[i])
-        {
-            case 'B':
-                j = 4;
-                name = "byte";
-                break;
-            case 'C':
-                j = 4;
-                name = "u1";
-                break;
-            case 'D':
-                j = 6;
-                name = "double";
-                break;
-            case 'F':
-                j = 5;
-                name = "float";
-                break;
-            case 'I':
-                j = 3;
-                name = "int";
-                break;
-            case 'J':
-                j = 4;
-                name = "long";
-                break;
-            case 'S':
-                j = 5;
-                name = "short";
-                break;
-            case 'Z':
-                j = 7;
-                name = "boolean";
-                break;
-            default:
-                return -1;
-        }
-        memcpy(res, name, j);
-    }
-    for (k = 0; k < i; k++)
-        memcpy(res + j + 2 * k, "[]", 2);
-    j += i * 2;
-    res[j] = 0;
-    return j;
-}
-
-static u1 *
-parse_method_descriptor(int desc_len, u1 * desc)
-{
-    u1 *buffer;
-    int i, j, isParam, isObj;
-    int cap, len;
-    u1 c;
-
-    // validate first character
-    if (desc[0] != '(')
-        return (u1 *) 0;
-    cap = 1024;
-    buffer = (u1 *) malloc(cap);
-    if (!buffer)
-        return (u1 *) 0;
-    len = 0;
-    j = 0;
-    isParam = 1;
-    isObj = 0;
-    // get ')' index and caculate parameter list length
-    for (i = 1; i < desc_len; i++)
-    {
-        c = desc[i];
-        switch (c)
-        {
-            case ')':
-                isParam = 0;
-                break;
-            case '[':
-                if (!j) j = i;
-                break;
-            case 'L':
-                if (!j) j = i;
-                isObj = 1;
-                break;
-            case ';':
-                getTypeString(i - j, desc + j, buffer + len);
-                isObj = 0;
-                j = 0;
-                break;
-            default:
-                if (isObj) continue;
-                getTypeString(i - j, desc + j, buffer + len);
-                j = 0;
-                break;
-        }
-    }
-    // TODO bug-fix etc
-
-    return buffer;
-}
-#endif
-
-/*
- * Buggy function, deprecated
-static int
-get_cp_size(u1 tag)
-{
-    switch (tag)
-    {
-        case CONSTANT_Class:
-            return sizeof (CONSTANT_Class_info);
-        case CONSTANT_Fieldref:
-            return sizeof (CONSTANT_Fieldref_info);
-        case CONSTANT_Methodref:
-            return sizeof (CONSTANT_Methodref_info);
-        case CONSTANT_InterfaceMethodref:
-            return sizeof (CONSTANT_InterfaceMethodref_info);
-        case CONSTANT_String:
-            return sizeof (CONSTANT_String_info);
-        case CONSTANT_Integer:
-            return sizeof (CONSTANT_Integer_info);
-        case CONSTANT_Float:
-            return sizeof (CONSTANT_Float_info);
-        case CONSTANT_Long:
-            return sizeof (CONSTANT_Long_info);
-        case CONSTANT_Double:
-            return sizeof (CONSTANT_Double_info);
-        case CONSTANT_NameAndType:
-            return sizeof (CONSTANT_NameAndType_info);
-        case CONSTANT_Utf8:
-            return sizeof (CONSTANT_Utf8_info);
-        case CONSTANT_MethodHandle:
-            return sizeof (CONSTANT_MethodHandle_info);
-        case CONSTANT_MethodType:
-            return sizeof (CONSTANT_MethodType_info);
-        case CONSTANT_InvokeDynamic:
-            return sizeof (CONSTANT_InvokeDynamic_info);
-        default:
-            return 0;
-    }
-}
-*/
 
 static const char *
 get_cp_name(u1 tag)
@@ -872,13 +211,9 @@ convertAccessFlags_field(u2 i, u2 af)
                 af & ~ACC_FIELD, i, af);
         return (u1 *) 0;
     }
-    buf = (u1 *) malloc(initBufSize);
+    buf = (u1 *) allocMemory(initBufSize, sizeof (char));
     if (!buf)
-    {
-        logError("Fail to allocate memory.\r\n");
         return (u1 *) 0;
-    }
-    bzero(buf, initBufSize);
     len = 0;
 
     // public, private, protected
@@ -935,7 +270,7 @@ end:
     out = (u1 *) realloc(buf, len + 1);
     if (!out)
     {
-        free(buf);
+        freeMemory(buf);
         return buf = (u1 *) 0;
     }
     out[len] = 0;
@@ -1061,7 +396,7 @@ getConstant_Utf8(ClassFile *cf, u2 index)
     }
     if (info->tag != CONSTANT_Utf8)
     {
-        logInfo("Constant pool entry #%i is not CONSTANT_Utf8_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
+        logError("Constant pool entry #%i is not CONSTANT_Utf8_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
         return (CONSTANT_Utf8_info *) 0;
     }
 
@@ -1404,6 +739,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     cp_info *info;
     CONSTANT_Class_info *cci;
     CONSTANT_Fieldref_info *cfi;
+    CONSTANT_Methodref_info *cmi;
     CONSTANT_String_info *csi;
     CONSTANT_NameAndType_info *cni;
     CONSTANT_Utf8_info *cui;
@@ -1413,9 +749,9 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     u2 j;
 #if VER_CMP(51, 0)
     struct attr_BootstrapMethods_info *dataBootstrapMethods;
+    struct bootstrap_method *bm;
 #endif
 
-    //logInfo("Examing constant pool[%i]...\r\n", i);
     info = &(cf->constant_pool[i]);
     if (i == 0)
     {
@@ -1490,21 +826,29 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             cmhi = (CONSTANT_MethodHandle_info *) info;
             switch (cmhi->data->reference_kind)
             {
-                case 1: // REF_getField
-                case 2: // REF_getStatic
-                case 3: // REF_putField
-                case 4: // REF_putStatic
+                case REF_getField:
+                case REF_getStatic:
+                case REF_putField:
+                case REF_putStatic:
                     if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Fieldref) < 0)
                         return -1;
                     break;
-                case 5: // REF_invokeVirtual
-                case 6: // REF_invokeStatic
-                case 7: // REF_inokeSpecial
-                case 8: // REF_newInvokeSpecial
+                case REF_invokeVirtual:
+                case REF_newInvokeSpecial:
                     if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Methodref) < 0)
                         return -1;
+                case REF_invokeStatic:
+                case REF_invokeSpecial:
+#if VER_CMP(52, 0)
+                    if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Methodref) < 0
+                            && validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_InterfaceMethodref) < 0)
+                        return -1;
+#else
+                    if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_Methodref) < 0)
+                        return -1;
+#endif
                     break;
-                case 9: // REF_invokeInterface
+                case REF_invokeInterface:
                     if (validateConstantPoolEntry(cf, cmhi->data->reference_index, bul, CONSTANT_InterfaceMethodref) < 0)
                         return -1;
                     break;
@@ -1560,16 +904,71 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 logError("Class attributes ain't loaded!\r\n");
                 return -1;
             }
+            dataBootstrapMethods = (struct attr_BootstrapMethods_info *) 0;
+#ifndef QUICK_REFERENCE
             for (j = 0; j < cf->attributes_count; j++)
             {
                 if (cf->attributes[j].tag != TAG_ATTR_BOOTSTRAPMETHODS)
                     continue;
                 dataBootstrapMethods = (struct attr_BootstrapMethods_info *)
                         cf->attributes[j].data;
-                if (validateConstantPoolEntry(cf, dataBootstrapMethods->bootstrap_methods[cidi->data->bootstrap_method_attr_index].bootstrap_method_ref, bul, CONSTANT_MethodHandle) < 0)
-                    return -1;
-                // TODO validate 'bootstrap_arguments' P140
                 break;
+            }
+#else
+            if (cf->off_BootstrapMethods >= 0)
+            {
+                dataBootstrapMethods = (struct attr_BootstrapMethods_info *)
+                        cf->attributes[cf->off_BootstrapMethods].data;
+            }
+#endif
+            if (!dataBootstrapMethods)
+            {
+                logError("Attribute BootstrapMethods is not found!\r\n");
+                return -1;
+            }
+            bm = &(dataBootstrapMethods->bootstrap_methods[cidi->data->bootstrap_method_attr_index]);
+            cmhi = (CONSTANT_MethodHandle_info *)
+                    &(cf->constant_pool[bm->bootstrap_method_ref]);
+            switch (cmhi->data->reference_kind)
+            {
+                case REF_invokeStatic:      // 6
+                case REF_newInvokeSpecial:  // 8
+                    break;
+                default:
+                    logError("Invalid reference_kind [%i]!\r\n",
+                            cmhi->data->reference_kind);
+                    return -1;
+            }
+            cmi = (CONSTANT_Methodref_info *)
+                    &(cf->constant_pool[cmhi->data->reference_index]);
+            cni = (CONSTANT_NameAndType_info *)
+                    &(cf->constant_pool[cmi->data->name_and_type_index]);
+            cui = (CONSTANT_Utf8_info *)
+                    &(cf->constant_pool[cni->data->descriptor_index]);
+            if (strncmp(cui->data->bytes,
+                    "(Ljava/lang/invoke/MethodHandles$Lookup;"
+                    "Ljava/lang/String;"
+                    "Ljava/lang/invoke/MethodType;)",
+                    88))
+            {
+                logError("Invalid bootstrap method arguments [%.*s]!\r\n",
+                        cui->data->length, cui->data->bytes);
+                return -1;
+            }
+            for (j = 0; j < bm->num_bootstrap_arguments; j++)
+            {
+                if (validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_String) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_Class) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_Integer) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_Long) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_Float) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_Double) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_MethodHandle) < 0
+                        && validateConstantPoolEntry(cf, bm->bootstrap_arguments[j], bul, CONSTANT_MethodType) < 0)
+                {
+                    logError("Invalid bootstrap method argument type!\r\n");
+                    return -1;
+                }
             }
             break;
 #endif
@@ -1796,4 +1195,323 @@ extern u1 *getClassSimpleName(ClassFile *cf, u2 class_name_index)
     }
     
     return res;
+}
+
+static int
+loadConstantPool(struct BufferIO *input, ClassFile *cf)
+{
+    u2 i;
+    cp_info *info;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Fieldref_info *cfi;
+    CONSTANT_Integer_info *cii;
+    CONSTANT_Long_info *cli;
+    CONSTANT_NameAndType_info *cni;
+    CONSTANT_String_info *csi;
+    CONSTANT_Utf8_info *cui;
+    CONSTANT_MethodHandle_info *cmhi;
+    CONSTANT_MethodType_info *cmti;
+    CONSTANT_InvokeDynamic_info *cidi;
+    
+    // retrieve constant pool size
+    if (ru2(&(cf->constant_pool_count), input) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
+    if (cf->constant_pool_count > 0)
+    {
+        cf->constant_pool = (cp_info *) allocMemory(cf->constant_pool_count, sizeof (cp_info));
+        if (!cf->constant_pool) return -1;
+
+        // jvms7 says "The constant_pool table is indexed
+        // from 1 to constant_pool_count - 1
+        for (i = 1u; i < cf->constant_pool_count; i++)
+        { // LOOP
+            info = &(cf->constant_pool[i]);
+            if (ru1(&(info->tag), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            switch (info->tag)
+            {
+                case CONSTANT_Class:
+                    info->data = allocMemory(1, sizeof *(cci->data));
+                    if (!info->data) return -1;
+                    cci = (CONSTANT_Class_info *) info;
+                    if (ru2(&(cci->data->name_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cci = (CONSTANT_Class_info *) 0;
+                    break;
+                case CONSTANT_Fieldref:
+                case CONSTANT_Methodref:
+                case CONSTANT_InterfaceMethodref:
+                    info->data = allocMemory(1, sizeof *(cfi->data));
+                    if (!info->data) return -1;
+                    cfi = (CONSTANT_Fieldref_info *) info;
+                    if (ru2(&(cfi->data->class_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    if (ru2(&(cfi->data->name_and_type_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cfi = (CONSTANT_Fieldref_info *) 0;
+                    cci = (CONSTANT_Class_info *) 0;
+                    break;
+                case CONSTANT_Integer:
+                case CONSTANT_Float:
+                    info->data = allocMemory(1, sizeof *(cii->data));
+                    if (!info->data) return -1;
+                    cii = (CONSTANT_Integer_info *) info;
+                    if (ru4(&(cii->data->bytes), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+
+                    if (info->tag == CONSTANT_Integer)
+                        logInfo("%i\r\n", cii->data->bytes);
+                    else
+                        logInfo("%fF\r\n", cii->data->float_value);
+
+                    cii = (CONSTANT_Integer_info *) 0;
+                    break;
+                case CONSTANT_Long:
+                case CONSTANT_Double:
+                    info->data = allocMemory(1, sizeof *(cli->data));
+                    if (!info->data) return -1;
+                    cli = (CONSTANT_Long_info *) info;
+                    if (ru4(&(cli->data->high_bytes), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    if (ru4(&(cli->data->low_bytes), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    // all 8-byte constants take up two entries in the constant_pool table of the class file
+                    ++i;
+                    cli = (CONSTANT_Long_info *) 0;
+                    break;
+                case CONSTANT_NameAndType:
+                    info->data = allocMemory(1, sizeof *(cni->data));
+                    if (!info->data) return -1;
+                    cni = (CONSTANT_NameAndType_info *) info;
+                    if (ru2(&(cni->data->name_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    if (ru2(&(cni->data->descriptor_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cni = (CONSTANT_NameAndType_info *) 0;
+                    break;
+                case CONSTANT_String:
+                    info->data = allocMemory(1, sizeof *(csi->data));
+                    if (!info->data) return -1;
+                    csi = (CONSTANT_String_info *) info;
+                    if (ru2(&(csi->data->string_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    csi = (CONSTANT_String_info *) 0;
+                    break;
+                case CONSTANT_Utf8:
+                    info->data = allocMemory(1, sizeof *(cui->data));
+                    if (!info->data) return -1;
+                    cui = (CONSTANT_Utf8_info *) info;
+                    if (ru2(&(cui->data->length), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cui->data->bytes = (u1 *) allocMemory(cui->data->length + 1, sizeof (u1));
+                    if (!cui->data->bytes) return -1;
+
+                    if (rbs(cui->data->bytes, input, cui->data->length) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cui->data->bytes[cui->data->length] = '\0';
+
+                    if (!cui->data->bytes)
+                    {
+                        logError("Runtime error!\r\n");
+                        return -1;
+                    }
+                    cui = (CONSTANT_Utf8_info *) 0;
+                    //cap = 0;
+                    break;
+                case CONSTANT_MethodHandle:
+                    info->data = allocMemory(1, sizeof *(cmhi->data));
+                    if (!info->data) return -1;
+                    cmhi = (CONSTANT_MethodHandle_info *) info;
+                    if (ru1(&(cmhi->data->reference_kind), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    if (ru2(&(cmhi->data->reference_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cmhi = (CONSTANT_MethodHandle_info *) 0;
+                    break;
+                case CONSTANT_MethodType:
+                    info->data = allocMemory(1, sizeof *(cmti->data));
+                    if (!info->data) return -1;
+                    cmti = (CONSTANT_MethodType_info *) info;
+                    if (ru2(&(cmti->data->descriptor_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cmti = (CONSTANT_MethodType_info *) 0;
+                    break;
+                case CONSTANT_InvokeDynamic:
+                    info->data = allocMemory(1, sizeof *(cidi->data));
+                    if (!info->data) return -1;
+                    cidi = (CONSTANT_InvokeDynamic_info *) info;
+                    if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    if (ru2(&(cidi->data->name_and_type_index), input) < 0)
+                    {
+                        logError("IO exception in function %s!\r\n", __func__);
+                        return -1;
+                    }
+                    cidi = (CONSTANT_InvokeDynamic_info *) 0;
+                    break;
+                default:
+                    logError("Unknown TAG:%X\r\n", info->tag);
+                    return -1;
+            }
+        } // LOOP
+    }
+    
+    return 0;
+}
+
+static int
+loadInterfaces(struct BufferIO *input, ClassFile *cf)
+{
+    u2 i;
+    
+    if (ru2(&(cf->interfaces_count), input) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    if (cf->interfaces_count > 0)
+    {
+        cf->interfaces = (u2 *) allocMemory(cf->interfaces_count, sizeof (u2));
+        if (!cf->interfaces) return -1;
+        for (i = 0u; i < cf->interfaces_count; i++)
+        {
+            if (ru2(&(cf->interfaces[i]), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+        }
+    }
+    
+    return 0;
+}
+
+static int
+loadFields(struct BufferIO *input, ClassFile *cf)
+{
+    u2 i;
+    
+    if (ru2(&(cf->fields_count), input) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    if (cf->fields_count > 0)
+    {
+        cf->fields = (field_info *) allocMemory(cf->fields_count, sizeof (field_info));
+        if (!cf->fields) return -1;
+        for (i = 0u; i < cf->fields_count; i++)
+        {
+            if (ru2(&(cf->fields[i].access_flags), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            if (ru2(&(cf->fields[i].name_index), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            if (ru2(&(cf->fields[i].descriptor_index), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            loadAttributes_field(cf, input, &(cf->fields[i]),
+                    &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
+        }
+    }
+    
+    return 0;
+}
+
+static int
+loadMethods(struct BufferIO *input, ClassFile *cf)
+{
+    u2 i;
+    
+    if (ru2(&(cf->methods_count), input) < 0)
+    {
+        logError("IO exception in function %s!\r\n", __func__);
+        return -1;
+    }
+    if (cf->methods_count > 0)
+    {
+        cf->methods = (method_info *) allocMemory(cf->methods_count, sizeof (method_info));
+        if (!cf->methods) return -1;
+        for (i = 0u; i < cf->methods_count; i++)
+        {
+            if (ru2(&(cf->methods[i].access_flags), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            if (ru2(&(cf->methods[i].name_index), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            if (ru2(&(cf->methods[i].descriptor_index), input) < 0)
+            {
+                logError("IO exception in function %s!\r\n", __func__);
+                return -1;
+            }
+            loadAttributes_method(cf, input, &(cf->methods[i]),
+                    &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+        }
+    }
+    
+    return 0;
 }

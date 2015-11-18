@@ -62,6 +62,16 @@ extern "C" {
 #define ACC_FIELD                       (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_VOLATILE | ACC_TRANSIENT | ACC_SYNTHETIC | ACC_ENUM)
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
 
+#define REF_getField            1
+#define REF_getStatic           2
+#define REF_putField            3
+#define REF_putStatic           4
+#define REF_invokeVirtual       5
+#define REF_invokeStatic        6
+#define REF_invokeSpecial       7
+#define REF_newInvokeSpecial    8
+#define REF_invokeInterface     9
+
 // Cruise-specific constants
 #define TAG_ATTR_CONSTANTVALUE                          1
 #define TAG_ATTR_CODE                                   2
