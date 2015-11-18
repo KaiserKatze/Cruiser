@@ -4,6 +4,7 @@
 #include <stdarg.h>
 
 #include "input.h"
+#include "log.h"
 
 extern int
 logInfo(const char *format, ...)
