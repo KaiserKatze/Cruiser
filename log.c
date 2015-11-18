@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include "input.h"
+
 extern int
 logInfo(const char *format, ...)
 {

@@ -106,16 +106,17 @@ extern "C" {
     {
         u2 sourcefile_index;
     };
+    struct classes_entry
+    {
+        u2 inner_class_info_index;
+        u2 outer_class_info_index;
+        u2 inner_name_index;
+        u2 inner_class_access_flags;
+    };
     struct attr_InnerClasses_info
     {
         u2 number_of_classes;
-        struct classes_entry
-        {
-            u2 inner_class_info_index;
-            u2 outer_class_info_index;
-            u2 inner_name_index;
-            u2 inner_class_access_flags;
-        } *classes;
+        struct classes_entry *classes;
     };
     struct attr_Synthetic_info {};
     struct attr_Deprecated_info {};
@@ -148,6 +149,13 @@ extern "C" {
         u2 constantvalue_index;
     };
 
+    struct exception_table_entry
+    {
+        u2 start_pc;
+        u2 end_pc;
+        u2 handler_pc;
+        u2 catch_type;
+    };
     struct attr_Code_info
     {
         u2 max_stack;
@@ -155,13 +163,7 @@ extern "C" {
         u4 code_length;
         u1 *code;
         u2 exception_table_length;
-        struct exception_table_entry
-        {
-            u2 start_pc;
-            u2 end_pc;
-            u2 handler_pc;
-            u2 catch_type;
-        } *exception_table;
+        struct exception_table_entry *exception_table;
         u2 attributes_count;
         attr_info *attributes;
 
@@ -189,15 +191,16 @@ extern "C" {
         u2 method_index;
     };
     struct element_value;
+    struct element_value_pair
+    {
+        u2 element_name_index;
+        struct element_value *value;
+    };
     struct annotation
     {
         u2 type_index;
         u2 num_element_value_pairs;
-        struct element_value_pair
-        {
-            u2 element_name_index;
-            struct element_value *value;
-        } *element_value_pairs;
+        struct element_value_pair *element_value_pairs;
     };
     struct element_value
     {
@@ -206,7 +209,7 @@ extern "C" {
         {
             u2 const_value_index;
             
-            struct enum_const
+            struct
             {
                 u2 type_name_index;
                 u2 const_name_index;
@@ -216,7 +219,7 @@ extern "C" {
             
             struct annotation annotation_value;
             
-            struct array
+            struct
             {
                 u2 num_values;
                 struct element_value *values;
@@ -333,64 +336,66 @@ extern "C" {
             u2 offset;
         } Uninitialized_variable_info;
     };
+    union stack_map_frame
+    {
+        struct
+        {
+            u1 frame_type;
+        } same_frame;
+        struct
+        {
+            u1 frame_type;
+            union verification_type_info stack;
+        } same_locals_1_stack_item_frame;
+        struct
+        {
+            u1 frame_type;
+            u2 offset_delta;
+            union verification_type_info stack;
+        } same_locals_1_stack_item_frame_extended;
+        struct
+        {
+            u1 frame_type;
+            u2 offset_delta;
+        } chop_frame;
+        struct
+        {
+            u1 frame_type;
+            u2 offset_delta;
+        } same_frame_extended;
+        struct
+        {
+            u1 frame_type;
+            u2 offset_delta;
+            union verification_type_info *stack;
+        } append_frame;
+        struct
+        {
+            u1 frame_type;
+            u2 offset_delta;
+            u2 number_of_locals;
+            union verification_type_info *locals;
+            u2 number_of_stack_items;
+            union verification_type_info *stack;
+        } full_frame;
+    };
     struct attr_StackMapTable_info
     {
         u2 number_of_entries;
-        union stack_map_frame
-        {
-            struct
-            {
-                u1 frame_type;
-            } same_frame;
-            struct
-            {
-                u1 frame_type;
-                union verification_type_info stack;
-            } same_locals_1_stack_item_frame;
-            struct
-            {
-                u1 frame_type;
-                u2 offset_delta;
-                union verification_type_info stack;
-            } same_locals_1_stack_item_frame_extended;
-            struct
-            {
-                u1 frame_type;
-                u2 offset_delta;
-            } chop_frame;
-            struct
-            {
-                u1 frame_type;
-                u2 offset_delta;
-            } same_frame_extended;
-            struct
-            {
-                u1 frame_type;
-                u2 offset_delta;
-                union verification_type_info *stack;
-            } append_frame;
-            struct
-            {
-                u1 frame_type;
-                u2 offset_delta;
-                u2 number_of_locals;
-                union verification_type_info *locals;
-                u2 number_of_stack_items;
-                union verification_type_info *stack;
-            } full_frame;
-        } entries[];
+        union stack_map_frame entries[];
     };
 #endif /* VERSION 50.0 */
 #if VER_CMP(51, 0)
+    struct bootstrap_method
+    {
+        u2 bootstrap_method_ref;
+        u2 num_bootstrap_arguments;
+        u2 *bootstrap_arguments;
+    };
     struct attr_BootstrapMethods_info
     {
         u2 num_bootstrap_methods;
-        struct bootstrap_method
-        {
-            u2 bootstrap_method_ref;
-            u2 num_bootstrap_arguments;
-            u2 *bootstrap_arguments;
-        } bootstrap_methods[];
+        struct bootstrap_method bootstrap_methods[];
     };
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
@@ -598,8 +603,8 @@ extern "C" {
     extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *, u2);
 
     extern u2 getConstant_Utf8Length(ClassFile *, u2);
-    extern char *getConstant_Utf8String(ClassFile *, u2);
-    extern char *getConstant_ClassName(ClassFile *, u2);
+    extern u1 *getConstant_Utf8String(ClassFile *, u2);
+    extern u1 *getConstant_ClassName(ClassFile *, u2);
 
     extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, field_info *, u2 *, attr_info **);
@@ -619,7 +624,7 @@ extern "C" {
     
     extern int isFieldDescriptor(u2, u1 *);
     extern int getMethodParametersCount(ClassFile *, u2);
-    extern char *getClassSimpleName(ClassFile *, u2);
+    extern u1 *getClassSimpleName(ClassFile *, u2);
 #ifdef	__cplusplus
 }
 #endif

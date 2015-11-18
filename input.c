@@ -41,10 +41,10 @@ void bzero(void *ptr, size_t s)
 
 #define PATH_SEPARATOR '/'
 /*
-extern char *
-getParentPath(const char *path)
+extern u1 *
+getParentPath(const u1 *path)
 {
-    char *pp;
+    u1 *pp;
     int i, j, k;
 
     i = j = k = 0;
@@ -159,9 +159,9 @@ scanDir(char *parent, int len_parent,
         }
         else if (S_ISREG(entry_stat.st_mode))
         {
-            if (strcmp(&(parent[len_path - 6]), ".class"))
+            if (strcmp((char *) &(parent[len_path - 6]), ".class"))
                 continue;
-            buffer = (char *) allocMemory(len_path, sizeof (char));
+            buffer = (char *) allocMemory(len_path, sizeof (u1));
             if (!buffer)
                 goto close;
             memcpy(buffer, parent, len_path);
@@ -221,7 +221,7 @@ findClassfile(const char *dir)
     }
     else
     {
-        parent = allocMemory(PATH_MAX + 1, sizeof (char));
+        parent = (char *) allocMemory(PATH_MAX + 1, sizeof (char));
         if (!parent)
             return (struct Deque *) 0;
         len_parent = strlen(dir);
@@ -298,7 +298,7 @@ initBufferIO(struct BufferIO *io)
     if (!io->buffer)
     {
         io->bufsize = 16384;
-        io->buffer = (char *) allocMemory(io->bufsize, sizeof (char));
+        io->buffer = (u1 *) allocMemory(io->bufsize, sizeof (u1));
         if (!io->buffer)
             return;
     }
@@ -312,8 +312,7 @@ initWithFile(struct BufferIO *io, const char *file_path)
 {
 #ifdef LINUX
     struct stat st;
-    char *path_pdir;
-    char *log_name;
+    char *path_pdir, *log_name;
 
     initBufferIO(io);
     if (stat(file_path, &st) < 0)
@@ -368,7 +367,7 @@ initWithZipEntry(struct BufferIO *io, struct zip_file *entry)
 extern int
 ru1(u1 *dst, struct BufferIO * input)
 {
-    char *ptr;
+    u1 *ptr;
 
     ptr = (*input->fp)(input, sizeof (u1));
     if (!ptr)
@@ -386,7 +385,7 @@ ru1(u1 *dst, struct BufferIO * input)
 extern int
 ru2(u2 *dst, struct BufferIO * input)
 {
-    char *ptr;
+    u1 *ptr;
 
     ptr = (*input->fp)(input, sizeof (u2));
     if (!ptr)
@@ -405,7 +404,7 @@ ru2(u2 *dst, struct BufferIO * input)
 extern int
 ru4(u4 *dst, struct BufferIO * input)
 {
-    char *ptr;
+    u1 *ptr;
 
     ptr = (*input->fp)(input, sizeof (u4));
     if (!ptr)
@@ -449,14 +448,14 @@ checkInput(struct BufferIO * input)
     return 0;
 }
 
-extern char *
+extern u1 *
 fillBuffer_f(struct BufferIO * input, int nbits)
 {
     FILE *file;
     int bufsize, buflen, cap, rbit;
 
     if (checkInput(input))
-        return (char *) 0;
+        return (u1 *) 0;
     file = input->file;
     bufsize = input->bufsize;
     if (!file)
@@ -466,7 +465,7 @@ fillBuffer_f(struct BufferIO * input, int nbits)
     if (nbits < 0)
     {
         logError("Parameter 'nbits' in function %s is negative!\r\n", __func__);
-        return (char *) 0;
+        return (u1 *) 0;
     }
 
     // calculate the length of remaining data
@@ -489,7 +488,7 @@ fillBuffer_f(struct BufferIO * input, int nbits)
             if (rbit < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                return (char *) 0;
+                return (u1 *) 0;
             }
             else if (rbit < cap)
                 input->more = 0;
@@ -503,25 +502,25 @@ fillBuffer_f(struct BufferIO * input, int nbits)
     return &(input->buffer[input->bufsrc]);
 }
 
-extern char *
+extern u1 *
 fillBuffer_z(struct BufferIO * input, int nbits)
 {
     struct zip_file *zf;
     int bufsize, buflen, cap, rbit;
 
     if (checkInput(input))
-        return (char *) 0;
+        return (u1 *) 0;
     zf = input->entry;
     bufsize = input->bufsize;
     if (!zf)
     {
         logError("Member 'zf' is NULL!\r\n");
-        return (char *) 0;
+        return (u1 *) 0;
     }
     if (nbits < 0)
     {
         logError("Parameter 'nbits' in function %s is negative!\r\n", __func__);
-        return (char *) 0;
+        return (u1 *) 0;
     }
 
     // calculate the length of remaining data
@@ -546,7 +545,7 @@ fillBuffer_z(struct BufferIO * input, int nbits)
             if (rbit < 0)
             {
                 logError("IO exception in function %s!\r\n", __func__);
-                return (char *) 0;
+                return (u1 *) 0;
             }
             else if (rbit < cap)
                 input->more = 0;
@@ -561,9 +560,9 @@ fillBuffer_z(struct BufferIO * input, int nbits)
 }
 
 extern int
-rbs(char *out, struct BufferIO * input, int nbits)
+rbs(u1 *out, struct BufferIO * input, int nbits)
 {
-    char *buf;
+    u1 *buf;
     int bufsize, rbits;
 
     if (!out)

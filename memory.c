@@ -51,8 +51,8 @@ trimMemory(void *mem)
     int len;
     void *res;
     
-    len = strlen(mem);
-    res = allocMemory(len + 1, sizeof (char));
+    len = strlen((char *) mem);
+    res = allocMemory(len + 1, sizeof (u1));
     if (!res)
         return (void *) 0;
     memcpy(res, mem, len);
@@ -180,7 +180,7 @@ deque_push(struct Deque *deque, int size, void *value)
 }
 
 // Horner's hash method
-static int hash_str(int m, int len, char *str)
+static int hash_str(int m, int len, u1 *str)
 {
     int h, i;
     

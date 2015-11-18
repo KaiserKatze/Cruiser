@@ -131,7 +131,7 @@ extern "C" {
     u2 rt_Class_getModifiers(struct rt_Class *);
     struct rt_Class *rt_Class_getSuperclass(struct rt_Class *);
     struct rt_Class *rt_Class_getComponentType(struct rt_Class *);
-    char *rt_Class_getSimpleName(struct rt_Class *);
+    u1 *rt_Class_getSimpleName(struct rt_Class *);
     
     u2 rt_Class_getInterfacesCount(struct rt_Class *);
     struct rt_Class *rt_Class_getInterfaces(struct rt_Class *);

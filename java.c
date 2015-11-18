@@ -11,8 +11,8 @@ static int get_cp_size(u1);
 static const char *get_cp_name(u1);
 static int validateConstantPool(ClassFile *);
 
-static char *convertAccessFlags_field(u2, u2);
-static char *convertAccessFlags_method(u2, u2);
+static u1 *convertAccessFlags_field(u2, u2);
+static u1 *convertAccessFlags_method(u2, u2);
 
 extern int
 parseClassfile(struct BufferIO * input, ClassFile *cf)
@@ -30,7 +30,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     CONSTANT_MethodHandle_info *cmhi;
     CONSTANT_MethodType_info *cmti;
     CONSTANT_InvokeDynamic_info *cidi;
-    char *buf;
+    u1 *buf;
 
     if (!input)
     {
@@ -168,7 +168,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
 
                     cfi = (CONSTANT_Fieldref_info *) 0;
                     cci = (CONSTANT_Class_info *) 0;
-                    buf = (char *) 0;
+                    buf = (u1 *) 0;
                     break;
                 case CONSTANT_Integer:
                 case CONSTANT_Float:
@@ -280,7 +280,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                         logError("Runtime error!\r\n");
                         return -1;
                     }
-                    logInfo("%.*s\r\n", cui->data->length, (char *) cui->data->bytes);
+                    logInfo("%.*s\r\n", cui->data->length, (u1 *) cui->data->bytes);
 
                     cui = (CONSTANT_Utf8_info *) 0;
                     //cap = 0;
@@ -458,7 +458,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     "\tName index      : #%i\t// %.*s\r\n"
                     "\tDescriptor index: #%i\t// %.*s\r\n",
                     i,
-                    cf->fields[i].access_flags, buf ? buf : "",
+                    cf->fields[i].access_flags, buf ? buf : (u1 *) "",
                     cf->fields[i].name_index,
                     //getConstant_Utf8(cf, cf->fields[i].name_index)->data->length,
                     getConstant_Utf8Length(cf, cf->fields[i].name_index),
@@ -468,7 +468,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     getConstant_Utf8Length(cf, cf->fields[i].descriptor_index),
                     getConstant_Utf8String(cf, cf->fields[i].descriptor_index));
             free(buf);
-            buf = (char *) 0;
+            buf = (u1 *) 0;
             loadAttributes_field(cf, input, &(cf->fields[i]),
                     &(cf->fields[i].attributes_count), &(cf->fields[i].attributes));
             logInfo("\tField Attribute count: %i\r\n",
@@ -535,7 +535,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     "\tName index      : #%i\t// %.*s\r\n"
                     "\tDescriptor index: #%i\t// %.*s (%i)\r\n", i,
                     cf->methods[i].access_flags,
-                    buf ? buf : "",
+                    buf ? buf : (u1 *) "",
                     cf->methods[i].name_index,
                     //getConstant_Utf8(cf, cf->methods[i].name_index)->data->length,
                     getConstant_Utf8Length(cf, cf->methods[i].name_index),
@@ -546,7 +546,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                     getConstant_Utf8String(cf, cf->methods[i].descriptor_index),
                     getMethodParametersCount(cf, cf->methods[i].descriptor_index));
             free(buf);
-            buf = (char *) 0;
+            buf = (u1 *) 0;
             loadAttributes_method(cf, input, &(cf->methods[i]),
                     &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
             logInfo("\tAttribute count : %i\r\n",
@@ -588,7 +588,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
                 cui->data->length,
                 buf,
                 cf->attributes[i].attribute_length);
-        buf = (char *) 0;
+        buf = (u1 *) 0;
     }
 
     return 0;
@@ -651,9 +651,9 @@ freeClassfile(ClassFile *cf)
 #if 0
 
 static int
-getTypeString(int len, char *ft, char *buffer)
+getTypeString(int len, u1 *ft, u1 *buffer)
 {
-    char *res, *name;
+    u1 *res, *name;
     int i, j, k;
 
     res = buffer;
@@ -683,7 +683,7 @@ getTypeString(int len, char *ft, char *buffer)
                 break;
             case 'C':
                 j = 4;
-                name = "char";
+                name = "u1";
                 break;
             case 'D':
                 j = 6;
@@ -721,21 +721,21 @@ getTypeString(int len, char *ft, char *buffer)
     return j;
 }
 
-static char *
-parse_method_descriptor(int desc_len, char * desc)
+static u1 *
+parse_method_descriptor(int desc_len, u1 * desc)
 {
-    char *buffer;
+    u1 *buffer;
     int i, j, isParam, isObj;
     int cap, len;
-    char c;
+    u1 c;
 
     // validate first character
     if (desc[0] != '(')
-        return (char *) 0;
+        return (u1 *) 0;
     cap = 1024;
-    buffer = (char *) malloc(cap);
+    buffer = (u1 *) malloc(cap);
     if (!buffer)
-        return (char *) 0;
+        return (u1 *) 0;
     len = 0;
     j = 0;
     isParam = 1;
@@ -853,30 +853,30 @@ get_cp_name(u1 tag)
     }
 }
 
-static char *
+static u1 *
 convertAccessFlags_field(u2 i, u2 af)
 {
     const static int initBufSize = 0x100;
-    char *buf, *out;
+    u1 *buf, *out;
     int len;
 
     if (!af)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ACC_SYNTHETIC)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ACC_ENUM)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ~ACC_FIELD)
     {
         logError("Unknown flags [0x%X] detected @ cf->fields[%i]:0x%X!\r\n",
                 af & ~ACC_FIELD, i, af);
-        return (char *) 0;
+        return (u1 *) 0;
     }
-    buf = (char *) malloc(initBufSize);
+    buf = (u1 *) malloc(initBufSize);
     if (!buf)
     {
         logError("Fail to allocate memory.\r\n");
-        return (char *) 0;
+        return (u1 *) 0;
     }
     bzero(buf, initBufSize);
     len = 0;
@@ -932,40 +932,40 @@ convertAccessFlags_field(u2 i, u2 af)
     }
 
 end:
-    out = realloc(buf, len + 1);
+    out = (u1 *) realloc(buf, len + 1);
     if (!out)
     {
         free(buf);
-        return buf = (char *) 0;
+        return buf = (u1 *) 0;
     }
     out[len] = 0;
     return out;
 }
 
-static char *
+static u1 *
 convertAccessFlags_method(u2 i, u2 af)
 {
     const static int initBufSize = 0x100;
-    char *buf, *out;
+    u1 *buf, *out;
     int len;
 
     if (!af)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ACC_BRIDGE)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ACC_SYNTHETIC)
-        return (char *) 0;
+        return (u1 *) 0;
     if (af & ~ACC_METHOD)
     {
         logError("Unknown flags [%X] detected @ cf->methods[%i]!\r\n",
                 af & ~ACC_METHOD, i);
-        return (char *) 0;
+        return (u1 *) 0;
     }
-    buf = (char *) malloc(initBufSize);
+    buf = (u1 *) malloc(initBufSize);
     if (!buf)
     {
         logError("Fail to allocate memory.\r\n");
-        return (char *) 0;
+        return (u1 *) 0;
     }
     bzero(buf, initBufSize);
     len = 0;
@@ -1038,11 +1038,11 @@ convertAccessFlags_method(u2 i, u2 af)
     }
 
 end:
-    out = realloc(buf, len + 1);
+    out = (u1 *) realloc(buf, len + 1);
     if (!out)
     {
         free(buf);
-        return buf = (char *) 0;
+        return buf = (u1 *) 0;
     }
     out[len] = 0;
     return out;
@@ -1080,52 +1080,50 @@ getConstant_Utf8Length(ClassFile *cf, u2 index)
     return cu->data->length;
 }
 
-extern char *
+extern u1 *
 getConstant_Utf8String(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *cu;
-    char *str;
+    u1 *str;
 
     cu = getConstant_Utf8(cf, index);
     if (!cu)
-        return (char *) 0;
+        return (u1 *) 0;
     if (!cu->data)
-        return (char *) 0;
+        return (u1 *) 0;
     str = cu->data->bytes;
 
     return str;
 }
 
-extern char *
+extern u1 *
 getConstant_ClassName(ClassFile *cf, u2 index)
 {
     CONSTANT_Class_info *cc;
     
     cc = getConstant_Class(cf, index);
     if (!cc)
-        return (char *) 0;
+        return (u1 *) 0;
     if (!cc->data)
-        return (char *) 0;
+        return (u1 *) 0;
 
     return getConstant_Utf8String(cf, cc->data->name_index);
 }
 
 // index should be valid entry into constant pool and the entry must be a method reference
-extern char *
+extern u1 *
 getConstant_MethodName(ClassFile *cf, u2 index)
 {
     CONSTANT_Methodref_info *cmi;
     CONSTANT_NameAndType_info *cni;
-    char *name;
+    CONSTANT_Utf8_info *cui;
+    u1 *name;
     
     cmi = getConstant_Methodref(cf, index);
-    if (!cmi) return (char *) 0;
     cni = getConstant_NameAndType(cf, cmi->data->name_and_type_index);
-    if (!cni) return (char *) 0;
-    name = getConstant_Utf8String(cf, cni->data->name_index);
-    if (!name) return (char *) 0;
-    if (strcmp(name, "<init>"))
-        return name;
+    cui = getConstant_Utf8(cf, cni->data->name_index);
+    if (strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
+        return cui->data->bytes;
     return getConstant_ClassName(cf, cmi->data->class_index);
 }
 
@@ -1463,8 +1461,8 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             if (validateConstantPoolEntry(cf, cni->data->name_index, bul, CONSTANT_Utf8) < 0)
                 return -1;
             cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-            if (strncmp(cui->data->bytes, "<init>", 6)
-                    && strncmp(cui->data->bytes, "<clinit>", 8))
+            if (strncmp((char *) cui->data->bytes, "<init>", cui->data->length)
+                    && strncmp((char *) cui->data->bytes, "<clinit>", cui->data->length))
             {
                 for (j = 0; j < cui->data->length; j++)
                 {
@@ -1521,13 +1519,13 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                     cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
                     cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
                     cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (!strncmp(cui->data->bytes, "<init>", 6))
+                    if (!strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
                     {
                         logError("Method name '<init>' is invalid because MethodHandle reference kind is %i!\r\n",
                                 cmhi->data->reference_kind);
                         return -1;
                     }
-                    if (!strncmp(cui->data->bytes, "<clinit>", 8))
+                    else if (!strncmp((char *) cui->data->bytes, "<clinit>", cui->data->length))
                     {
                         logError("Method name '<clinit>' is invalid because MethodHandle reference kind is %i!\r\n",
                                 cmhi->data->reference_kind);
@@ -1538,7 +1536,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                     cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
                     cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
                     cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (strncmp(cui->data->bytes, "<init>", 6))
+                    if (strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
                     {
                         logError("Method name '%.*s' is invalid because MethodHandle reference kind is %i!\r\n",
                                 cui->data->length, cui->data->bytes, cmhi->data->reference_kind);
@@ -1566,7 +1564,8 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             {
                 if (cf->attributes[j].tag != TAG_ATTR_BOOTSTRAPMETHODS)
                     continue;
-                dataBootstrapMethods = cf->attributes[j].data;
+                dataBootstrapMethods = (struct attr_BootstrapMethods_info *)
+                        cf->attributes[j].data;
                 if (validateConstantPoolEntry(cf, dataBootstrapMethods->bootstrap_methods[cidi->data->bootstrap_method_attr_index].bootstrap_method_ref, bul, CONSTANT_MethodHandle) < 0)
                     return -1;
                 // TODO validate 'bootstrap_arguments' P140
@@ -1678,12 +1677,12 @@ extern int getMethodParametersCount(ClassFile *cf, u2 descriptor_index)
     return -1;
 }
 
-extern char *getClassSimpleName(ClassFile *cf, u2 class_name_index)
+extern u1 *getClassSimpleName(ClassFile *cf, u2 class_name_index)
 {
     CONSTANT_Utf8_info *cui;
     u2 i, j, len;
     u1 *str;
-    char *res;
+    u1 *res;
     
     cui = getConstant_Utf8(cf, class_name_index);
     len = cui->data->length;
@@ -1701,72 +1700,72 @@ extern char *getClassSimpleName(ClassFile *cf, u2 class_name_index)
     switch (str[i])
     {
         case 'B':
-            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(5 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "byte", 4);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 4 + 2 * j, "[]", 2);
             break;
         case 'C':
-            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(5 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
-            memcpy(res, "char", 4);
+                return (u1 *) 0;
+            memcpy(res, "u1", 4);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 4 + 2 * j, "[]", 2);
             break;
         case 'D':
-            res = (char *) allocMemory(7 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(7 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "double", 6);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 6 + 2 * j, "[]", 2);
             break;
         case 'F':
-            res = (char *) allocMemory(6 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(6 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "float", 5);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 5 + 2 * j, "[]", 2);
             break;
         case 'I':
-            res = (char *) allocMemory(4 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(4 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "int", 3);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 3 + 2 * j, "[]", 2);
             break;
         case 'J':
-            res = (char *) allocMemory(5 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(5 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "long", 4);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 4 + 2 * j, "[]", 2);
             break;
         case 'S':
-            res = (char *) allocMemory(6 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(6 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "short", 5);
             if (i)
                 for (j = 0; j < i; j++)
                     memcpy(res + 5 + 2 * j, "[]", 2);
             break;
         case 'Z':
-            res = (char *) allocMemory(8 + i * 2, sizeof (char));
+            res = (u1 *) allocMemory(8 + i * 2, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             memcpy(res, "boolean", 7);
             if (i)
                 for (j = 0; j < i; j++)
@@ -1779,9 +1778,9 @@ extern char *getClassSimpleName(ClassFile *cf, u2 class_name_index)
                 if (str[++i] == ';')
                     break;
             len = i - (j + 1);
-            res = (char *) allocMemory(len + j * 2 + 1, sizeof (char));
+            res = (u1 *) allocMemory(len + j * 2 + 1, sizeof (u1));
             if (!res)
-                return (char *) 0;
+                return (u1 *) 0;
             for (i = 0; i < len; i++)
             {
                 res[i] = *(str + j + 1 + i);
@@ -1793,7 +1792,7 @@ extern char *getClassSimpleName(ClassFile *cf, u2 class_name_index)
             break;
         default:
             logError("Assertion error: Unknown token [%c]!\r\n", str[i]);
-            return (char *) 0;
+            return (u1 *) 0;
     }
     
     return res;

@@ -5,6 +5,7 @@
 #include "java.h"
 #include "opcode.h"
 #include "log.h"
+#include "memory.h"
 
 #define T_BOOLEAN   4
 #define T_CHAR      5
@@ -838,18 +839,20 @@ disassembleCode(u4 code_length, u1 *code)
 }
 
 #if 1
+struct _StackOutputEntry
+{
+    u2 is_const;
+    u2 category;
+    u2 count;
+    u2 length;
+    u1 *bytes;
+};
+
 struct _StackOutput
 {
     u2 max;
     u2 off;
-    struct _StackOutputEntry
-    {
-        u2 is_const;
-        u2 category;
-        u2 count;
-        u2 length;
-        char *bytes;
-    } entries[];
+    struct _StackOutputEntry entries[];
 };
 
 static struct _StackOutput *sop_newStackOutput(u2 max_stack)
@@ -866,7 +869,7 @@ static struct _StackOutput *sop_newStackOutput(u2 max_stack)
 }
 
 static int sop_push(struct _StackOutput *output, u2 is_const, u2 category,
-        u2 count, u2 length, char *bytes)
+        u2 count, u2 length, u1 *bytes)
 {
     struct _StackOutputEntry *entry;
     
@@ -885,9 +888,9 @@ static int sop_push(struct _StackOutput *output, u2 is_const, u2 category,
     return 0;
 }
 
-static int sop_push_c(struct _StackOutput *output, u2 category, u2 count, char *bytes)
+static int sop_push_c(struct _StackOutput *output, u2 category, u2 count, u1 *bytes)
 {
-    return sop_push(output, 1, category, count, strlen(bytes), bytes);
+    return sop_push(output, 1, category, count, strlen((char *) bytes), bytes);
 }
 
 static int sop_push_e(struct _StackOutput *output, struct _StackOutputEntry *newentry)
@@ -964,24 +967,24 @@ static int sop_flush(struct _StackOutput *output)
         for (i = count; i > 0;)
         {
             entry = sop_pop(output);
-            if (snprintf(buff, entry->length + 1, split[--i], entry->bytes) < 0)
+            if (snprintf((char *) buff, entry->length + 1, split[--i], (char *) entry->bytes) < 0)
                 return -1;
         }
     }
     return 0;
 }
 
-static char *
+static u1 *
 generateParameterFormat(int parameters_count)
 {
-    char *res, *ptr;
+    u1 *res, *ptr;
     int i;
     
     if (parameters_count <= 0)
-        return (char *) 0;
-    res = (char *) allocMemory(parameters_count * 4 - 2, sizeof (char));
+        return (u1 *) 0;
+    res = (u1 *) allocMemory(parameters_count * 4 - 2, sizeof (u1));
     if (!res)
-        return (char *) 0;
+        return (u1 *) 0;
     ptr = res;
     memcpy(ptr, "%s", 2);
     ptr += 2;
@@ -995,7 +998,7 @@ generateParameterFormat(int parameters_count)
 }
 
 static inline int
-getComputationalType0(char token)
+getComputationalType0(u1 token)
 {
     switch (token)
     {
@@ -1023,10 +1026,10 @@ getComputationalType_field(CONSTANT_Utf8_info *cui)
 static int
 getComputationalType_method(CONSTANT_Utf8_info *cui)
 {
-    char *puf;
+    u1 *puf;
     
     for (puf = cui->data->bytes;
-            puf < (char *) (cui->data->bytes + cui->data->length);
+            puf < (u1 *) (cui->data->bytes + cui->data->length);
             puf++)
     {
         if (*puf != ')')
@@ -1048,7 +1051,7 @@ decompileCode(ClassFile *cf, method_info *method,
     struct _StackOutputEntry entry1, entry2, entry3, entry4;
     u4 i, j, k, l, p;
     u1 inCatch, *code;
-    char **localNames, *buf, *puf;
+    u1 **localNames, *buf, *puf;
     cp_info *info;
     CONSTANT_Fieldref_info *cfi;
     CONSTANT_Methodref_info *cmi;
@@ -1068,7 +1071,7 @@ decompileCode(ClassFile *cf, method_info *method,
     output = sop_newStackOutput(code_info->max_stack);
     if (!output)
         return -1;
-    localNames = (char **) allocMemory(code_info->max_locals, sizeof (char *));
+    localNames = (u1 **) allocMemory(code_info->max_locals, sizeof (u1 *));
     if (!localNames)
         return -1;
     code = code_info->code;
@@ -1108,65 +1111,65 @@ decompileCode(ClassFile *cf, method_info *method,
             case OPCODE_nop:
                 break;
             case OPCODE_aconst_null:
-                sop_push_c(output, 1, 0, "null");
+                sop_push_c(output, 1, 0, (u1 *) "null");
                 // ... -> ..., null
                 break;
             case OPCODE_iconst_m1:
-                sop_push_c(output, 1, 0, "-1");
+                sop_push_c(output, 1, 0, (u1 *) "-1");
                 break;
             /* push value */
             case OPCODE_iconst_0:
-                sop_push_c(output, 1, 0, "0");
+                sop_push_c(output, 1, 0, (u1 *) "0");
                 break;
             case OPCODE_iconst_1:
-                sop_push_c(output, 1, 0, "1");
+                sop_push_c(output, 1, 0, (u1 *) "1");
                 break;
             case OPCODE_iconst_2:
-                sop_push_c(output, 1, 0, "2");
+                sop_push_c(output, 1, 0, (u1 *) "2");
                 break;
             case OPCODE_iconst_3:
-                sop_push_c(output, 1, 0, "3");
+                sop_push_c(output, 1, 0, (u1 *) "3");
                 break;
             case OPCODE_iconst_4:
-                sop_push_c(output, 1, 0, "4");
+                sop_push_c(output, 1, 0, (u1 *) "4");
                 break;
             case OPCODE_iconst_5:
-                sop_push_c(output, 1, 0, "5");
+                sop_push_c(output, 1, 0, (u1 *) "5");
                 break;
             case OPCODE_lconst_0:
-                sop_push_c(output, 2, 0, "0L");
+                sop_push_c(output, 2, 0, (u1 *) "0L");
                 break;
             case OPCODE_lconst_1:
-                sop_push_c(output, 2, 0, "1L");
+                sop_push_c(output, 2, 0, (u1 *) "1L");
                 break;
             case OPCODE_fconst_0:
-                sop_push_c(output, 1, 0, "0.0F");
+                sop_push_c(output, 1, 0, (u1 *) "0.0F");
                 break;
             case OPCODE_fconst_1:
-                sop_push_c(output, 1, 0, "1.0F");
+                sop_push_c(output, 1, 0, (u1 *) "1.0F");
                 break;
             case OPCODE_fconst_2:
-                sop_push_c(output, 1, 0, "2.0F");
+                sop_push_c(output, 1, 0, (u1 *) "2.0F");
                 break;
             case OPCODE_dconst_0:
-                sop_push_c(output, 2, 0, "0.0");
+                sop_push_c(output, 2, 0, (u1 *) "0.0");
                 break;
             case OPCODE_dconst_1:
-                sop_push_c(output, 2, 0, "1.0");
+                sop_push_c(output, 2, 0, (u1 *) "1.0");
                 break;
             case OPCODE_bipush:
-                buf = (char *) allocMemory(4, sizeof (char));
-                if (sprintf(buf, "%i", code[++i]) < 0)
+                buf = (u1 *) allocMemory(4, sizeof (u1));
+                if (sprintf((char *) buf, "%i", code[++i]) < 0)
                     return -1;
-                sop_push(output, 0, 1, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_sipush:
-                buf = (char *) allocMemory(6, sizeof (char));
-                if (sprintf(buf, "%i", (code[++i] << 8) | code[++i]) < 0)
+                buf = (u1 *) allocMemory(6, sizeof (u1));
+                if (sprintf((char *) buf, "%i", (code[++i] << 8) | code[++i]) < 0)
                     return -1;
-                sop_push(output, 0, 1, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_ldc:
                 info = &(cf->constant_pool[code[++i]]);
@@ -1176,36 +1179,36 @@ decompileCode(ClassFile *cf, method_info *method,
                 {
                     case CONSTANT_Integer:
                         cii = (CONSTANT_Integer_info *) info;
-                        buf = (char *) allocMemory(11, sizeof (char));
+                        buf = (u1 *) allocMemory(11, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "%i", cii->data->bytes);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "%i", cii->data->bytes);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_Float:
                         cii = (CONSTANT_Integer_info *) info;
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "%fF", cii->data->float_value);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "%fF", cii->data->float_value);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_String:
                         cui = (CONSTANT_Utf8_info *) info;
-                        buf = (char *) allocMemory(cui->data->length, sizeof (char));
+                        buf = (u1 *) allocMemory(cui->data->length, sizeof (u1));
                         if (!buf)
                             return -1;
                         memcpy(buf, cui->data->bytes, cui->data->length);
                         sop_push(output, 0, 1, 0, cui->data->length, buf);
-                        buf = (char *) 0;
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_Class:
                         cci = (CONSTANT_Class_info *) info;
                         buf = getClassSimpleName(cf, cci->data->name_index);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     default:
                         logError("Unsupported ldc target with [%i] tag!\r\n", info->tag);
@@ -1220,36 +1223,36 @@ decompileCode(ClassFile *cf, method_info *method,
                 {
                     case CONSTANT_Integer:
                         cii = (CONSTANT_Integer_info *) info;
-                        buf = (char *) allocMemory(11, sizeof (char));
+                        buf = (u1 *) allocMemory(11, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "%i", cii->data->bytes);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "%i", cii->data->bytes);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_Float:
                         cii = (CONSTANT_Integer_info *) info;
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "%fF", cii->data->float_value);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "%fF", cii->data->float_value);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_String:
                         cui = (CONSTANT_Utf8_info *) info;
-                        buf = (char *) allocMemory(cui->data->length, sizeof (char));
+                        buf = (u1 *) allocMemory(cui->data->length, sizeof (u1));
                         if (!buf)
                             return -1;
                         memcpy(buf, cui->data->bytes, cui->data->length);
                         sop_push(output, 0, 1, 0, cui->data->length, buf);
-                        buf = (char *) 0;
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_Class:
                         cci = (CONSTANT_Class_info *) info;
                         buf = getClassSimpleName(cf, cci->data->name_index);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     default:
                         logError("Unsupported ldc_w target with [%i] tag!\r\n", info->tag);
@@ -1264,21 +1267,21 @@ decompileCode(ClassFile *cf, method_info *method,
                 {
                     case CONSTANT_Long:
                         cli = (CONSTANT_Long_info *) info;
-                        buf = (char *) allocMemory(20, sizeof (char));
+                        buf = (u1 *) allocMemory(20, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "0x%llxL", cli->data->long_value);
-                        sop_push(output, 0, 2, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "0x%llxL", cli->data->long_value);
+                        sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case CONSTANT_Double:
                         cli = (CONSTANT_Long_info *) info;
-                        buf = (char *) allocMemory(32, sizeof (char));
+                        buf = (u1 *) allocMemory(32, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "%fD", cli->data->double_value);
-                        sop_push(output, 0, 2, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "%fD", cli->data->double_value);
+                        sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     default:
                         logError("Unsupported ldc2_w target with [%i] tag!\r\n", info->tag);
@@ -1286,104 +1289,104 @@ decompileCode(ClassFile *cf, method_info *method,
                 }
                 break;
             case OPCODE_iload:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "iV%i", code[++i]);
-                sop_push(output, 0, 1, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "iV%i", code[++i]);
+                sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_lload:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "lV%i", code[++i]);
-                sop_push(output, 0, 2, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "lV%i", code[++i]);
+                sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_fload:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "fV%i", code[++i]);
-                sop_push(output, 0, 1, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "fV%i", code[++i]);
+                sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_dload:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "dV%i", code[++i]);
-                sop_push(output, 0, 2, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "dV%i", code[++i]);
+                sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_aload:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "aV%i", code[++i]);
-                sop_push(output, 0, 1, 0, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "aV%i", code[++i]);
+                sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_iload_0:
-                sop_push_c(output, 1, 0, "iV0");
+                sop_push_c(output, 1, 0, (u1 *) "iV0");
                 break;
             case OPCODE_iload_1:
-                sop_push_c(output, 1, 0, "iV1");
+                sop_push_c(output, 1, 0, (u1 *) "iV1");
                 break;
             case OPCODE_iload_2:
-                sop_push_c(output, 1, 0, "iV2");
+                sop_push_c(output, 1, 0, (u1 *) "iV2");
                 break;
             case OPCODE_iload_3:
-                sop_push_c(output, 1, 0, "iV3");
+                sop_push_c(output, 1, 0, (u1 *) "iV3");
                 break;
             case OPCODE_lload_0:
-                sop_push_c(output, 1, 0, "lV0");
+                sop_push_c(output, 1, 0, (u1 *) "lV0");
                 break;
             case OPCODE_lload_1:
-                sop_push_c(output, 2, 0, "lV1");
+                sop_push_c(output, 2, 0, (u1 *) "lV1");
                 break;
             case OPCODE_lload_2:
-                sop_push_c(output, 2, 0, "lV2");
+                sop_push_c(output, 2, 0, (u1 *) "lV2");
                 break;
             case OPCODE_lload_3:
-                sop_push_c(output, 2, 0, "lV3");
+                sop_push_c(output, 2, 0, (u1 *) "lV3");
                 break;
             case OPCODE_fload_0:
-                sop_push_c(output, 1, 0, "fV0");
+                sop_push_c(output, 1, 0, (u1 *) "fV0");
                 break;
             case OPCODE_fload_1:
-                sop_push_c(output, 1, 0, "fV1");
+                sop_push_c(output, 1, 0, (u1 *) "fV1");
                 break;
             case OPCODE_fload_2:
-                sop_push_c(output, 1, 0, "fV2");
+                sop_push_c(output, 1, 0, (u1 *) "fV2");
                 break;
             case OPCODE_fload_3:
-                sop_push_c(output, 1, 0, "fV3");
+                sop_push_c(output, 1, 0, (u1 *) "fV3");
                 break;
             case OPCODE_dload_0:
-                sop_push_c(output, 2, 0, "dV0");
+                sop_push_c(output, 2, 0, (u1 *) "dV0");
                 break;
             case OPCODE_dload_1:
-                sop_push_c(output, 2, 0, "dV1");
+                sop_push_c(output, 2, 0, (u1 *) "dV1");
                 break;
             case OPCODE_dload_2:
-                sop_push_c(output, 2, 0, "dV2");
+                sop_push_c(output, 2, 0, (u1 *) "dV2");
                 break;
             case OPCODE_dload_3:
-                sop_push_c(output, 2, 0, "dV3");
+                sop_push_c(output, 2, 0, (u1 *) "dV3");
                 break;
             case OPCODE_aload_0:
-                sop_push_c(output, 1, 0, "aV0");
+                sop_push_c(output, 1, 0, (u1 *) "aV0");
                 break;
             case OPCODE_aload_1:
-                sop_push_c(output, 1, 0, "aV1");
+                sop_push_c(output, 1, 0, (u1 *) "aV1");
                 break;
             case OPCODE_aload_2:
-                sop_push_c(output, 1, 0, "aV2");
+                sop_push_c(output, 1, 0, (u1 *) "aV2");
                 break;
             case OPCODE_aload_3:
-                sop_push_c(output, 1, 0, "aV3");
+                sop_push_c(output, 1, 0, (u1 *) "aV3");
                 break;
             case OPCODE_iaload:
             case OPCODE_faload:
@@ -1391,112 +1394,112 @@ decompileCode(ClassFile *cf, method_info *method,
             case OPCODE_baload:
             case OPCODE_caload:
             case OPCODE_saload:
-                sop_push_c(output, 1, 2, "%s[%s]");
+                sop_push_c(output, 1, 2, (u1 *) "%s[%s]");
                 break;
             case OPCODE_laload:
             case OPCODE_daload:
-                sop_push_c(output, 2, 2, "%s[%s]");
+                sop_push_c(output, 2, 2, (u1 *) "%s[%s]");
                 break;
             /* store value into given index of an array */
             case OPCODE_istore:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "iV%i = %%s", code[++i]);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "iV%i = %%s", code[++i]);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_lstore:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "lV%i = %%s", code[++i]);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "lV%i = %%s", code[++i]);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_fstore:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "fV%i = %%s", code[++i]);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "fV%i = %%s", code[++i]);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_dstore:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "dV%i = %%s", code[++i]);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "dV%i = %%s", code[++i]);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_astore:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "aV%i = %%s", code[++i]);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                sprintf((char *) buf, "aV%i = %%s", code[++i]);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_istore_0:
-                sop_push_c(output, 0, 1, "iV0 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "iV0 = %s");
                 break;
             case OPCODE_istore_1:
-                sop_push_c(output, 0, 1, "iV1 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "iV1 = %s");
                 break;
             case OPCODE_istore_2:
-                sop_push_c(output, 0, 1, "iV2 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "iV2 = %s");
                 break;
             case OPCODE_istore_3:
-                sop_push_c(output, 0, 1, "iV3 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "iV3 = %s");
                 break;
             case OPCODE_lstore_0:
-                sop_push_c(output, 0, 1, "lV0 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "lV0 = %s");
                 break;
             case OPCODE_lstore_1:
-                sop_push_c(output, 0, 1, "lV1 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "lV1 = %s");
                 break;
             case OPCODE_lstore_2:
-                sop_push_c(output, 0, 1, "lV2 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "lV2 = %s");
                 break;
             case OPCODE_lstore_3:
-                sop_push_c(output, 0, 1, "lV3 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "lV3 = %s");
                 break;
             case OPCODE_fstore_0:
-                sop_push_c(output, 0, 1, "fV0 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "fV0 = %s");
                 break;
             case OPCODE_fstore_1:
-                sop_push_c(output, 0, 1, "fV1 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "fV1 = %s");
                 break;
             case OPCODE_fstore_2:
-                sop_push_c(output, 0, 1, "fV2 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "fV2 = %s");
                 break;
             case OPCODE_fstore_3:
-                sop_push_c(output, 0, 1, "fV3 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "fV3 = %s");
                 break;
             case OPCODE_dstore_0:
-                sop_push_c(output, 0, 1, "dV0 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "dV0 = %s");
                 break;
             case OPCODE_dstore_1:
-                sop_push_c(output, 0, 1, "dV1 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "dV1 = %s");
                 break;
             case OPCODE_dstore_2:
-                sop_push_c(output, 0, 1, "dV2 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "dV2 = %s");
                 break;
             case OPCODE_dstore_3:
-                sop_push_c(output, 0, 1, "dV3 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "dV3 = %s");
                 break;
             case OPCODE_astore_0:
-                sop_push_c(output, 0, 1, "aV0 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "aV0 = %s");
                 break;
             case OPCODE_astore_1:
-                sop_push_c(output, 0, 1, "aV1 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "aV1 = %s");
                 break;
             case OPCODE_astore_2:
-                sop_push_c(output, 0, 1, "aV2 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "aV2 = %s");
                 break;
             case OPCODE_astore_3:
-                sop_push_c(output, 0, 1, "aV3 = %s");
+                sop_push_c(output, 0, 1, (u1 *) "aV3 = %s");
                 break;
             /* store into array */
             // ..., arrayref, index, value -> ...
@@ -1508,7 +1511,7 @@ decompileCode(ClassFile *cf, method_info *method,
             case OPCODE_bastore:
             case OPCODE_castore:
             case OPCODE_sastore:
-                sop_push_c(output, 0, 3, "%s[%s] = %s");
+                sop_push_c(output, 0, 3, (u1 *) "%s[%s] = %s");
                 break;
             /* stack access */
             case OPCODE_pop:
@@ -1721,145 +1724,145 @@ decompileCode(ClassFile *cf, method_info *method,
             /* arithmetic calculation */
             case OPCODE_iadd:
             case OPCODE_fadd:
-                sop_push_c(output, 1, 2, "(%s + %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s + %s)");
                 break;
             case OPCODE_ladd:
             case OPCODE_dadd:
-                sop_push_c(output, 2, 2, "(%s + %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s + %s)");
                 break;
             case OPCODE_isub:
             case OPCODE_fsub:
-                sop_push_c(output, 1, 2, "(%s - %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s - %s)");
                 break;
             case OPCODE_lsub:
             case OPCODE_dsub:
-                sop_push_c(output, 2, 2, "(%s - %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s - %s)");
                 break;
             case OPCODE_imul:
             case OPCODE_fmul:
-                sop_push_c(output, 1, 2, "%s * %s");
+                sop_push_c(output, 1, 2, (u1 *) "%s * %s");
                 break;
             case OPCODE_lmul:
             case OPCODE_dmul:
-                sop_push_c(output, 2, 2, "%s * %s");
+                sop_push_c(output, 2, 2, (u1 *) "%s * %s");
                 break;
             case OPCODE_idiv:
             case OPCODE_fdiv:
-                sop_push_c(output, 1, 2, "%s / %s");
+                sop_push_c(output, 1, 2, (u1 *) "%s / %s");
                 break;
             case OPCODE_ldiv:
             case OPCODE_ddiv:
-                sop_push_c(output, 2, 2, "%s / %s");
+                sop_push_c(output, 2, 2, (u1 *) "%s / %s");
                 break;
             /* remainder */
             case OPCODE_irem:
             case OPCODE_frem:
-                sop_push_c(output, 1, 2, "%s %% %s");
+                sop_push_c(output, 1, 2, (u1 *) "%s %% %s");
                 break;
             case OPCODE_lrem:
             case OPCODE_drem:
-                sop_push_c(output, 2, 2, "%s %% %s");
+                sop_push_c(output, 2, 2, (u1 *) "%s %% %s");
                 break;
             /* negate value */
             case OPCODE_ineg:
             case OPCODE_fneg:
-                sop_push_c(output, 1, 1, "(-%s)");
+                sop_push_c(output, 1, 1, (u1 *) "(-%s)");
                 break;
             case OPCODE_lneg:
             case OPCODE_dneg:
-                sop_push_c(output, 2, 1, "(-%s)");
+                sop_push_c(output, 2, 1, (u1 *) "(-%s)");
                 break;
             /* shift */
             case OPCODE_ishl:
-                sop_push_c(output, 1, 2, "(%s << %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s << %s)");
                 break;
             case OPCODE_ishr:
-                sop_push_c(output, 1, 2, "(%s >> %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s >> %s)");
                 break;
             case OPCODE_lshl:
-                sop_push_c(output, 2, 2, "(%s << %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s << %s)");
                 break;
             case OPCODE_lshr:
-                sop_push_c(output, 2, 2, "(%s >> %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s >> %s)");
                 break;
             case OPCODE_iushr:
-                sop_push_c(output, 1, 2, "(%s >>> %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s >>> %s)");
                 break;
             case OPCODE_lushr:
-                sop_push_c(output, 2, 2, "(%s >>> %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s >>> %s)");
                 break;
             case OPCODE_iand:
-                sop_push_c(output, 1, 2, "(%s & %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s & %s)");
                 break;
             case OPCODE_land:
-                sop_push_c(output, 2, 2, "(%s & %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s & %s)");
                 break;
             case OPCODE_ior:
-                sop_push_c(output, 1, 2, "(%s | %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s | %s)");
                 break;
             case OPCODE_lor:
-                sop_push_c(output, 2, 2, "(%s | %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s | %s)");
                 break;
             case OPCODE_ixor:
-                sop_push_c(output, 1, 2, "(%s ^ %s)");
+                sop_push_c(output, 1, 2, (u1 *) "(%s ^ %s)");
                 break;
             case OPCODE_lxor:
-                sop_push_c(output, 2, 2, "(%s ^ %s)");
+                sop_push_c(output, 2, 2, (u1 *) "(%s ^ %s)");
                 break;
             case OPCODE_iinc:
                 // increment local variable by constant
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "iV%i += %i", code[++i], code[++i]);
+                sprintf((char *) buf, "iV%i += %i", code[++i], code[++i]);
                 sop_push_c(output, 0, 0, buf);
-                buf = (char *) 0;
+                buf = (u1 *) 0;
                 break;
             /* Type conversion */
             case OPCODE_i2l:
-                sop_push_c(output, 2, 0, "(long) ");
+                sop_push_c(output, 2, 0, (u1 *) "(long) ");
                 break;
             case OPCODE_i2f:
-                sop_push_c(output, 1, 0, "(float) ");
+                sop_push_c(output, 1, 0, (u1 *) "(float) ");
                 break;
             case OPCODE_i2d:
-                sop_push_c(output, 2, 0, "(double) ");
+                sop_push_c(output, 2, 0, (u1 *) "(double) ");
                 break;
             case OPCODE_l2i:
-                sop_push_c(output, 1, 0, "(int) ");
+                sop_push_c(output, 1, 0, (u1 *) "(int) ");
                 break;
             case OPCODE_l2f:
-                sop_push_c(output, 1, 0, "(float) ");
+                sop_push_c(output, 1, 0, (u1 *) "(float) ");
                 break;
             case OPCODE_l2d:
-                sop_push_c(output, 2, 0, "(double) ");
+                sop_push_c(output, 2, 0, (u1 *) "(double) ");
                 break;
             case OPCODE_f2i:
-                sop_push_c(output, 1, 0, "(int) ");
+                sop_push_c(output, 1, 0, (u1 *) "(int) ");
                 break;
             case OPCODE_f2l:
-                sop_push_c(output, 2, 0, "(long) ");
+                sop_push_c(output, 2, 0, (u1 *) "(long) ");
                 break;
             case OPCODE_f2d:
-                sop_push_c(output, 2, 0, "(double) ");
+                sop_push_c(output, 2, 0, (u1 *) "(double) ");
                 break;
             case OPCODE_d2i:
-                sop_push_c(output, 1, 0, "(int) ");
+                sop_push_c(output, 1, 0, (u1 *) "(int) ");
                 break;
             case OPCODE_d2l:
-                sop_push_c(output, 2, 0, "(long) ");
+                sop_push_c(output, 2, 0, (u1 *) "(long) ");
                 break;
             case OPCODE_d2f:
-                sop_push_c(output, 1, 0, "(float) ");
+                sop_push_c(output, 1, 0, (u1 *) "(float) ");
                 break;
             case OPCODE_i2b:
-                sop_push_c(output, 1, 0, "(byte) ");
+                sop_push_c(output, 1, 0, (u1 *) "(byte) ");
                 break;
             case OPCODE_i2c:
-                sop_push_c(output, 1, 0, "(char) ");
+                sop_push_c(output, 1, 0, (u1 *) "(u1) ");
                 break;
             case OPCODE_i2s:
-                sop_push_c(output, 1, 0, "(short) ");
+                sop_push_c(output, 1, 0, (u1 *) "(short) ");
                 break;
             /* compare two values */
             // if 'value1' is greater than 'value2', then int value 1 is pushed
@@ -1977,15 +1980,15 @@ decompileCode(ClassFile *cf, method_info *method,
             case OPCODE_freturn:
             case OPCODE_dreturn:
             case OPCODE_areturn:
-                sop_push_c(output, 0, 1, "return %s");
+                sop_push_c(output, 0, 1, (u1 *) "return %s");
                 break;
             case OPCODE_return:
-                sop_push_c(output, 0, 0, "return");
+                sop_push_c(output, 0, 0, (u1 *) "return");
                 // return void from method
                 break;
             case OPCODE_getstatic:
                 // get static field from class
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 cfi = getConstant_Fieldref(cf, (code[++i] << 8) | code[++i]);
@@ -1996,16 +1999,16 @@ decompileCode(ClassFile *cf, method_info *method,
                     return -1;
                 cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                sprintf(buf, "%s.%.*s", puf, cui->data->length, cui->data->bytes);
+                sprintf((char *) buf, "%s.%.*s", puf, cui->data->length, cui->data->bytes);
                 freeMemory(puf);
-                puf = (char *) 0;
+                puf = (u1 *) 0;
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_field(cui),
-                        0, strlen(buf), buf);
+                        0, strlen((char *) buf), buf);
                 break;
             case OPCODE_putstatic:
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 cfi = getConstant_Fieldref(cf, (code[++i] << 8) | code[++i]);
@@ -2016,15 +2019,15 @@ decompileCode(ClassFile *cf, method_info *method,
                     return -1;
                 cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                sprintf(buf, "%s.%.*s = %%s", puf, cui->data->length, cui->data->bytes);
+                sprintf((char *) buf, "%s.%.*s = %%s", puf, cui->data->length, cui->data->bytes);
                 freeMemory(puf);
-                puf = (char *) 0;
-                buf = (char *) trimMemory(buf);
-                sop_push(output, 0, 0, 1, strlen(buf), buf);
+                puf = (u1 *) 0;
+                buf = (u1 *) trimMemory(buf);
+                sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
                 break;
             case OPCODE_getfield:
                 // Fetch field from object
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 cfi = getConstant_Fieldref(cf, (code[++i] << 8) | code[++i]);
@@ -2032,14 +2035,14 @@ decompileCode(ClassFile *cf, method_info *method,
                     return -1;
                 cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                sprintf(buf, "%%s.%.*s", cui->data->length, cui->data->bytes);
+                sprintf((char *) buf, "%%s.%.*s", cui->data->length, cui->data->bytes);
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_field(cui),
-                        1, strlen(buf), buf);
+                        1, strlen((char *) buf), buf);
                 break;
             case OPCODE_putfield:
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 cfi = getConstant_Fieldref(cf, (code[++i] << 8) | code[++i]);
@@ -2047,10 +2050,10 @@ decompileCode(ClassFile *cf, method_info *method,
                     return -1;
                 cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                sprintf(buf, "%%s.%.*s = %%s", cui->data->length, cui->data->bytes);
+                sprintf((char *) buf, "%%s.%.*s = %%s", cui->data->length, cui->data->bytes);
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
-                sop_push(output, 0, 0, 2, strlen(buf), buf);
+                buf = (u1 *) trimMemory(buf);
+                sop_push(output, 0, 0, 2, strlen((char *) buf), buf);
                 break;
             // Invoke instance method; dispatch based on class
             case OPCODE_invokevirtual:
@@ -2063,18 +2066,18 @@ decompileCode(ClassFile *cf, method_info *method,
                 if (!puf)
                     return -1;
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
+                sprintf((char *) buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
                 freeMemory(puf);
                 // determine return type category
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_method(cui),
-                        1 + methodParametersCount, strlen(buf), buf);
-                puf = (char *) 0;
-                buf = (char *) 0;
+                        1 + methodParametersCount, strlen((char *) buf), buf);
+                puf = (u1 *) 0;
+                buf = (u1 *) 0;
                 break;
             // Invoke instance method; special handling for superclass, private,
             // and instance initialization method invocations
@@ -2089,18 +2092,18 @@ decompileCode(ClassFile *cf, method_info *method,
                 if (!puf)
                     return -1;
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
+                sprintf((char *) buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
                 freeMemory(puf);
                 // determine return type category
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_method(cui),
-                        1 + methodParametersCount, strlen(buf), buf);
-                puf = (char *) 0;
-                buf = (char *) 0;
+                        1 + methodParametersCount, strlen((char *) buf), buf);
+                puf = (u1 *) 0;
+                buf = (u1 *) 0;
                 break;
             case OPCODE_invokestatic:
                 cmi = getConstant_Methodref(cf, (code[++i] << 8) | code[++i]);
@@ -2112,18 +2115,18 @@ decompileCode(ClassFile *cf, method_info *method,
                 if (!puf)
                     return -1;
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "%.*s(%s)", cui->data->length, cui->data->bytes, puf);
+                sprintf((char *) buf, "%.*s(%s)", cui->data->length, cui->data->bytes, puf);
                 freeMemory(puf);
                 // determine return type category
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_method(cui),
-                        methodParametersCount, strlen(buf), buf);
-                puf = (char *) 0;
-                buf = (char *) 0;
+                        methodParametersCount, strlen((char *) buf), buf);
+                puf = (u1 *) 0;
+                buf = (u1 *) 0;
                 break;
             case OPCODE_invokeinterface:
                 cimi = getConstant_InterfaceMethodref(cf, (code[++i] << 8) | code[++i]);
@@ -2135,18 +2138,18 @@ decompileCode(ClassFile *cf, method_info *method,
                 if (!puf)
                     return -1;
                 cui = getConstant_Utf8(cf, cni->data->name_index);
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
-                sprintf(buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
+                sprintf((char *) buf, "%%s.%.*s(%s)", cui->data->length, cui->data->bytes, puf);
                 freeMemory(puf);
                 // determine return type category
                 cui = getConstant_Utf8(cf, cni->data->descriptor_index);
-                buf = (char *) trimMemory(buf);
+                buf = (u1 *) trimMemory(buf);
                 sop_push(output, 0, getComputationalType_method(cui),
-                        1 + methodParametersCount, strlen(buf), buf);
-                puf = (char *) 0;
-                buf = (char *) 0;
+                        1 + methodParametersCount, strlen((char *) buf), buf);
+                puf = (u1 *) 0;
+                buf = (u1 *) 0;
                 // get over zero
                 ++i;
                 break;
@@ -2232,9 +2235,9 @@ decompileCode(ClassFile *cf, method_info *method,
                                     }
                                 }
                                 freeMemory(buf);
-                                buf = (char *) 0;
+                                buf = (u1 *) 0;
                                 freeMemory(puf);
-                                puf = (char *) 0;
+                                puf = (u1 *) 0;
                             }
                             */
                             break;
@@ -2267,78 +2270,78 @@ decompileCode(ClassFile *cf, method_info *method,
                 puf = generateParameterFormat(methodParametersCount);
                 if (!puf)
                     return -1;
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 cci = getConstant_Class(cf, cmi->data->class_index);
                 cui = getConstant_Utf8(cf, cci->data->name_index);
-                sprintf(buf, "new %.*s(%s)", cui->data->length, cui->data->bytes, puf);
+                sprintf((char *) buf, "new %.*s(%s)", cui->data->length, cui->data->bytes, puf);
                 freeMemory(puf);
-                puf = (char *) 0;
-                buf = (char *) trimMemory(buf);
-                sop_push(output, 0, 1, methodParametersCount, strlen(buf), buf);
-                buf = (char *) 0;
+                puf = (u1 *) 0;
+                buf = (u1 *) trimMemory(buf);
+                sop_push(output, 0, 1, methodParametersCount, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_newarray:
-                buf = (char *) allocMemory(16, sizeof (char));
+                buf = (u1 *) allocMemory(16, sizeof (u1));
                 if (!buf)
                     return -1;
                 memcpy(buf, "new ", 4);
                 switch (code[++i])
                 {
                     case T_BOOLEAN:
-                        puf = "boolean[%s]";
+                        puf = (u1*) "boolean[%s]";
                         break;
                     case T_CHAR:
-                        puf = "char[%s]";
+                        puf = (u1*) "char[%s]";
                         break;
                     case T_FLOAT:
-                        puf = "float[%s]";
+                        puf = (u1*) "float[%s]";
                         break;
                     case T_DOUBLE:
-                        puf = "double[%s]";
+                        puf = (u1*) "double[%s]";
                         break;
                     case T_BYTE:
-                        puf = "byte[%s]";
+                        puf = (u1*) "byte[%s]";
                         break;
                     case T_SHORT:
-                        puf = "short[%s]";
+                        puf = (u1*) "short[%s]";
                         break;
                     case T_INT:
-                        puf = "int[%s]";
+                        puf = (u1*) "int[%s]";
                         break;
                     case T_LONG:
-                        puf = "long[%s]";
+                        puf = (u1*) "long[%s]";
                         break;
                     default:
                         logError("Unknow atype[%i]!\r\n", code[i]);
                         return -1;
                 }
-                memcpy(buf, puf, strlen(puf));
-                puf = (char *) 0;
-                sop_push(output, 0, 1, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                memcpy(buf, puf, strlen((char *) puf));
+                puf = (u1 *) 0;
+                sop_push(output, 0, 1, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_anewarray:
                 cci = getConstant_Class(cf, (code[++i] << 8) | code[++i]);
                 if (!cci)
                     return -1;
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 puf = getClassSimpleName(cf, cci->data->name_index);
-                sprintf(buf, "new %s[%%s]", puf);
+                sprintf((char *) buf, "new %s[%%s]", puf);
                 freeMemory(puf);
-                puf = (char *) 0;
-                buf = (char *) trimMemory(buf);
-                sop_push(output, 0, 1, 1, strlen(buf), buf);
-                buf = (char *) 0;
+                puf = (u1 *) 0;
+                buf = (u1 *) trimMemory(buf);
+                sop_push(output, 0, 1, 1, strlen((char *) buf), buf);
+                buf = (u1 *) 0;
                 break;
             case OPCODE_arraylength:
-                sop_push_c(output, 1, 1, "%s.length");
+                sop_push_c(output, 1, 1, (u1*) "%s.length");
                 break;
             case OPCODE_athrow:
-                sop_push_c(output, 1, 1, "throw %s");
+                sop_push_c(output, 1, 1, (u1*) "throw %s");
                 break;
             case OPCODE_checkcast:
                 // checkcast 'indexbyte1' 'indexbyte2'
@@ -2351,16 +2354,16 @@ decompileCode(ClassFile *cf, method_info *method,
                 buf = getClassSimpleName(cf, cci->data->name_index);
                 if (!buf)
                     return -1;
-                sop_push(output, 0, 1, 1, strlen(buf), buf);
-                sop_push_c(output, 1, 2, "%s instanceof %s");
-                buf = (char *) 0;
+                sop_push(output, 0, 1, 1, strlen((char *) buf), buf);
+                sop_push_c(output, 1, 2, (u1*) "%s instanceof %s");
+                buf = (u1 *) 0;
                 break;
             case OPCODE_monitorenter:
-                sop_push_c(output, 0, 1, "synchronized (%s) {");
+                sop_push_c(output, 0, 1, (u1*) "synchronized (%s) {");
                 // enter monitor for object
                 break;
             case OPCODE_monitorexit:
-                sop_push_c(output, 0, 0, "}");
+                sop_push_c(output, 0, 0, (u1*) "}");
                 // exit monitor for object
                 break;
             case OPCODE_wide:
@@ -2369,84 +2372,84 @@ decompileCode(ClassFile *cf, method_info *method,
                 {
                     // (1) where <opcode> is one of <T>load or ret
                     case OPCODE_iload:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "iV%i", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "iV%i", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_fload:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "fV%i", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "fV%i", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_aload:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "aV%i", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 1, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "aV%i", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 1, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_lload:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "lV%i", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 2, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "lV%i", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_dload:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "dV%i", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 2, 0, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "dV%i", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 2, 0, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_istore:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "iV%i = %%s", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 0, 1, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "iV%i = %%s", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_fstore:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "fV%i = %%s", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 0, 1, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "fV%i = %%s", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_astore:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "aV%i = %%s", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 0, 1, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "aV%i = %%s", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_lstore:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "lV%i = %%s", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 0, 1, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "lV%i = %%s", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_dstore:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "dV%i = %%s", (code[++i] << 8) | code[++i]);
-                        sop_push(output, 0, 0, 1, strlen(buf), buf);
-                        buf = (char *) 0;
+                        sprintf((char *) buf, "dV%i = %%s", (code[++i] << 8) | code[++i]);
+                        sop_push(output, 0, 0, 1, strlen((char *) buf), buf);
+                        buf = (u1 *) 0;
                         break;
                     case OPCODE_ret:
                         // In Oracle's implementation of a compiler for the Java
@@ -2458,14 +2461,14 @@ decompileCode(ClassFile *cf, method_info *method,
                         break;
                     // (2) iinc
                     case OPCODE_iinc:
-                        buf = (char *) allocMemory(16, sizeof (char));
+                        buf = (u1 *) allocMemory(16, sizeof (u1));
                         if (!buf)
                             return -1;
-                        sprintf(buf, "iV%i += %i",
+                        sprintf((char *) buf, "iV%i += %i",
                                 (code[++i] << 8) | code[++i],
                                 (code[++i] << 8) | code[++i]);
                         sop_push_c(output, 0, 0, buf);
-                        buf = (char *) 0;
+                        buf = (u1 *) 0;
                         break;
                     default:
                         logError("Unsupported wide opcode[%i]!\r\n", code[i]);
@@ -2480,11 +2483,11 @@ decompileCode(ClassFile *cf, method_info *method,
                 puf = getClassSimpleName(cf, cci->data->name_index);
                 if (!puf)
                     return -1;
-                buf = (char *) allocMemory(1024, sizeof (char));
+                buf = (u1 *) allocMemory(1024, sizeof (u1));
                 if (!buf)
                     return -1;
                 memcpy(buf, "new ", 4);
-                l = strlen(puf);
+                l = strlen((char *) puf);
                 memcpy(buf + 4, puf, l);
                 freeMemory(puf);
                 puf = buf + 4 + l;
@@ -2493,8 +2496,8 @@ decompileCode(ClassFile *cf, method_info *method,
                     memcpy(puf, "[%s]", 3);
                     puf += 3;
                 }
-                buf = (char *) trimMemory(buf);
-                sop_push(output, 0, 1, code[i], strlen(buf), buf);
+                buf = (u1 *) trimMemory(buf);
+                sop_push(output, 0, 1, code[i], strlen((char *) buf), buf);
                 break;
             /* branch if reference null */
             case OPCODE_ifnull:

@@ -7,7 +7,7 @@ extern "C" {
 
     extern int logInfo(const char *, ...);
     extern int logError(const char *, ...);
-    extern int flogError(FILE *, const char *, ...);
+    extern int flogError(FILE *, const u1 *, ...);
 
 #ifdef __cplusplus
 }

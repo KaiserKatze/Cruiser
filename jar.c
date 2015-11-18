@@ -5,92 +5,12 @@
 
 #include "jar.h"
 #include "log.h"
+#include "memory.h"
 
 #define ENTRY_MANIFEST          "META-INF/MANIFEST.MF\0"
 #define BUFSIZE                 10240
 
-static int zip_readLine(struct zip_file *, char *, char **);
-
-extern int
-parseClassfileInJar(const char *path, const char *name, ClassFile *cf)
-{
-    struct zip *z;
-    struct zip_stat st;
-    struct zip_file *zf;
-    int error;
-    zip_uint64_t entries_count, entry_index;
-    char *buffer;
-    const char *entry_name;
-    struct BufferIO input;
-
-    error = 0;
-    buffer = (char *) 0;
-    z = zip_open(path, 0, &error);
-    if (!z)
-    {
-        logError("Fail to open jar archieve!\r\n");
-        goto close;
-    }
-    buffer = (char *) malloc(BUFSIZE);
-    if (!buffer)
-    {
-        logError("Fail to allocate memory!\r\n");
-        goto close;
-    }
-    bzero(buffer, BUFSIZE);
-    bzero(cf, sizeof (ClassFile));
-
-    // search .class file with 'name'
-    entries_count = zip_get_num_entries(z, 0);
-    if (entries_count < 0)
-    {
-        logError("Runtime exception in function %s!\r\n", __func__);
-        goto close;
-    }
-    logInfo("\r\nEntry count: %lli\r\n\r\n", entries_count);
-    for (entry_index = 0; entry_index < entries_count; entry_index++)
-    {
-        zip_stat_init(&st);
-        if (zip_stat_index(z, entry_index, 0, &st))
-        {
-            logError("Fail to retrieve entry[%lli] stat!\r\n", entry_index);
-            goto close;
-        }
-        if (st.valid & ZIP_STAT_NAME)
-        {
-            entry_name = st.name;
-            if (!strcmp(entry_name, name))
-            {
-                logInfo("Class '%s' in queue.\r\n", entry_name);
-
-                zf = zip_fopen_index(z, entry_index, 0);
-                if (!zf)
-                {
-                    logError("Fail to open manifest!\r\n");
-                    goto close;
-                }
-
-                input.entry = zf;
-                input.bufsize = BUFSIZE;
-                input.buffer = buffer;
-                input.bufsrc = input.bufdst = 0;
-                input.fp = fillBuffer_z;
-                input.more = 1;
-
-                parseClassfile(&input, cf);
-                zip_fclose(zf);
-
-                break;
-            }
-        }
-    }
-
-close:
-    zip_close(z);
-    free(buffer);
-    logInfo("---------------------------\r\n");
-    return error;
-}
+static int zip_readLine(struct zip_file *, u1 *, u1 **);
 
 extern int
 parseJarfile(const char *path, JarFile *jf)
@@ -101,7 +21,8 @@ parseJarfile(const char *path, JarFile *jf)
     int error, rbit, i, j, k;
     zip_uint64_t entries_count, entry_index, manifest_index, class_count, cap;
     zip_uint64_t *classes;
-    char *buffer, *save, *str;
+    u1 *buffer, *save;
+    char *str;
     const char *entry_name;
     struct BufferIO input;
     int ze, se;
@@ -121,7 +42,7 @@ parseJarfile(const char *path, JarFile *jf)
         return -1;
     }
     error = 0;
-    buffer = (char *) 0;
+    buffer = (u1 *) 0;
     classes = (zip_uint64_t *) 0;
     z = zip_open(path, 0, &error);
     if (!z)
@@ -135,7 +56,7 @@ parseJarfile(const char *path, JarFile *jf)
         }
         goto close;
     }
-    buffer = (char *) malloc(BUFSIZE);
+    buffer = (u1 *) malloc(BUFSIZE);
     if (!buffer)
     {
         logError("Fail to allocate memory!\r\n");
@@ -165,19 +86,23 @@ parseJarfile(const char *path, JarFile *jf)
     save = buffer;
     while ((rbit = zip_readLine(zf, buffer, &save)) > 0)
     {
-        str = "Main-Class: \0";
+        str = (char *) allocMemory(16, sizeof (char));
+        if (!str)
+            return -1;
+        strcpy(str, "Main-Class: ");
         j = strlen(str);
         for (i = 0; i < j; i++)
             if (buffer[i] != str[i])
             {
+                freeMemory(str);
                 str = (char *) 0;
                 break;
             }
         if (str)
         {
-            str = &(buffer[j]);
+            str = (char *) &(buffer[j]);
             j = rbit - j;
-            jf->mainclass = (char *) malloc(j + 1);
+            jf->mainclass = (u1 *) malloc(j + 1);
             if (!jf->mainclass)
             {
                 logError("Fail to allocate memory!\r\n");
@@ -188,19 +113,23 @@ parseJarfile(const char *path, JarFile *jf)
             continue;
         }
 
-        str = "Class-Path: \0";
+        str = (char *) allocMemory(16, sizeof (char));
+        if (!str)
+            return -1;
+        strcpy(str, "Class-Path: ");
         j = strlen(str);
         for (i = 0; i < j; i++)
             if (buffer[i] != str[i])
             {
+                freeMemory(str);
                 str = (char *) 0;
                 break;
             }
         if (str)
         {
-            str = &(buffer[j]);
+            str = (char *) &(buffer[j]);
             j = rbit - j;
-            jf->classpath = (char *) malloc(j + 1);
+            jf->classpath = (u1 *) malloc(j + 1);
             if (!jf->classpath)
             {
                 logError("Fail to allocate memory!\r\n");
@@ -243,12 +172,16 @@ parseJarfile(const char *path, JarFile *jf)
         {
             entry_name = st.name;
             k = strlen(entry_name);
-            str = ".class\0";
+            str = (char *) allocMemory(16, sizeof (char));
+            if (!str)
+                return -1;
+            strcpy(str, ".class");
             // check file extension
             j = strlen(str);
             for (i = 0; i < j; i++)
                 if (str[i] != entry_name[k - j + i])
                 {
+                    freeMemory(str);
                     str = (char *) 0;
                     break;
                 }
@@ -329,9 +262,9 @@ freeJarfile(JarFile *jf)
 
     logInfo("Releasing JarFile memory...\r\n");
     free(jf->mainclass);
-    jf->mainclass = (char *) 0;
+    jf->mainclass = (u1 *) 0;
     free(jf->classpath);
-    jf->classpath = (char *) 0;
+    jf->classpath = (u1 *) 0;
     if (jf->classes)
     {
         for (i = 0; i < jf->class_count; i++)
@@ -348,7 +281,7 @@ freeJarfile(JarFile *jf)
 }
 
 static int
-zip_readLine(struct zip_file *zf, char *buffer, char **save)
+zip_readLine(struct zip_file *zf, u1 *buffer, u1 **save)
 {
     int i, rbit, len, res;
 

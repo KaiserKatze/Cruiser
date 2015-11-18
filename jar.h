@@ -12,8 +12,8 @@ extern "C" {
 
     typedef struct
     {
-        char *mainclass;
-        char *classpath;
+        u1 *mainclass;
+        u1 *classpath;
         zip_uint64_t class_count;
         ClassFile *classes;
     } JarFile;

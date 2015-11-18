@@ -33,7 +33,7 @@ main(int argc, char** argv)
         printf("Parsing ClassFile '%s'...\r\n", path);
 
         input.bufsize = 1024;
-        input.buffer = (char *) allocMemory(input.bufsize, sizeof (char));
+        input.buffer = (u1 *) allocMemory(input.bufsize, sizeof (u1));
         if (!input.buffer)
             goto bad_end;
         input.bufsrc = input.bufdst = 0;
@@ -101,29 +101,6 @@ main(int argc, char** argv)
             freeJarfile(jf);
             free(jf);
             jf = 0;
-            goto good_end;
-        }
-    }
-    else if (argc == 4)
-    {
-        if (!strcmp(argv[1], OPTION_CLASSPATH))
-        {
-            path = argv[2];
-            name = argv[3];
-            printf("Parsing ClassFile '%s' in JAR '%s'...\r\n", name, path);
-            cf = (ClassFile *) allocMemory(1, sizeof (ClassFile));
-            if (!cf)
-                goto bad_end;
-
-            if (parseClassfileInJar(path, name, cf) < 0)
-            {
-                freeClassfile(cf);
-                free(cf);
-                goto bad_end;
-            }
-
-            freeClassfile(cf);
-            free(cf);
             goto good_end;
         }
     }
