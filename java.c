@@ -1824,7 +1824,7 @@ ret:
 static int
 validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
 {
-    u2 i;
+    u2 i, j;
     attr_info *attribute;
     u4 attribute_length;
 #if VER_CMP(45, 3)
@@ -1848,6 +1848,10 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
     CONSTANT_Utf8_info *descriptor;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Utf8_info *cui;
+    struct classes_entry *ce;
+    u2 flags;
 
     for (i = 0; i < len; i++)
     {
@@ -1864,6 +1868,43 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
                     * aic->number_of_classes;
                 if (attribute_length != attribute->attribute_length)
                     return -1;
+                for (j = 0; j < aic->number_of_classes; j++)
+                {
+                    ce = &(aic->classes[j]);
+                    cci = getConstant_Class(cf, ce->inner_class_info_index);
+                    if (!cci)
+                        return -1;
+                    // If C is not a member of a class or an interface
+                    // (that is, if C is a top-level class or interface
+                    // or a local class or an anonymous class),
+                    // the value of the outer_class_info_index item
+                    // must be zero
+                    if (ce->outer_class_info_index != 0)
+                    {
+                        cci = getConstant_Class(cf, ce->outer_class_info_index);
+                        if (!cci)
+                            return -1;
+                    }
+                    // If C is anonymous, the value of the inner_name_index
+                    // item must be zero
+                    if (ce->inner_name_index != 0)
+                    {
+                        // original simple name of C given in the source
+                        cui = getConstant_Utf8(cf, ce->inner_name_index);
+                        if (!cui)
+                            return -1;
+                    }
+                    flags = ce->inner_class_access_flags;
+#if VER_CMP(51, 0)
+                    if (ce->inner_name_index == 0
+                            && ce->outer_class_info_index != 0)
+                        return -1;
+#endif
+                    // Oracle's Java Virtual Machine implementation
+                    // does not check the consistency of an InnerClasses
+                    // attribute against a class file representing a class
+                    // or interface referenced by the attribute
+                }
                 break;
             case TAG_ATTR_SYNTHETIC:
                 break;
@@ -2019,7 +2060,7 @@ validateAttributes_method(ClassFile *cf, method_info *method)
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
     CONSTANT_Utf8_info *descriptor;
-    CONSTANT_Class_info *aci;
+    CONSTANT_Class_info *cci;
     struct exception_table_entry *ete;
 
     attributes = method->attributes;
@@ -2070,11 +2111,11 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                         return -1;
                     if (ete->catch_type != 0)
                     {
-                        aci = getConstant_Class(cf, ete->catch_type);
-                        if (!aci)
+                        cci = getConstant_Class(cf, ete->catch_type);
+                        if (!cci)
                             return -1;
                         // TODO load rt.jar and check if the class
-                        // represented by 'aci' extends any exception class
+                        // represented by 'cci' extends any exception class
                         // HINT: might need algorithm quick union
                         // or quick find
                     }
@@ -2087,6 +2128,14 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                     * ae->number_of_exceptions;
                 if (attribute_length != attribute->attribute_length)
                     return -1;
+                for (j = 0; j < ae->number_of_exceptions; j++)
+                {
+                    cci = getConstant_Class(cf, ae->exception_index_table[j]);
+                    if (!cci)
+                        return -1;
+                    // TODO load rt.jar and check if the class
+                    // represented by 'cci' extends any exception class
+                }
                 break;
             case TAG_ATTR_SYNTHETIC:
                 break;
