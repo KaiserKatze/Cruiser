@@ -1943,7 +1943,14 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
                 break;
             case TAG_ATTR_SOURCEDEBUGEXTENSION:
                 break;
-            case TAG_ATTR_SIGNATURE:
+            case TAG_ATTR_SIGNATURE: // class
+                asig = (attr_Signature_info *) attribute->data;
+                attribute_length = sizeof (aisg->signature_index);
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                cui = getConstant_Utf8(cf, asig->signature_index);
+                if (!cui)
+                    return -1;
                 break;
             case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
                 break;
@@ -2042,7 +2049,14 @@ validateAttributes_field(ClassFile *cf, field_info *field)
                 break;
 #endif
 #if VER_CMP(49, 0)
-            case TAG_ATTR_SIGNATURE:
+            case TAG_ATTR_SIGNATURE: // field
+                asig = (attr_Signature_info *) attribute->data;
+                attribute_length = sizeof (aisg->signature_index);
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                cui = getConstant_Utf8(cf, asig->signature_index);
+                if (!cui)
+                    return -1;
                 break;
             case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
                 break;
@@ -2180,7 +2194,14 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                 break;
             case TAG_ATTR_ANNOTATIONDEFAULT:
                 break;
-            case TAG_ATTR_SIGNATURE:
+            case TAG_ATTR_SIGNATURE: // method
+                asig = (attr_Signature_info *) attribute->data;
+                attribute_length = sizeof (aisg->signature_index);
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                cui = getConstant_Utf8(cf, asig->signature_index);
+                if (!cui)
+                    return -1;
                 break;
             case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
                 break;
