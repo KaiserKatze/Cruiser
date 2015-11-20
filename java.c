@@ -1908,6 +1908,8 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
                 }
                 break;
             case TAG_ATTR_SYNTHETIC:
+                if (attribute->attribute_length != 0)
+                    return -1;
                 break;
             case TAG_ATTR_DEPRECATED:
                 break;
@@ -2165,6 +2167,8 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                 }
                 break;
             case TAG_ATTR_SYNTHETIC:
+                if (attribute->attribute_length != 0)
+                    return -1;
                 break;
             case TAG_ATTR_DEPRECATED:
                 break;
