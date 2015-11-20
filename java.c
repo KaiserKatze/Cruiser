@@ -26,6 +26,30 @@ loadMethods(struct BufferIO *, ClassFile *);
 static int
 validateConstantPool(ClassFile *);
 
+static int
+validateFields(ClassFile *);
+
+static int
+validateMethods(ClassFile *);
+
+static int
+validateFieldDescriptor(u2, u1 *);
+
+static int
+validateMethodDescriptor(u2, u1 *);
+
+static int
+validateAttributes_class(ClassFile *);
+
+static int
+validateAttributes_field(ClassFile *, field_info *);
+
+static int
+validateAttributes_method(ClassFile *, method_info *);
+
+static int
+validateAttributes_code(ClassFile *, attr_Code_info *);
+
 static u1 *
 convertAccessFlags_field(u2, u2);
 
@@ -94,6 +118,10 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
 #ifdef RT_H
     // constant pool validation
     if (validateConstantPool(cf) < 0)
+        return -1;
+    if (validateFields(cf) < 0)
+        return -1;
+    if (validateMethods(cf) < 0)
         return -1;
 #endif
 
@@ -883,7 +911,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                     if (strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
                     {
                         logError("Method name '%.*s' is invalid because MethodHandle reference kind is %i!\r\n",
-                                cui->data->length, cui->data->bytes, cmhi->data->reference_kind);
+                                (int) cui->data->length, (char *) cui->data->bytes, cmhi->data->reference_kind);
                         return -1;
                     }
                     break;
@@ -945,7 +973,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                     &(cf->constant_pool[cmi->data->name_and_type_index]);
             cui = (CONSTANT_Utf8_info *)
                     &(cf->constant_pool[cni->data->descriptor_index]);
-            if (strncmp(cui->data->bytes,
+            if (strncmp((char *) cui->data->bytes,
                     "(Ljava/lang/invoke/MethodHandles$Lookup;"
                     "Ljava/lang/String;"
                     "Ljava/lang/invoke/MethodType;)",
@@ -1219,7 +1247,6 @@ loadConstantPool(struct BufferIO *input, ClassFile *cf)
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    logInfo("Constant pool size: %i\r\n", cf->constant_pool_count);
     if (cf->constant_pool_count > 0)
     {
         cf->constant_pool = (cp_info *) allocMemory(cf->constant_pool_count, sizeof (cp_info));
@@ -1510,6 +1537,702 @@ loadMethods(struct BufferIO *input, ClassFile *cf)
             }
             loadAttributes_method(cf, input, &(cf->methods[i]),
                     &(cf->methods[i].attributes_count), &(cf->methods[i].attributes));
+        }
+    }
+    
+    return 0;
+}
+
+static int
+validateFields(ClassFile *cf)
+{
+    u2 i;
+    field_info *field;
+    u2 flags;
+    u1 is_public, is_protected, is_private;
+    u1 is_final, is_volatile;
+    CONSTANT_Utf8_info *cui;
+    
+    for (i = 0; i < cf->fields_count; i++)
+    {
+        field = &(cf->fields[i]);
+        
+        // validate field access flags
+        flags = field->access_flags;
+        if (flags & ~ACC_FIELD)
+        {
+            logError("Unknown flags [0x%X] detected @ cf->fields[%i]!\r\n",
+                    flags & ~ACC_FIELD, i);
+            return -1;
+        }
+        
+        is_public = (flags & ACC_PUBLIC) ? 1 : 0;
+        is_protected = (flags & ACC_PROTECTED) ? 1 : 0;
+        is_private = (flags & ACC_PRIVATE) ? 1 : 0;
+        is_final = (flags & ACC_FINAL) ? 1 : 0;
+        is_volatile = (flags & ACC_VOLATILE) ? 1 : 0;
+        
+        if (is_public && is_protected
+                || is_public && is_private
+                || is_protected && is_private)
+        {
+            logError("Fields can't be PUBLIC, PROTECTED and PRIVATE simultaneously!\r\n");
+            return -1;
+        }
+        if (is_final && is_volatile)
+        {
+            logError("Fields can't be FINAL and VOLATILE simultaneously!\r\n");
+            return -1;
+        }
+        if (cf->access_flags & ACC_INTERFACE)
+        {
+            if (!is_public || !(flags & ACC_STATIC) || !is_final)
+            {
+                logError("Fields should be PUBLIC STATIC FINAL!\r\n");
+                return -1;
+            }
+            if (flags & ~(ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC))
+            {
+                logError("Interface field has invalid access flags!\r\n");
+                return -1;
+            }
+        }
+        else if (cf->access_flags & ACC_ENUM)
+        {
+            if (!is_public || !(flags & ACC_STATIC) || !is_final || !(flags & ACC_ENUM))
+            {
+                logError("Fields should be PUBLIC STATIC FINAL!\r\n");
+                return -1;
+            }
+        }
+        
+        // validate field name
+        cui = getConstant_Utf8(cf, field->name_index);
+        if (!cui)
+            return -1;
+        
+        // validate field descriptor
+        cui = getConstant_Utf8(cf, field->descriptor_index);
+        if (!cui)
+            return -1;
+        if (validateFieldDescriptor(cui->data->length, cui->data->bytes) < 0)
+        {
+            logError("Invalid name [%.*s] detected @ cf->fields[%i]!\r\n",
+                    cui->data->length, cui->data->bytes, i);
+            return -1;
+        }
+    }
+    
+    return 0;
+}
+
+static int
+validateFieldDescriptor(u2 len, u1 *str)
+{
+    u2 i;
+    
+    if (len == 1)
+        switch (str[0])
+        {
+            case 'B':case 'C':case 'D':case 'F':
+            case 'I':case 'J':case 'S':case 'Z':
+                return 0;
+            default:
+                return -1;
+        }
+    else if (len > 1)
+        switch (str[0])
+        {
+            case '[':
+                for (i = 0; i < len;)
+                    if (str[++i] != '[')
+                        break;
+                if (i > 255)
+                    return -1;
+                return validateFieldDescriptor(len - i + 1, str + i);
+            default:
+                if (str[0] != 'L')
+                    return -1;
+                if (str[len - 1] != ';')
+                    return -1;
+                return 0;
+        }
+    return -1;
+}
+
+static int
+validateMethods(ClassFile *cf)
+{
+    u2 i, flags;
+    method_info *method;
+    u1 is_public, is_protected, is_private;
+    u1 is_final, is_abstract;
+    CONSTANT_Utf8_info *cui;
+    
+    for (i = 0; i < cf->methods_count; i++)
+    {
+        method = &(cf->methods[i]);
+        
+        // validate field access flags
+        flags = method->access_flags;
+        if (flags & ~ACC_METHOD)
+        {
+            logError("Unknown flags [0x%X] detected @ cf->methods[%i]!\r\n",
+                    flags & ~ACC_METHOD, i);
+            return -1;
+        }
+        
+        is_public = (flags & ACC_PUBLIC) ? 1 : 0;
+        is_protected = (flags & ACC_PROTECTED) ? 1 : 0;
+        is_private = (flags & ACC_PRIVATE) ? 1 : 0;
+        is_final = (flags & ACC_FINAL) ? 1 : 0;
+        is_abstract = (flags & ACC_ABSTRACT) ? 1 : 0;
+        
+        if (is_public && is_protected
+                || is_public && is_private
+                || is_protected && is_private)
+        {
+            logError("Methods can't be PUBLIC, PROTECTED and PRIVATE simultaneously!\r\n");
+            return -1;
+        }
+        if (cf->access_flags & ACC_INTERFACE)
+        {
+            if (flags & (ACC_PROTECTED | ACC_FINAL | ACC_SYNCHRONIZED | ACC_NATIVE))
+            {
+                logError("Interface method has invalid access flags!\r\n");
+                return -1;
+            }
+#if VER_CMP(52, 0)
+            if (!is_public && !is_private)
+            {
+                logError("Interface method should either be PUBLIC or PRIVATE!\r\n");
+                return -1;
+            }
+#else
+            if (!is_public)
+            {
+                logError("Interface method is not public!\r\n");
+                return -1;
+            }
+            if (!is_abstract)
+            {
+                logError("Interface method is not abstract!\r\n");
+                return -1;
+            }
+#endif
+        }
+        if (is_abstract)
+        {
+            if (flags & (ACC_PRIVATE | ACC_STATIC | ACC_FINAL
+                    | ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT))
+            {
+                logError("Abstract method can't be PRIVATE, STATIC, FINAL, SYNCHRONIZED, NATIE or STRICT!\r\n");
+                return -1;
+            }
+        }
+        
+        // validate method name
+        cui = getConstant_Utf8(cf, method->name_index);
+        if (!cui)
+            return -1;
+        if (!strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
+        {
+            if (flags & ~(ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE | ACC_VARARGS | ACC_STRICT | ACC_SYNTHETIC))
+            {
+                logError("Initialization method has invalid access flags!\r\n");
+                return -1;
+            }
+        }
+        
+        // validate method descriptor
+        cui = getConstant_Utf8(cf, method->descriptor_index);
+        if (!cui)
+            return -1;
+        if (validateMethodDescriptor(cui->data->length, cui->data->bytes) < 0)
+        {
+            logError("Invalid name [%.*s] detected @ cf->methods[%i]!\r\n",
+                    cui->data->length, cui->data->bytes, i);
+            return -1;
+        }
+    }
+}
+
+static int
+validateMethodDescriptor(u2 len, u1 *str)
+{
+    u2 i, j, count;
+    
+    if (str[0] != '(')
+        return -1;
+    for (i = 1; i < len; i++)
+    {
+        switch (str[i])
+        {
+            case 'B':case 'C':case 'D':case 'F':
+            case 'I':case 'J':case 'S':case 'Z':
+                break;
+            case 'L':
+                while (i < len && str[++i] != ';');
+                break;
+            case '[':
+                j = i;
+                while (i < len && str[++i] == '[');
+                count = i - j;
+                if (count > 255)
+                    return -1;
+                break;
+            case ')':
+                goto ret;
+            default:
+                return -1;
+        }
+    }
+ret:
+    ++i;
+    len -= i;
+    str += i;
+    if (len == 1)
+        switch (str[0])
+        {
+            case 'B':case 'C':case 'D':
+            case 'F':case 'I':case 'J':
+            case 'S':case 'Z':case 'V':
+                return 0;
+            default:
+                return -1;
+        }
+    else if (len > 1)
+        switch (str[0])
+        {
+            case '[':
+                for (i = 0; i < len;)
+                    if (str[++i] != '[')
+                        break;
+                if (i > 255)
+                    return -1;
+                return validateFieldDescriptor(len - i + 1, str + i);
+            default:
+                if (str[0] != 'L')
+                    return -1;
+                if (str[len - 1] != ';')
+                    return -1;
+                return 0;
+        }
+    return -1;
+}
+
+static int
+validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
+{
+    u2 i;
+    attr_info *attribute;
+    u4 attribute_length;
+#if VER_CMP(45, 3)
+    attr_SourceFile_info *asf;
+    attr_InnerClasses_info *aic;
+    attr_Synthetic_info *asyn;
+    attr_Deprecated_info *ad;
+#endif
+#if VER_CMP(49, 0)
+    attr_EnclosingMethod_info *aem;
+    //attr_SourceDebugExtension_info *asde;
+    attr_Signature_info *asig;
+    attr_RuntimeVisibleAnnotations_info *arva;
+    attr_RuntimeInvisibleAnnotations_info *aria;
+#endif
+#if VER_CMP(51, 0)
+    attr_BootstrapMethods_info *abm;
+#endif
+#if VER_CMP(52, 0)
+    attr_RuntimeVisibleTypeAnnotations_info *arvta;
+    attr_RuntimeInvisibleTypeAnnotations_info *arita;
+#endif
+    CONSTANT_Utf8_info *descriptor;
+
+    for (i = 0; i < len; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_SOURCEFILE:
+                break;
+            case TAG_ATTR_INNERCLASSES:
+                aic = (attr_InnerClasses_info *) attribute->data;
+                attribute_length = sizeof (aic->number_of_classes)
+                    + sizeof (struct classes_entry)
+                    * aic->number_of_classes;
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                break;
+            case TAG_ATTR_SYNTHETIC:
+                break;
+            case TAG_ATTR_DEPRECATED:
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_ENCLOSINGMETHOD:
+                break;
+            case TAG_ATTR_SOURCEDEBUGEXTENSION:
+                break;
+            case TAG_ATTR_SIGNATURE:
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                break;
+#endif
+#if VER_CMP(51, 0)
+            case TAG_ATTR_BOOTSTRAPMETHODS:
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                break;
+#endif
+            default:
+                return -1;
+        }
+    }
+    
+    return 0;
+}
+
+static int
+validateAttributes_field(ClassFile *cf, field_info *field)
+{
+    u2 i;
+    attr_info *attributes, *attribute;
+    u4 attribute_length;
+#if VER_CMP(45, 3)
+    attr_ConstantValue_info *acv;
+    attr_Synthetic_info *asyn;
+    attr_Deprecated_info *ad;
+#endif
+#if VER_CMP(49, 0)
+    attr_Signature_info *asig;
+    attr_RuntimeVisibleAnnotations_info *arva;
+    attr_RuntimeInvisibleAnnotations_info *aria;
+#endif
+#if VER_CMP(52, 0)
+    attr_RuntimeVisibleTypeAnnotations_info *arvta;
+    attr_RuntimeInvisibleTypeAnnotations_info *arita;
+#endif
+    CONSTANT_Utf8_info *descriptor;
+
+    attributes = field->attributes;
+    for (i = 0; i < field->attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_CONSTANTVALUE:
+                acv = (attr_ConstantValue_info *) attribute->data;
+                if (attribute->attribute_length
+                        != sizeof (acv->constantvalue_index))
+                    return -1;
+                descriptor = getConstant_Utf8(cf, field->descriptor_index);
+                if (!descriptor)
+                    return -1;
+                switch (descriptor->data->bytes[0])
+                {
+                    case 'J':
+                        if (!getConstant_Long(cf, acv->constantvalue_index))
+                            return -1;
+                        break;
+                    case 'F':
+                        if (!getConstant_Float(cf, acv->constantvalue_index))
+                            return -1;
+                        break;
+                    case 'D':
+                        if (!getConstant_Double(cf, acv->constantvalue_index))
+                            return -1;
+                        break;
+                    case 'I':case 'S':case 'C':case 'B':case 'Z':
+                        if (!getConstant_Integer(cf, acv->constantvalue_index))
+                            return -1;
+                        break;
+                    case 'L':
+                        if (!strncmp((char *) descriptor->data->bytes,
+                                    "Ljava/lang/String;",
+                                    descriptor->data->length))
+                            if (!getConstant_String(cf, acv->constantvalue_index))
+                                return -1;
+                        break;
+                    default:
+                        return -1;
+                }
+                break;
+            case TAG_ATTR_SYNTHETIC:
+                break;
+            case TAG_ATTR_DEPRECATED:
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_SIGNATURE:
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                break;
+#endif
+            default:
+                return -1;
+        }
+    }
+    
+    return 0;
+}
+
+static int
+validateAttributes_method(ClassFile *cf, method_info *method)
+{
+    u2 i, j;
+    attr_info *attributes, *attribute;
+    u4 attribute_length;
+#if VER_CMP(45, 3)
+    attr_Code_info *ac;
+    attr_Exceptions_info *ae;
+    attr_Synthetic_info *asyn;
+    attr_Deprecated_info *ad;
+#endif
+#if VER_CMP(49, 0)
+    attr_RuntimeVisibleParameterAnnotations_info *arvpa;
+    attr_RuntimeInvisibleParameterAnnotations_info *aripa;
+    attr_AnnotationDefault_info *aad;
+    attr_Signature_info *asig;
+    attr_RuntimeVisibleAnnotations_info *arva;
+    attr_RuntimeInvisibleAnnotations_info *aria;
+#endif
+#if VER_CMP(52, 0)
+    attr_MethodParameters_info *amp;
+    attr_RuntimeVisibleTypeAnnotations_info *arvta;
+    attr_RuntimeInvisibleTypeAnnotations_info *arita;
+#endif
+    CONSTANT_Utf8_info *descriptor;
+    CONSTANT_Class_info *aci;
+    struct exception_table_entry *ete;
+
+    attributes = method->attributes;
+    for (i = 0; i < method->attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_CODE:
+                if (method->access_flags & (ACC_NATIVE | ACC_ABSTRACT))
+                    return -1;
+                ac = (attr_Code_info *) attribute->data;
+                // valdiate attributes of Code attribute
+                if (validateAttributes_code(cf, ac) < 0)
+                    return -1;
+                // sum up length of attributes of Code attribute
+                // and compare it with attribute_length of Code attribute
+                attribute_length = sizeof (ac->max_stack)
+                    + sizeof (ac->max_locals)
+                    + sizeof (ac->code_length)
+                    + sizeof (*(ac->code)) * ac->code_length
+                    + sizeof (ac->exception_table_length)
+                    + sizeof (struct exception_table_entry) * ac->exception_table_length
+                    + sizeof (ac->attributes_count);
+                for (j = 0; j < ac->attributes_count; j++)
+                {
+                    attribute_length += (sizeof (ac->attributes[j].attribute_name_index) + sizeof (ac->attributes[j].attribute_length));
+                    attribute_length += ac->attributes[j].attribute_length;
+                }
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                // @see 4.9
+                // The detailed constrains on the contents of code array
+
+                // validate exception table
+                for (j = 0; j < ac->exception_table_length; j++)
+                {
+                    ete = &(ac->exception_table[j]);
+                    if (ete->start_pc < 0
+                            || ete->start_pc >= ac->code_length)
+                        return -1;
+                    if (ete->end_pc <= ete->start_pc
+                            || ete->end_pc > ac->code_length)
+                        return -1;
+                    if (ete->handler_pc < 0
+                            || ete->handler_pc >= ac->code_length)
+                        return -1;
+                    if (ete->catch_type != 0)
+                    {
+                        aci = getConstant_Class(cf, ete->catch_type);
+                        if (!aci)
+                            return -1;
+                        // TODO load rt.jar and check if the class
+                        // represented by 'aci' extends any exception class
+                        // HINT: might need algorithm quick union
+                        // or quick find
+                    }
+                }
+                break;
+            case TAG_ATTR_EXCEPTIONS:
+                ae = (attr_Exceptions_info *) attribute->data;
+                attribute_length = sizeof (ae->number_of_exceptions)
+                    + sizeof (*(ae->exception_index_table))
+                    * ae->number_of_exceptions;
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                break;
+            case TAG_ATTR_SYNTHETIC:
+                break;
+            case TAG_ATTR_DEPRECATED:
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS:
+                break;
+            case TAG_ATTR_ANNOTATIONDEFAULT:
+                break;
+            case TAG_ATTR_SIGNATURE:
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_METHODPARAMETERS:
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                break;
+#endif
+            default:
+                return -1;
+        }
+    }
+    
+    return 0;
+}
+
+static int
+validateAttributes_code(ClassFile *cf, attr_Code_info *code)
+{
+    u2 i, j;
+    attr_info *attributes, *attribute;
+    u4 attribute_length;
+#if VER_CMP(45, 3)
+    attr_LineNumberTable_info *alnt;
+    attr_LocalVariableTable_info *alvt;
+#endif
+#if VER_CMP(49, 0)
+    attr_LocalVariableTypeTable_info *alvtt;
+#endif
+#if VER_CMP(50, 0)
+    attr_StackMapTable_info *asmt;
+#endif
+#if VER_CMP(52, 0)
+    attr_RuntimeVisibleTypeAnnotations_info *arvta;
+    attr_RuntimeInvisibleTypeAnnotations_info *arita;
+#endif
+    CONSTANT_Utf8_info *descriptor;
+    union stack_map_frame *frame;
+    u1 frame_type;
+
+    attributes = code->attributes;
+    for (i = 0; i < code->attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_LINENUMBERTABLE:
+                break;
+            case TAG_ATTR_LOCALVARIABLETABLE:
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_LOCALVARIABLETYPETABLE:
+                break;
+#endif
+#if VER_CMP(50, 0)
+            case TAG_ATTR_STACKMAPTABLE:
+                asmt = (attr_StackMapTable_info *) attribute->data;
+                attribute_length = sizeof (asmt->number_of_entries);
+                for (j = 0; j < asmt->number_of_entries; j++)
+                {
+                    frame = &(asmt->entries[j]);
+                    frame_type = frame->same_frame.frame_type;
+                    // TODO when should I import StackMapTable validation?
+                    // same frame
+                    if (frame_type >= SMF_SAME_MIN
+                            && frame_type <= SMF_SAME_MAX)
+                    {
+                        attribute_length += sizeof (frame->same_frame);
+                    }
+                    // same_locals_1_stack_item_frame
+                    else if (frame_type >= SMF_SL1SI_MIN
+                            && frame_type <= SMF_SL1SI_MAX)
+                    {
+                        attribute_length +=
+                            sizeof (frame->same_locals_1_stack_item_frame);
+                    }
+                    else if (frame_type == SMF_SL1SIE)
+                    {
+                        attribute_length +=
+                            sizeof (frame->same_locals_1_stack_item_frame_extended);
+                    }
+                    else if (frame_type >= SMF_CHOP_MIN
+                            && frame_type <= SMF_CHOP_MAX)
+                    {
+                        attribute_length +=
+                            sizeof (frame->chop_frame);
+                    }
+                    else if (frame_type == SMF_SAMEE)
+                    {
+                        attribute_length +=
+                            sizeof (frame->same_frame_extended);
+                    }
+                    else if (frame_type >= SMF_APPEND_MIN
+                            && frame_type <= SMF_APPEND_MAX)
+                    {
+                        attribute_length += (sizeof (frame->append_frame.frame_type)
+                                + sizeof (frame->append_frame.offset_delta) 
+                                + sizeof (union verification_type_info)
+                                * (frame_type - 251));
+                    }
+                    else if (frame_type == SMF_FULL)
+                    {
+                        attribute_length += (sizeof (frame->full_frame.frame_type)
+                                + sizeof (frame->full_frame.offset_delta)
+                                + sizeof (frame->full_frame.number_of_locals)
+                                + sizeof (union verification_type_info)
+                                * frame->full_frame.number_of_locals
+                                + sizeof (frame->full_frame.number_of_stack_items)
+                                + sizeof (union verification_type_info)
+                                * frame->full_frame.number_of_stack_items);
+                    }
+                }
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                break;
+#endif
+            default:
+                return -1;
         }
     }
     
