@@ -50,6 +50,9 @@ validateAttributes_method(ClassFile *, method_info *);
 static int
 validateAttributes_code(ClassFile *, attr_Code_info *);
 
+static int
+validateJavaTypeSignature(u2, u1 *);
+
 static u1 *
 convertAccessFlags_field(u2, u2);
 
@@ -2338,4 +2341,32 @@ validateAttributes_code(ClassFile *cf, attr_Code_info *code)
     }
     
     return 0;
+}
+
+// @see jvms8:p121
+static int
+validateJavaTypeSignature(u2 len, u1 *str)
+{
+    u2 i, j;
+
+    if (len == 1)
+    {
+        switch (str[0])
+        {
+            case 'B':case 'C':case 'D':case 'F':
+            case 'I':case 'J':case 'S':case 'Z':
+                return 0;
+            default:
+                return -1;
+        }
+    }
+    else if (len > 1)
+    {
+        switch (str[0])
+        {
+            case 'L':
+                break;
+        }
+    }
+    return -1;
 }
