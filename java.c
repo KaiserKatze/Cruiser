@@ -2033,6 +2033,8 @@ validateAttributes_field(ClassFile *cf, field_info *field)
                 }
                 break;
             case TAG_ATTR_SYNTHETIC:
+                if (attribute->attribute_length != 0)
+                    return -1;
                 break;
             case TAG_ATTR_DEPRECATED:
                 break;
