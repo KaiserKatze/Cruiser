@@ -1850,6 +1850,7 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
     CONSTANT_Utf8_info *descriptor;
     CONSTANT_Class_info *cci;
     CONSTANT_Utf8_info *cui;
+    CONSTANT_NameAndType_info *cni;
     struct classes_entry *ce;
     u2 flags;
 
@@ -1913,6 +1914,30 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
 #endif
 #if VER_CMP(49, 0)
             case TAG_ATTR_ENCLOSINGMETHOD:
+                aem = (attr_EnclosingMethod_info *) attribute->data;
+                attribute_length = sizeof (aem->class_index)
+                    + sizeof (aem->method_index);
+                if (attribute_length != attribute->attribute_length)
+                    return -1;
+                cci = getConstant_Class(cf, aem->class_index);
+                if (!cci)
+                    return -1;
+                // If the current class is not immediately enclosed by
+                // a method or a constructor, then the value of the
+                // method_index item must be zero
+                // In particular, method_index must be zero if the current
+                // class was immediately enclosed in source code by an
+                // instance initializer, static initializer, instance
+                // variable initializer, or class variable initializer.
+                // (The first two concern both local classes and anonymous
+                // classes, while the last two concern anonymous classes
+                // declared on the right hand side of a field assignment)
+                if (aem->method_index != 0)
+                {
+                    cni = getConstant_NameAndType(cf, aem->method_index);
+                    if (!cni)
+                        return -1;
+                }
                 break;
             case TAG_ATTR_SOURCEDEBUGEXTENSION:
                 break;
