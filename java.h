@@ -95,6 +95,7 @@ extern "C" {
 #define TAG_ATTR_BOOTSTRAPMETHODS                       20
 #define TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS          21
 #define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        22
+#define TAG_ATTR_METHODPARAMETERS                       23
 
     typedef struct
     {
