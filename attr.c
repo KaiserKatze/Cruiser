@@ -62,26 +62,18 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Code_info *data;
     u2 i;
-    u4 j;
-    CONSTANT_Class_info *cc;
-    u2 len;
-    u1 *str;
 
     info->tag = TAG_ATTR_CODE;
     data = (struct attr_Code_info *)
             malloc(sizeof (struct attr_Code_info));
     if (!data)
         return -1;
-    logInfo("\tCode            :\r\n");
     if (ru2(&(data->max_stack), input) < 0)
         return -1;
-    logInfo("\t\t// max_stack = %i\r\n", data->max_stack);
     if (ru2(&(data->max_locals), input) < 0)
         return -1;
-    logInfo("\t\t// max_locals = %i\r\n", data->max_locals);
     if (ru4(&(data->code_length), input) < 0)
         return -1;
-    logInfo("\t\t// code_length = %i\r\n", data->code_length);
     if (data->code_length <= 0)
     {
         logError("Assertion error: data->code_length <= 0!\r\n");
@@ -96,26 +88,11 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!data->code) return -1;
     if (rbs(data->code, input, data->code_length) < 0)
         return -1;
-    logInfo("\t\t// Hex code =\r\n");
-    logInfo("\t\t");
-    for (j = 0u; j < data->code_length; j++)
-    {
-        if (j != 0)
-        {
-            if (j % 20 == 0)
-                logInfo("\r\n\t\t");
-            else if (j % 10 == 0)
-                logInfo(" ");
-        }
-        logInfo("%02X ", data->code[j]);
-    }
-    logInfo("\r\n");
     
     disassembleCode(data->code_length, data->code);
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
-    logInfo("\t\t// Exception table length = %i.\r\n", data->exception_table_length);
     if (data->exception_table_length > 0)
     {
         data->exception_table = (struct exception_table_entry *)
@@ -132,33 +109,6 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
                 return -1;
             if (ru2(&(data->exception_table[i].catch_type), input) < 0)
                 return -1;
-            if (data->exception_table[i].catch_type != 0)
-            {
-                cc = getConstant_Class(cf, data->exception_table[i].catch_type);
-                if (!cc) continue;
-                len = getConstant_Utf8Length(cf, cc->data->name_index);
-                str = getConstant_Utf8String(cf, cc->data->name_index);
-                logInfo("\t\t%.*s\t\t"
-                        "%i\t"
-                        "%i\t"
-                        "%i\r\n",
-                        len, str,
-                        data->exception_table[i].start_pc,
-                        data->exception_table[i].end_pc,
-                        data->exception_table[i].handler_pc);
-                len = 0;
-                str = (u1 *) 0;
-            }
-            else
-            {
-                logInfo("\t\tFINALLY\t\t"
-                        "%i\t"
-                        "%i\t"
-                        "%i\r\n",
-                        data->exception_table[i].start_pc,
-                        data->exception_table[i].end_pc,
-                        data->exception_table[i].handler_pc);
-            }
             /*
              * If the value of the catch_type item is zero,
              * this exception handler is called for all exceptions.
@@ -210,8 +160,7 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
     struct attr_Exceptions_info *data;
     CONSTANT_Class_info *cc;
     CONSTANT_Utf8_info *utf8;
-    u2 i, len;
-    u1 *str;
+    u2 i;
 
     info->tag = TAG_ATTR_EXCEPTIONS;
     data = (struct attr_Exceptions_info *)
@@ -237,7 +186,6 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
         logError("Fail to allocate memory!\r\n");
         return -1;
     }
-    logInfo("\t\tExceptions:\r\n");
     for (i = 0u; i < data->number_of_exceptions; i++)
     {
         if (ru2(&(data->exception_index_table[i]), input) < 0)
@@ -259,11 +207,6 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
             logError("Assertion error: constant_pool[%i] has no data!\r\n", cc->data->name_index);
             return -1;
         }
-        len = utf8->data->length;
-        str = utf8->data->bytes;
-        logInfo("\t\t\t%.*s\r\n", len, str);
-        len = 0;
-        str = (u1 *) 0;
     }
 
     info->data = data;
