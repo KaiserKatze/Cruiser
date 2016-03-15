@@ -39,7 +39,7 @@ static int
 validateMethodDescriptor(u2, u1 *);
 
 static int
-validateAttributes_class(ClassFile *);
+validateAttributes_class(ClassFile *, u2, attr_info *);
 
 static int
 validateAttributes_field(ClassFile *, field_info *);
@@ -58,6 +58,18 @@ convertAccessFlags_field(u2, u2);
 
 static u1 *
 convertAccessFlags_method(u2, u2);
+
+static int
+logConstantPool(ClassFile *);
+
+static int
+logClassHeader(ClassFile *);
+
+static int
+logFields(ClassFile *);
+
+static int
+logMethods(ClassFile *);
 
 extern int
 parseClassfile(struct BufferIO * input, ClassFile *cf)
@@ -97,8 +109,10 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         goto close;
     }
 #endif
-    
+
     if (loadConstantPool(input, cf) < 0)
+        return -1;
+    if (logConstantPool(cf) < 0)
         return -1;
 
     if (ru2(&(cf->access_flags), input) < 0)
@@ -107,13 +121,15 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
         return -1;
     if (ru2(&(cf->super_class), input) < 0)
         return -1;
-
     if (loadInterfaces(input, cf) < 0)
+        return -1;
+    if (logClassHeader(cf) < 0)
         return -1;
 
     if (loadFields(input, cf) < 0)
         return -1;
 
+    /*
     if (loadMethods(input, cf) < 0)
         return -1;
 
@@ -127,6 +143,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf)
     if (validateMethods(cf) < 0)
         return -1;
 #endif
+    */
 
     return 0;
 }
@@ -414,12 +431,20 @@ end:
     return out;
 }
 
+static cp_info *
+getConstant(ClassFile *cf, u2 index)
+{
+    if (index > 0 && index < cf->constant_pool_count)
+        return &(cf->constant_pool[index]);
+    return (cp_info *) 0;
+}
+
 extern CONSTANT_Utf8_info *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *info;
 
-    info = (CONSTANT_Utf8_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Utf8_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -508,7 +533,7 @@ getConstant_Class(ClassFile *cf, u2 index)
 {
     CONSTANT_Class_info *info;
 
-    info = (CONSTANT_Class_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Class_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -527,7 +552,7 @@ extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *cf, u2 index)
 {
     CONSTANT_Fieldref_info *info;
 
-    info = (CONSTANT_Fieldref_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Fieldref_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -546,7 +571,7 @@ extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *cf, u2 index)
 {
     CONSTANT_Methodref_info *info;
 
-    info = (CONSTANT_Methodref_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Methodref_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -565,7 +590,7 @@ extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFil
 {
     CONSTANT_InterfaceMethodref_info *info;
 
-    info = (CONSTANT_InterfaceMethodref_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_InterfaceMethodref_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -584,7 +609,7 @@ extern CONSTANT_String_info *getConstant_String(ClassFile *cf, u2 index)
 {
     CONSTANT_String_info *info;
 
-    info = (CONSTANT_String_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_String_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -603,7 +628,7 @@ extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *cf, u2 index)
 {
     CONSTANT_Integer_info *info;
 
-    info = (CONSTANT_Integer_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Integer_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -622,7 +647,7 @@ extern CONSTANT_Float_info *getConstant_Float(ClassFile *cf, u2 index)
 {
     CONSTANT_Float_info *info;
 
-    info = (CONSTANT_Float_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Float_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -641,7 +666,7 @@ extern CONSTANT_Long_info *getConstant_Long(ClassFile *cf, u2 index)
 {
     CONSTANT_Long_info *info;
 
-    info = (CONSTANT_Long_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Long_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -660,7 +685,7 @@ extern CONSTANT_Double_info *getConstant_Double(ClassFile *cf, u2 index)
 {
     CONSTANT_Double_info *info;
 
-    info = (CONSTANT_Double_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_Double_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -679,7 +704,7 @@ extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *cf, u2 inde
 {
     CONSTANT_NameAndType_info *info;
 
-    info = (CONSTANT_NameAndType_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_NameAndType_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -698,7 +723,7 @@ extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *cf, u2 in
 {
     CONSTANT_MethodHandle_info *info;
 
-    info = (CONSTANT_MethodHandle_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_MethodHandle_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -717,7 +742,7 @@ extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *cf, u2 index)
 {
     CONSTANT_MethodType_info *info;
 
-    info = (CONSTANT_MethodType_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_MethodType_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -736,7 +761,7 @@ extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *cf, u2 
 {
     CONSTANT_InvokeDynamic_info *info;
 
-    info = (CONSTANT_InvokeDynamic_info *) &(cf->constant_pool[index]);
+    info = (CONSTANT_InvokeDynamic_info *) getConstant(cf, index);
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
@@ -1307,12 +1332,6 @@ loadConstantPool(struct BufferIO *input, ClassFile *cf)
                         logError("IO exception in function %s!\r\n", __func__);
                         return -1;
                     }
-
-                    if (info->tag == CONSTANT_Integer)
-                        logInfo("%i\r\n", cii->data->bytes);
-                    else
-                        logInfo("%fF\r\n", cii->data->float_value);
-
                     cii = (CONSTANT_Integer_info *) 0;
                     break;
                 case CONSTANT_Long:
@@ -1620,7 +1639,7 @@ validateFields(ClassFile *cf)
             return -1;
         if (validateFieldDescriptor(cui->data->length, cui->data->bytes) < 0)
         {
-            logError("Invalid name [%.*s] detected @ cf->fields[%i]!\r\n",
+            logError("Invalid name \"%.*s\" detected @ cf->fields[%i]!\r\n",
                     cui->data->length, cui->data->bytes, i);
             return -1;
         }
@@ -1634,16 +1653,23 @@ validateFieldDescriptor(u2 len, u1 *str)
 {
     u2 i;
     
+    logInfo("Validating FIELD descriptor \"%i: %.*s\"...\r\n",
+            len, len, str);
     if (len == 1)
+    {
         switch (str[0])
         {
             case 'B':case 'C':case 'D':case 'F':
             case 'I':case 'J':case 'S':case 'Z':
                 return 0;
             default:
+                logError("Invalid field descriptor \"%.*s\"!\r\n",
+                        len, str);
                 return -1;
         }
+    }
     else if (len > 1)
+    {
         switch (str[0])
         {
             case '[':
@@ -1651,15 +1677,25 @@ validateFieldDescriptor(u2 len, u1 *str)
                     if (str[++i] != '[')
                         break;
                 if (i > 255)
+                {
+                    logError("Invalid array dimension: %i!\r\n", i);
                     return -1;
-                return validateFieldDescriptor(len - i + 1, str + i);
+                }
+                return validateFieldDescriptor(len - i, str + i);
             default:
                 if (str[0] != 'L')
+                {
+                    logError("Binary name doesn't begin with 'L'!\r\n");
                     return -1;
+                }
                 if (str[len - 1] != ';')
+                {
+                    logError("Binary name doesn't end with ';'!\r\n");
                     return -1;
+                }
                 return 0;
         }
+    }
     return -1;
 }
 
@@ -1753,7 +1789,7 @@ validateMethods(ClassFile *cf)
             return -1;
         if (validateMethodDescriptor(cui->data->length, cui->data->bytes) < 0)
         {
-            logError("Invalid name [%.*s] detected @ cf->methods[%i]!\r\n",
+            logError("Invalid name \"%.*s\" detected @ cf->methods[%i]!\r\n",
                     cui->data->length, cui->data->bytes, i);
             return -1;
         }
@@ -1764,36 +1800,30 @@ static int
 validateMethodDescriptor(u2 len, u1 *str)
 {
     u2 i, j, count;
-    
+
+    logInfo("Validating METHOD descriptor \"%i: %.*s\"...\r\n",
+            len, len, str);
     if (str[0] != '(')
         return -1;
-    for (i = 1; i < len; i++)
+    i = j = 1;
+    for (; i < len; i++)
     {
-        switch (str[i])
+        if (str[i] == ';' || str[i] == ')')
         {
-            case 'B':case 'C':case 'D':case 'F':
-            case 'I':case 'J':case 'S':case 'Z':
-                break;
-            case 'L':
-                while (i < len && str[++i] != ';');
-                break;
-            case '[':
-                j = i;
-                while (i < len && str[++i] == '[');
-                count = i - j;
-                if (count > 255)
-                    return -1;
-                break;
-            case ')':
-                goto ret;
-            default:
+            if (i - j > 0 &&
+                    validateFieldDescriptor(i - j + 1, str + j) < 0)
                 return -1;
+            j = i + 1;
         }
+        if (str[i] == ')')
+            break;
     }
 ret:
     ++i;
     len -= i;
     str += i;
+    logInfo("Validating RETURN descriptor \"%i: %.*s\"...\r\n",
+            len, len, str);
     if (len == 1)
         switch (str[0])
         {
@@ -1813,7 +1843,7 @@ ret:
                         break;
                 if (i > 255)
                     return -1;
-                return validateFieldDescriptor(len - i + 1, str + i);
+                return validateFieldDescriptor(len - i, str + i);
             default:
                 if (str[0] != 'L')
                     return -1;
@@ -1948,7 +1978,7 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
                 break;
             case TAG_ATTR_SIGNATURE: // class
                 asig = (attr_Signature_info *) attribute->data;
-                attribute_length = sizeof (aisg->signature_index);
+                attribute_length = sizeof (asig->signature_index);
                 if (attribute_length != attribute->attribute_length)
                     return -1;
                 cui = getConstant_Utf8(cf, asig->signature_index);
@@ -1999,6 +2029,7 @@ validateAttributes_field(ClassFile *cf, field_info *field)
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
     CONSTANT_Utf8_info *descriptor;
+    CONSTANT_Utf8_info *cui;
 
     attributes = field->attributes;
     for (i = 0; i < field->attributes_count; i++)
@@ -2054,7 +2085,7 @@ validateAttributes_field(ClassFile *cf, field_info *field)
 #if VER_CMP(49, 0)
             case TAG_ATTR_SIGNATURE: // field
                 asig = (attr_Signature_info *) attribute->data;
-                attribute_length = sizeof (aisg->signature_index);
+                attribute_length = sizeof (asig->signature_index);
                 if (attribute_length != attribute->attribute_length)
                     return -1;
                 cui = getConstant_Utf8(cf, asig->signature_index);
@@ -2106,6 +2137,7 @@ validateAttributes_method(ClassFile *cf, method_info *method)
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
     CONSTANT_Utf8_info *descriptor;
+    CONSTANT_Utf8_info *cui;
     CONSTANT_Class_info *cci;
     struct exception_table_entry *ete;
 
@@ -2199,7 +2231,7 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                 break;
             case TAG_ATTR_SIGNATURE: // method
                 asig = (attr_Signature_info *) attribute->data;
-                attribute_length = sizeof (aisg->signature_index);
+                attribute_length = sizeof (asig->signature_index);
                 if (attribute_length != attribute->attribute_length)
                     return -1;
                 cui = getConstant_Utf8(cf, asig->signature_index);
@@ -2369,4 +2401,371 @@ validateJavaTypeSignature(u2 len, u1 *str)
         }
     }
     return -1;
+}
+
+static int
+logConstantPool(ClassFile *cf)
+{
+#if (defined DEBUG && defined LOG_INFO)
+    u2 len, i;
+    cp_info *info;
+    const char *name;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Fieldref_info *cfi;
+    CONSTANT_Integer_info *cii;
+    CONSTANT_Long_info *cli;
+    CONSTANT_NameAndType_info *cni;
+    CONSTANT_String_info *csi;
+    CONSTANT_Utf8_info *cui, *cui_n, *cui_d;
+    CONSTANT_MethodHandle_info *cmhi;
+    CONSTANT_MethodType_info *cmti;
+    CONSTANT_InvokeDynamic_info *cidi;
+
+    len = cf->constant_pool_count;
+    logInfo("Constant pool (%i):\r\n", len);
+    for (i = 1u; i < len; i++)
+    {
+        info = &(cf->constant_pool[i]);
+        logInfo("#%i = ", i);
+        switch (info->tag)
+        {
+            case CONSTANT_Class:
+                cci = (CONSTANT_Class_info *) info;
+                cui = getConstant_Utf8(cf,
+                        cci->data->name_index);
+                logInfo("Class\t\t"
+                        "#%i\t\t"
+                        "// %.*s",
+                        cci->data->name_index,
+                        cui->data->length,
+                        cui->data->bytes);
+                cci = (CONSTANT_Class_info *) 0;
+                cui = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_Fieldref:
+            case CONSTANT_Methodref:
+            case CONSTANT_InterfaceMethodref:
+                switch (info->tag)
+                {
+                    case CONSTANT_Fieldref:
+                        name = "Fieldref";
+                        break;
+                    case CONSTANT_Methodref:
+                        name = "Methodref";
+                        break;
+                    default:
+                        name = "InterfaceMethodref";
+                        break;
+                }
+                cfi = (CONSTANT_Fieldref_info *) info;
+                cci = getConstant_Class(cf,
+                        cfi->data->class_index);
+                cui = getConstant_Utf8(cf,
+                        cci->data->name_index);
+                cni = getConstant_NameAndType(cf,
+                        cfi->data->name_and_type_index);
+                cui_n = getConstant_Utf8(cf,
+                        cni->data->name_index);
+                cui_d = getConstant_Utf8(cf,
+                        cni->data->descriptor_index);
+                logInfo("%s\t\t"
+                        "#%i.#%i\t\t"
+                        "// %.*s."
+                        "%.*s:"
+                        "%.*s",
+                        name,
+                        cfi->data->class_index,
+                        cfi->data->name_and_type_index,
+                        cui->data->length, cui->data->bytes,
+                        cui_n->data->length, cui_n->data->bytes,
+                        cui_d->data->length, cui_d->data->bytes);
+                name = (const char *) 0;
+                cfi = (CONSTANT_Fieldref_info *) 0;
+                cci = (CONSTANT_Class_info *) 0;
+                cni = (CONSTANT_NameAndType_info *) 0;
+                cui = cui_n = cui_d = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_Integer:
+                cii = (CONSTANT_Integer_info *) info;
+                logInfo("Integer\t\t"
+                        "%i",
+                        cii->data->bytes);
+                cii = (CONSTANT_Integer_info *) 0;
+                break;
+            case CONSTANT_Float:
+                cii = (CONSTANT_Integer_info *) info;
+                logInfo("Float\t\t"
+                        "%ff",
+                        cii->data->float_value);
+                cii = (CONSTANT_Integer_info *) 0;
+                break;
+            case CONSTANT_Long:
+                cli = (CONSTANT_Long_info *) info;
+                logInfo("Long\t\t"
+                        "%llil",
+                        cli->data->long_value);
+                cli = (CONSTANT_Long_info *) 0;
+                ++i;
+                break;
+            case CONSTANT_Double:
+                cli = (CONSTANT_Long_info *) info;
+                logInfo("Double\t\t"
+                        "%fd",
+                        cli->data->double_value);
+                cli = (CONSTANT_Long_info *) 0;
+                ++i;
+                break;
+            case CONSTANT_NameAndType:
+                cni = (CONSTANT_NameAndType_info *) info;
+                cui_n = getConstant_Utf8(cf, cni->data->name_index);
+                cui_d = getConstant_Utf8(cf, cni->data->descriptor_index);
+                logInfo("NameAndType\t\t"
+                        "#%i:#%i\t\t"
+                        "// %.*s:"
+                        "%.*s",
+                        cni->data->name_index,
+                        cni->data->descriptor_index,
+                        cui_n->data->length, cui_n->data->bytes,
+                        cui_d->data->length, cui_d->data->bytes);
+                cni = (CONSTANT_NameAndType_info *) 0;
+                cui_n = cui_d = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_String:
+                csi = (CONSTANT_String_info *) info;
+                logInfo("String\t\t"
+                        "#%i\t\t//",
+                        csi->data->string_index);
+                csi = (CONSTANT_String_info *) 0;
+                break;
+            case CONSTANT_Utf8:
+                cui = (CONSTANT_Utf8_info *) info;
+                logInfo("Utf8\t\t"
+                        "%.*s",
+                        cui->data->length, cui->data->bytes);
+                cui = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_MethodHandle:
+                cmhi = (CONSTANT_MethodHandle_info *) info;
+                switch (cmhi->data->reference_kind)
+                {
+                    case REF_invokeVirtual:
+                        name = "invokevirtual";
+                        break;
+                    case REF_invokeStatic:
+                        name = "invokestatic";
+                        break;
+                    case REF_invokeSpecial:
+                        name = "invokespecial";
+                        break;
+                    case REF_newInvokeSpecial:
+                        name = "newinvokespecial";
+                        break;
+                    case REF_invokeInterface:
+                        name = "invokeinterface";
+                        break;
+                    default:
+                        logError("Unknown MethodHandle reference_kind!\r\n");
+                        return -1;
+                }
+                cfi = (CONSTANT_Fieldref_info *)
+                    getConstant(cf, cmhi->data->reference_index);
+                cci = getConstant_Class(cf,
+                        cfi->data->class_index);
+                cni = getConstant_NameAndType(cf,
+                        cfi->data->name_and_type_index);
+                cui = getConstant_Utf8(cf, cci->data->name_index);
+                cui_n = getConstant_Utf8(cf,
+                        cni->data->name_index);
+                cui_d = getConstant_Utf8(cf,
+                        cni->data->descriptor_index);
+                logInfo("MethodHandle\t\t"
+                        "#%i:#%i\t\t"
+                        "// %s %.*s.%.*s:%.*s",
+                        cmhi->data->reference_kind,
+                        cmhi->data->reference_index,
+                        name,
+                        cui->data->length, cui->data->bytes,
+                        cui_n->data->length, cui_n->data->bytes,
+                        cui_d->data->length, cui_d->data->bytes);
+                name = (const char *) 0;
+                cmhi = (CONSTANT_MethodHandle_info *) 0;
+                cfi = (CONSTANT_Fieldref_info *) 0;
+                cci = (CONSTANT_Class_info *) 0;
+                cni = (CONSTANT_NameAndType_info *) 0;
+                cui = cui_n = cui_d = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_MethodType:
+                cmti = (CONSTANT_MethodType_info *) info;
+                cui = getConstant_Utf8(cf,
+                        cmti->data->descriptor_index);
+                logInfo("MethodType\t\t"
+                        "#%i\t\t"
+                        "// %.*s",
+                        cmti->data->descriptor_index,
+                        cui->data->length, cui->data->bytes);
+                cmti = (CONSTANT_MethodType_info *) 0;
+                cui = (CONSTANT_Utf8_info *) 0;
+                break;
+            case CONSTANT_InvokeDynamic:
+                cidi = (CONSTANT_InvokeDynamic_info *) info;
+                cni = getConstant_NameAndType(cf,
+                        cidi->data->name_and_type_index);
+                logInfo("InvokeDynamic\t\t"
+                        "#%i:#%i\t\t"
+                        "// <TODO>",
+                        cidi->data->bootstrap_method_attr_index,
+                        cidi->data->name_and_type_index);
+                cidi = (CONSTANT_InvokeDynamic_info *) 0;
+                cni = (CONSTANT_NameAndType_info *) 0;
+                break;
+            default:
+                return -1;
+        }
+        logInfo("\r\n");
+    }
+#endif
+    return 0;
+}
+
+static int
+logClassHeader(ClassFile *cf)
+{
+#if (defined DEBUG && defined LOG_INFO)
+    char buf[1024], *ptr;
+    size_t n, m;
+    u2 minor_version, major_version;
+    u2 access_flags;
+    u2 this_class, super_class;
+    u2 interfaces_count;
+    u2 * interfaces;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Utf8_info *cui;
+    u2 i;
+
+    minor_version = cf->minor_version;
+    major_version = cf->major_version;
+    access_flags = cf->access_flags;
+    this_class = cf->this_class;
+    super_class = cf->super_class;
+    interfaces_count = cf->interfaces_count;
+    interfaces = cf->interfaces;
+
+    memset(buf, 0, sizeof (buf));
+    ptr = (char *) buf;
+    n = sprintf(ptr, "Class version: %i.%i\r\n",
+            major_version, minor_version);
+    if (n < 0) return -1;
+    ptr += n;
+
+    if (access_flags & ACC_PUBLIC)
+    {
+        n = sprintf(ptr, "public ");
+        if (n < 0) return -1;
+        ptr += n;
+    }
+
+    // type
+    if (access_flags & ACC_ANNOTATION)
+        n = sprintf(ptr, "@interface ");
+    else if (access_flags & ACC_ENUM)
+        n = sprintf(ptr, "enum ");
+    else if (access_flags & ACC_INTERFACE)
+        n = sprintf(ptr, "interface ");
+    else
+    {
+        if (access_flags & ACC_ABSTRACT)
+            n = sprintf(ptr, "abstract ");
+        else if (access_flags & ACC_FINAL)
+            n = sprintf(ptr, "final ");
+        if (n < 0) return -1;
+        ptr += n;
+        n = sprintf(ptr, "class ");
+    }
+    if (n < 0) return -1;
+    ptr += n;
+
+    // name
+    cci = getConstant_Class(cf, this_class);
+    if (!cci) return -1;
+    cui = getConstant_Utf8(cf, cci->data->name_index);
+    if (!cui) return -1;
+    n = sprintf(ptr, "%.*s ",
+            cui->data->length,
+            cui->data->bytes);
+    if (n < 0) return -1;
+    ptr += n;
+
+    // super class
+    if (super_class > 0)
+    {
+        cci = getConstant_Class(cf, super_class);
+        if (!cci) return -1;
+        cui = getConstant_Utf8(cf, cci->data->name_index);
+        if (!cui) return -1;
+        if (strncmp("java/lang/Object",
+                    (char *) cui->data->bytes,
+                    cui->data->length))
+        {
+            n = sprintf(ptr, "extends %.*s",
+                    cui->data->length,
+                    cui->data->bytes);
+            if (n < 0) return -1;
+            ptr += n;
+        }
+    }
+
+    // interfaces
+    if (interfaces_count > 0)
+    {
+        if (access_flags & ACC_INTERFACE)
+            n = sprintf(ptr, "extends ");
+        else
+            n = sprintf(ptr, "implements ");
+        if (n < 0) return -1;
+        ptr += n;
+
+        for (i = 0u; i < interfaces_count; i++)
+        {
+            if (i > 0)
+            {
+                n = sprintf(ptr, ", ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            cci = getConstant_Class(cf, interfaces[i]);
+            if (!cci) return -1;
+            cui = getConstant_Utf8(cf, cci->data->name_index);
+            if (!cui) return -1;
+            n = sprintf(ptr, "%.*s",
+                    cui->data->length,
+                    cui->data->bytes);
+            if (n < 0) return -1;
+            ptr += n;
+        }
+    }
+
+    n = strlen(buf);
+    for (m = 0; m < n; m++)
+        if (buf[m] == '/')
+            buf[m] = '.';
+
+    logInfo("%s\r\n", buf);
+#endif
+    return 0;
+}
+
+static int
+logFields(ClassFile *cf)
+{
+#if (defined DEBUG && defined LOG_INFO)
+#endif
+    return 0;
+}
+
+static int
+logMethods(ClassFile *cf)
+{
+#if (defined DEBUG && defined LOG_INFO)
+#endif
+    return 0;
 }
