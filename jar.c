@@ -8,7 +8,7 @@
 #include "memory.h"
 
 #define ENTRY_MANIFEST          "META-INF/MANIFEST.MF\0"
-#define BUFSIZE                 10240
+#define BUFSIZE                 16384
 
 static int zip_readLine(struct zip_file *, u1 *, u1 **);
 
@@ -207,9 +207,6 @@ parseJarfile(const char *path, JarFile *jf)
 #ifdef DEBUG
     column = (int) ceil(log10(class_count));
 #endif
-    input.bufsize = BUFSIZE;
-    input.buffer = buffer;
-    input.fp = fillBuffer_z;
     for (entry_index = 0; entry_index < class_count; entry_index++)
     {
         zip_stat_init(&st);
@@ -227,9 +224,8 @@ parseJarfile(const char *path, JarFile *jf)
         }
         zip_file_error_clear(zf);
 
-        input.bufsrc = input.bufdst = 0;
-        input.entry = zf;
-        input.more = 1;
+        initWithZipEntry(&input, zf);
+
         if (parseClassfile(&input, &(jf->classes[entry_index])) < 0)
         {
             logError("Fail to parse class file [%i]!\r\n", entry_index);

@@ -89,7 +89,8 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (rbs(data->code, input, data->code_length) < 0)
         return -1;
     
-    disassembleCode(data->code_length, data->code);
+    if (disassembleCode(data->code_length, data->code) < 0)
+        return -1;
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;
@@ -1796,8 +1797,6 @@ loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
 
     if (!cf)
         return -1;
-    if (checkInput(input) < 0)
-        return -1;
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
@@ -1918,8 +1917,6 @@ loadAttributes_field(ClassFile *cf, struct BufferIO *input, field_info *field,
 
     if (!cf)
         return -1;
-    if (checkInput(input) < 0)
-        return -1;
     if (ru2(attributes_count, input) < 0)
         return -1;
     //*attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
@@ -1994,8 +1991,6 @@ loadAttributes_method(ClassFile *cf, struct BufferIO *input, method_info *method
 
     if (!cf)
         return -1;
-    if (checkInput(input) < 0)
-        return -1;
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
@@ -2059,8 +2054,6 @@ loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count,
     u2 i;
 
     if (!cf)
-        return -1;
-    if (checkInput(input) < 0)
         return -1;
     if (ru2(attributes_count, input) < 0)
         return -1;

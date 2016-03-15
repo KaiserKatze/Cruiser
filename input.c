@@ -12,25 +12,25 @@
 
 #ifdef LINUX
 
-#include <endian.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+    #include <endian.h>
+    #include <dirent.h>
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <sys/stat.h>
 
 #elif defined WINDOWS
 
-#include <WinSock2.h>
+    #include <WinSock2.h>
 
-#define __func__ __FUNCTION__
+    #define __func__ __FUNCTION__
 
-#if LITTLEENDIAN
-#define htobe16(x) htons(x)
-#define htobe32(x) htonl(x)
-#else
-#define htobe16(x) (x)
-#define htobe32(x) (x)
-#endif
+    #if LITTLEENDIAN
+        #define htobe16(x) htons(x)
+        #define htobe32(x) htonl(x)
+    #else
+        #define htobe16(x) (x)
+        #define htobe32(x) (x)
+    #endif
 
 void bzero(void *ptr, size_t s)
 {
@@ -38,6 +38,10 @@ void bzero(void *ptr, size_t s)
 }
 
 #endif
+
+static int checkInput(struct BufferIO *);
+static u1* fillBuffer_f(struct BufferIO *, int);
+static u1* fillBuffer_z(struct BufferIO *, int);
 
 #define PATH_SEPARATOR '/'
 /*
@@ -291,8 +295,7 @@ openFile(const char *path, const char *mode)
 }
 #endif
 
-
-static inline void
+static inline int
 initBufferIO(struct BufferIO *io)
 {
     if (!io->buffer)
@@ -300,68 +303,61 @@ initBufferIO(struct BufferIO *io)
         io->bufsize = 16384;
         io->buffer = (u1 *) allocMemory(io->bufsize, sizeof (u1));
         if (!io->buffer)
-            return;
+            return -1;
     }
     io->bufsrc = 0;
     io->bufdst = 0;
     io->more = 1;
+    io->f_out = (FILE *) 0;
+    io->f_err = (FILE *) 0;
+
+    return 0;
 }
 
-extern void
+extern int
 initWithFile(struct BufferIO *io, const char *file_path)
 {
-#ifdef LINUX
+#if defined LINUX
     struct stat st;
-    char *path_pdir, *log_name;
+#endif
 
-    initBufferIO(io);
+    if (initBufferIO(io) < 0)
+        return -1;
+#if defined LINUX
     if (stat(file_path, &st) < 0)
     {
         perror("initWithFile:file_path");
-        return;
+        return -1;
     }
     if (!S_ISREG(st.st_mode))
     {
         logError("Parameter 'file_path' is not regular file!\r\n");
-        return;
+        return -1;
     }
-#endif
-#if defined WINDOWS
-	fopen_s(&(io->file), file_path, "r");
-#else
     io->file = fopen(file_path, "r");
+#elif defined WINDOWS
+	fopen_s(&(io->file), file_path, "r");
 #endif
+
     if (!io->file)
     {
         logError("Parameter file is NULL!\r\n");
-        return;
+        return -1;
     }
     io->fp = fillBuffer_f;
-    /*
-#ifdef LINUX
-    // analyze parent path
-    path_pdir = getParentPath(file_path);
-    if (lstat(path_pdir, &st) < 0)
-    {
-        perror("initWithFile:path_pdir");
-        return;
-    }
-    if (!S_ISDIR(st.st_mode))
-    {
-        logError("Fail to analyze parent path of file '%s'!\r\n", file_path);
-        return;
-    }
-    // analyze file name
-#endif
-    */
+
+    return 0;
 }
 
-extern void
+extern int
 initWithZipEntry(struct BufferIO *io, struct zip_file *entry)
 {
-    initBufferIO(io);
+    if (initBufferIO(io) < 0)
+        return -1;
     io->entry = entry;
     io->fp = fillBuffer_z;
+
+    return 0;
 }
 
 extern int
@@ -424,7 +420,7 @@ ru4(u4 *dst, struct BufferIO * input)
     return 0;
 }
 
-extern int
+static int
 checkInput(struct BufferIO * input)
 {
     if (!input)
@@ -448,7 +444,7 @@ checkInput(struct BufferIO * input)
     return 0;
 }
 
-extern u1 *
+static u1 *
 fillBuffer_f(struct BufferIO * input, int nbits)
 {
     FILE *file;
@@ -502,7 +498,7 @@ fillBuffer_f(struct BufferIO * input, int nbits)
     return &(input->buffer[input->bufsrc]);
 }
 
-extern u1 *
+static u1 *
 fillBuffer_z(struct BufferIO * input, int nbits)
 {
     struct zip_file *zf;
