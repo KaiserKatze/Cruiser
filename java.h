@@ -177,6 +177,8 @@ extern "C" {
         struct exception_table_entry *exception_table;
         u2 attributes_count;
         attr_info *attributes;
+        // Cruise-specific member
+        u4 attr_mark;
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(50, 0)
@@ -421,6 +423,8 @@ extern "C" {
         u2 descriptor_index;
         u2 attributes_count;
         attr_info *attributes;
+        // Cruise-specific member
+        u4 attr_mark;
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
@@ -443,6 +447,8 @@ extern "C" {
         u2 descriptor_index;
         u2 attributes_count;
         attr_info *attributes;
+        // Cruise-specific member
+        u4 attr_mark;
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
@@ -578,6 +584,8 @@ extern "C" {
         method_info * methods;
         u2 attributes_count;
         attr_info * attributes;
+        // Cruise-specific member
+        u4 attr_mark;
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
@@ -630,7 +638,7 @@ extern "C" {
     extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, field_info *, u2 *, attr_info **);
     extern int loadAttributes_method(ClassFile *, struct BufferIO *, method_info *, u2 *, attr_info **);
-    extern int loadAttributes_code(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+    extern int loadAttributes_code(ClassFile *, struct BufferIO *, attr_Code_info *, u2 *, attr_info **);
 
     extern int freeAttributes_class(ClassFile *, u2, attr_info *);
     extern int freeAttributes_field(ClassFile *, u2, attr_info *);
