@@ -606,6 +606,8 @@ extern "C" {
         u4 code_attribute_filter;
     };
 
+    extern u4 getAttributeTag(size_t, char *);
+
     extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
     extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *, u2);
     extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *, u2);
@@ -637,7 +639,7 @@ extern "C" {
     
     extern int disassembleCode(u4, u1 *);
 
-    extern int parseClassfile(struct BufferIO *, ClassFile *);
+    extern int parseClassfile(struct BufferIO *, ClassFile *, struct AttributeFilter *);
     extern int freeClassfile(ClassFile *);
 
     extern int compareVersion(u2, u2);

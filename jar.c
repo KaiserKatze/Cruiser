@@ -226,7 +226,8 @@ parseJarfile(const char *path, JarFile *jf)
 
         initWithZipEntry(&input, zf);
 
-        if (parseClassfile(&input, &(jf->classes[entry_index])) < 0)
+        if (parseClassfile(&input, &(jf->classes[entry_index]),
+                    (struct AttributeFilter *) 0) < 0)
         {
             logError("Fail to parse class file [%i]!\r\n", entry_index);
             zip_file_error_get(zf, &ze, &se);

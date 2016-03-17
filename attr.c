@@ -2062,3 +2062,55 @@ loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count,
         loadAttribute_code(cf, input, &((*attributes)[i]));
     return 0;
 }
+
+extern u4
+getAttributeTag(size_t len, char * str)
+{
+    if (strncmp("ConstantValue", str, len) == 0)
+        return TAG_ATTR_CONSTANTVALUE;
+    if (strncmp("Code", str, len) == 0)
+        return TAG_ATTR_CODE;
+    if (strncmp("StackMapTable", str, len) == 0)
+        return TAG_ATTR_STACKMAPTABLE;
+    if (strncmp("Exceptions", str, len) == 0)
+        return TAG_ATTR_EXCEPTIONS;
+    if (strncmp("InnerClasses", str, len) == 0)
+        return TAG_ATTR_INNERCLASSES;
+    if (strncmp("EnclosingMethod", str, len) == 0)
+        return TAG_ATTR_ENCLOSINGMETHOD;
+    if (strncmp("Synthetic", str, len) == 0)
+        return TAG_ATTR_SYNTHETIC;
+    if (strncmp("Signature", str, len) == 0)
+        return TAG_ATTR_SIGNATURE;
+    if (strncmp("SourceFile", str, len) == 0)
+        return TAG_ATTR_SOURCEFILE;
+    if (strncmp("SourceDebugExtension", str, len) == 0)
+        return TAG_ATTR_SOURCEDEBUGEXTENSION;
+    if (strncmp("LineNumberTable", str, len) == 0)
+        return TAG_ATTR_LINENUMBERTABLE;
+    if (strncmp("LocalVariableTable", str, len) == 0)
+        return TAG_ATTR_LOCALVARIABLETABLE;
+    if (strncmp("LocalVariableTypeTable", str, len) == 0)
+        return TAG_ATTR_LOCALVARIABLETYPETABLE;
+    if (strncmp("Deprecated", str, len) == 0)
+        return TAG_ATTR_DEPRECATED;
+    if (strncmp("RuntimeVisibleAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS;
+    if (strncmp("RuntimeInvisibleAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS;
+    if (strncmp("RuntimeVisibleParameterAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS;
+    if (strncmp("RuntimeInvisibleParameterAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS;
+    if (strncmp("AnnotationDefault", str, len) == 0)
+        return TAG_ATTR_ANNOTATIONDEFAULT;
+    if (strncmp("BootstrapMethods", str, len) == 0)
+        return TAG_ATTR_BOOTSTRAPMETHODS;
+    if (strncmp("RuntimeVisibleTypeAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
+    if (strncmp("RuntimeInvisibleTypeAnnotations", str, len) == 0)
+        return TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS;
+    if (strncmp("MethodParameters", str, len) == 0)
+        return TAG_ATTR_METHODPARAMETERS;
+    return 0;
+}

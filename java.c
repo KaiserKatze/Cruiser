@@ -72,7 +72,8 @@ static int
 logMethods(ClassFile *);
 
 extern int
-parseClassfile(struct BufferIO * input, ClassFile *cf)
+parseClassfile(struct BufferIO * input, ClassFile *cf,
+        struct AttributeFilter *attr_filter)
 {
     if (!input)
     {
