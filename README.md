@@ -8,4 +8,5 @@ This project is under construction. Disassembling is, I think, fully supported. 
 
 ## References
 - https://docs.oracle.com/javase/specs/jvms/se7/jvms7.pdf
+- https://docs.oracle.com/javase/specs/jvms/se8/jvms8.pdf
 - http://www.nih.at/libzip
