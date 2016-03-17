@@ -113,8 +113,7 @@ parseClassfile(struct BufferIO * input, ClassFile *cf,
 
     if (loadConstantPool(input, cf) < 0)
         return -1;
-    if (logConstantPool(cf) < 0)
-        return -1;
+    //if (logConstantPool(cf) < 0)                return -1;
 
     if (ru2(&(cf->access_flags), input) < 0)
         return -1;
@@ -124,11 +123,11 @@ parseClassfile(struct BufferIO * input, ClassFile *cf,
         return -1;
     if (loadInterfaces(input, cf) < 0)
         return -1;
-    if (logClassHeader(cf) < 0)
-        return -1;
+    if (logClassHeader(cf) < 0)                 return -1;
 
     if (loadFields(input, cf) < 0)
         return -1;
+    if (logFields(cf) < 0)                      return -1;
 
     /*
     if (loadMethods(input, cf) < 0)
@@ -2750,8 +2749,97 @@ logClassHeader(ClassFile *cf)
         if (buf[m] == '/')
             buf[m] = '.';
 
-    logInfo("%s\r\n", buf);
+    logInfo("%s\r\n{\r\n", buf);
 #endif
+    return 0;
+}
+
+static int
+getFieldDescriptor(char *out, u2 len, u1 *str)
+{
+    u2 i, j, m, n;
+
+    if (len == 1)
+    {
+        switch (str[0])
+        {
+            case 'B':
+                return sprintf(out, "byte");
+            case 'C':
+                return sprintf(out, "char");
+            case 'D':
+                return sprintf(out, "double");
+            case 'F':
+                return sprintf(out, "float");
+            case 'I':
+                return sprintf(out, "int");
+            case 'J':
+                return sprintf(out, "long");
+            case 'S':
+                return sprintf(out, "short");
+            case 'Z':
+                return sprintf(out, "boolean");
+            default:
+                return -1;
+        }
+    }
+    else
+    {
+        if (str[0] == '[')
+        {
+            for (i = 1; i < len; i++)
+                if (str[i] != '[')
+                    break;
+            m = getFieldDescriptor(out, len - i, str + i);
+            if (m < 0) return -1;
+            for (j = 0; j < i; j++)
+            {
+                n = sprintf(out + m + j * 2, "[]");
+                if (n != 2) return -1;
+            }
+            return m + i * 2;
+        }
+        else if (str[0] == 'L')
+        {
+            len -= 2;
+            ++str;
+            m = sprintf(out, "%.*s", len, str);
+            if (m != len) return -1;
+            for (i = 0; i < len; i++)
+                if (out[i] == '/')
+                    out[i] = '.';
+            return m;
+        }
+    }
+}
+
+static int
+writeConstantString(char *out, u2 len, u1 *str)
+{
+    int m;
+    char *src, *dst;
+
+    out[0] = '"';
+    src = out++;
+    dst = out + len;
+
+    m = sprintf(out, "%.*s", len, str);
+    if (m < 0) return -1;
+
+    while (out < dst)
+    {
+        if (*out == '"')
+        {
+            // move
+            memcpy(out + 1, out, dst - out);
+            ++dst;
+
+            // fill
+            *out = '\\';
+        }
+        ++out;
+    }
+
     return 0;
 }
 
@@ -2759,6 +2847,187 @@ static int
 logFields(ClassFile *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
+    char buf[1024], *ptr;
+    u2 i, j;
+    u2 fields_count;
+    field_info *fields, *field;
+    u2 access_flags;
+    u2 name_index;
+    u2 descriptor_index;
+    u2 attributes_count;
+    attr_info *attributes;
+    attr_info *attribute;
+    size_t n;
+    CONSTANT_Utf8_info *name, *descriptor;
+    attr_ConstantValue_info *acv;
+    u2 constantvalue_index;
+    CONSTANT_Long_info *cv_long;
+    CONSTANT_Float_info *cv_float;
+    CONSTANT_Double_info *cv_double;
+    CONSTANT_Integer_info *cv_integer;
+    CONSTANT_String_info *cv_string;
+    CONSTANT_Utf8_info *cui;
+
+    memset(buf, 0, sizeof (buf));
+    ptr = (char *) buf;
+    fields_count = cf->fields_count;
+    fields = cf->fields;
+
+    for (i = 0; i < fields_count; i++)
+    {
+        field = &(fields[i]);
+        access_flags = field->access_flags;
+        name_index = field->name_index;
+        descriptor_index = field->descriptor_index;
+        attributes_count = field->attributes_count;
+        attributes = field->attributes;
+
+        descriptor = getConstant_Utf8(cf, descriptor_index);
+
+        n = sprintf(ptr, "\t");
+        if (n < 0) return -1;
+        ptr += n;
+
+        // display access flags and descriptor
+        // only when the field is not an enum value
+        if (!(access_flags & ACC_ENUM))
+        {
+            // hide this field if it is synthetic
+            if (access_flags & ACC_SYNTHETIC)
+                continue;
+
+            // flags
+            if (access_flags & ACC_PUBLIC)
+            {
+                n = sprintf(ptr, "public ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            else if (access_flags & ACC_PRIVATE)
+            {
+                n = sprintf(ptr, "private ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            else if (access_flags & ACC_PROTECTED)
+            {
+                n = sprintf(ptr, "protected ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            if (access_flags & ACC_STATIC)
+            {
+                n = sprintf(ptr, "static ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            if (access_flags & ACC_FINAL)
+            {
+                n = sprintf(ptr, "final ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            else if (access_flags & ACC_VOLATILE)
+            {
+                n = sprintf(ptr, "volatile ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            if (access_flags & ACC_TRANSIENT)
+            {
+                n = sprintf(ptr, "transient ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+
+            // descriptor
+            n = getFieldDescriptor(ptr,
+                    descriptor->data->length,
+                    descriptor->data->bytes);
+            if (n < 0) return -1;
+            ptr += n;
+        }
+
+        name = getConstant_Utf8(cf, name_index);
+        n = sprintf(ptr, " %.*s",
+                name->data->length,
+                name->data->bytes);
+        if (n < 0) return -1;
+        ptr += n;
+
+        if ((access_flags & ACC_FINAL) && !(access_flags & ACC_ENUM))
+        {
+            // retrieve constant value
+            for (j = 0; j < attributes_count; j++)
+            {
+                attribute = &(attributes[j]);
+                if (attribute->tag != TAG_ATTR_CONSTANTVALUE)
+                    continue;
+
+                n = sprintf(ptr, " = ");
+                if (n < 0) return -1;
+                ptr += n;
+
+                acv = (attr_ConstantValue_info *) attribute->data;
+                constantvalue_index = acv->constantvalue_index;
+                switch (descriptor->data->bytes[0])
+                {
+                    case 'J':
+                        cv_long = getConstant_Long(cf,
+                                constantvalue_index);
+                        n = sprintf(ptr, "%llil",
+                                cv_long->data->long_value);
+                        if (n < 0) return -1;
+                        ptr += n;
+                        break;
+                    case 'F':
+                        cv_float = getConstant_Float(cf,
+                                constantvalue_index);
+                        n = sprintf(ptr, "%ff",
+                                cv_float->data->float_value);
+                        if (n < 0) return -1;
+                        ptr += n;
+                        break;
+                    case 'D':
+                        cv_double = getConstant_Double(cf,
+                                constantvalue_index);
+                        n = sprintf(ptr, "%fd",
+                                cv_double->data->double_value);
+                        if (n < 0) return -1;
+                        ptr += n;
+                        break;
+                    case 'L':
+                        cv_string = getConstant_String(cf,
+                                constantvalue_index);
+                        cui = getConstant_Utf8(cf,
+                                cv_string->data->string_index);
+                        n = writeConstantString(ptr,
+                                cui->data->length,
+                                cui->data->bytes);
+                        if (n < 0) return -1;
+                        ptr += n;
+                        break;
+                    default:
+                        cv_integer = getConstant_Integer(cf,
+                                constantvalue_index);
+                        n = sprintf(ptr, "%i",
+                                cv_integer->data->bytes);
+                        if (n < 0) return -1;
+                        ptr += n;
+                        break;
+                }
+
+                // exit the loop coz there's
+                // at most one ConstantValue attribute
+                break;
+            }
+        }
+        n = sprintf(ptr, ";\r\n");
+        if (n < 0) return -1;
+        ptr += n;
+    }
+
+    logInfo("%s\r\n", buf);
 #endif
     return 0;
 }
