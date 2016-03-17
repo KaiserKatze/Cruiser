@@ -1523,9 +1523,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
 {
     CONSTANT_Utf8_info *utf8;
     u1 *attribute_name;
-#ifdef QUICK_REFERENCE
     int res;
-#endif
 
     if (loadAttribute(input, info) < 0)
         return -1;
@@ -1536,20 +1534,13 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
 
 #if VER_CMP(45, 3)
     if (!strncmp((char *) attribute_name, "ConstantValue", 13))
-#ifdef QUICK_REFERENCE
     {
         res = loadAttribute_ConstantValue(cf, input, info);
-        if (res < 0)
-            return res;
-        logInfo("Current info    : %p\r\n", info);
-        logInfo("Field attributes: %p\r\n", field->attributes);
+#ifdef QUICK_REFERENCE
         field->off_ConstantValue = (u2) (0xffff & ((int) info - (int) field->attributes));
-        logInfo("Offset          : %i\r\n", field->off_ConstantValue);
+#endif
         return res;
     }
-#else
-        return loadAttribute_ConstantValue(cf, input, info);
-#endif
     if (!strncmp((char *) attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
     if (!strncmp((char *) attribute_name, "Deprecated", 10))
@@ -1559,55 +1550,39 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     if (!strncmp((char *) attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
     if (!strncmp((char *) attribute_name, "RuntimeVisibleAnnotations", 25))
-#ifdef QUICK_REFERENCE
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
+#ifdef QUICK_REFERENCE
         field->off_RuntimeVisibleAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
+#endif
         return res;
     }
-#else
-        return loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-#endif
     if (!strncmp((char *) attribute_name, "RuntimeInvisibleAnnotations", 27))
-#ifdef QUICK_REFERENCE
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
+#ifdef QUICK_REFERENCE
         field->off_RuntimeInvisibleAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
+#endif
         return res;
     }
-#else
-        return loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
-#endif
 #endif
 #if VER_CMP(52, 0)
     if (!strncmp((char *) attribute_name, "RuntimeVisibleTypeAnnotations", 29))
-#ifdef QUICK_REFERENCE
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
+#ifdef QUICK_REFERENCE
         field->off_RuntimeVisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
+#endif
         return res;
     }
-#else
-        return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-#endif
     if (!strncmp((char *) attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
-#ifdef QUICK_REFERENCE
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
+#ifdef QUICK_REFERENCE
         field->off_RuntimeInvisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
+#endif
         return res;
     }
-#else
-        return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
-#endif
 #endif
     logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
     return skipAttribute(input, info);
