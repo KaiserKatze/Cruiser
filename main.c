@@ -109,10 +109,12 @@ interpreteFilter(struct AttributeFilter *attr_filter,
     while (++i < argc)
     {
         arg = argv[i];
+        logInfo("Interpreting argument '%s'...\r\n", arg);
         len = strlen(arg);
         if (strncmp(arg, OPTION_CLASS_FILTER,
                     sizeof (OPTION_CLASS_FILTER)) == 0)
         {
+            logInfo("Found %s!\r\n", OPTION_CLASS_FILTER);
             arg[len - 1] = '\0';
             generateFilter(attr_filter, 0,
                     arg + sizeof (OPTION_CLASS_FILTER) + 2);
@@ -120,6 +122,7 @@ interpreteFilter(struct AttributeFilter *attr_filter,
         else if (strncmp(arg, OPTION_FIELD_FILTER,
                     sizeof (OPTION_FIELD_FILTER)) == 0)
         {
+            logInfo("Found %s!\r\n", OPTION_FIELD_FILTER);
             arg[len - 1] = '\0';
             generateFilter(attr_filter, 1,
                     arg + sizeof (OPTION_FIELD_FILTER) + 2);
@@ -127,6 +130,7 @@ interpreteFilter(struct AttributeFilter *attr_filter,
         else if (strncmp(arg, OPTION_METHOD_FILTER,
                     sizeof (OPTION_METHOD_FILTER)) == 0)
         {
+            logInfo("Found %s!\r\n", OPTION_METHOD_FILTER);
             arg[len - 1] = '\0';
             generateFilter(attr_filter, 2,
                     arg + sizeof (OPTION_METHOD_FILTER) + 2);
@@ -134,11 +138,15 @@ interpreteFilter(struct AttributeFilter *attr_filter,
         else if (strncmp(arg, OPTION_CODE_FILTER,
                     sizeof (OPTION_CODE_FILTER)) == 0)
         {
+            logInfo("Found %s!\r\n", OPTION_CODE_FILTER);
             arg[len - 1] = '\0';
             generateFilter(attr_filter, 3,
                     arg + sizeof (OPTION_CODE_FILTER) + 2);
         }
+        break;
     }
+
+    logInfo("Return %i\r\n", i);
 
     return i;
 }
