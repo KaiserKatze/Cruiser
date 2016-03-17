@@ -126,7 +126,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         logError("Assertion error: Exception table length is negative!\r\n");
         return -1;
     }
-    loadAttributes_code(cf, input,
+    loadAttributes_code(cf, input, data,
             &(data->attributes_count),
             &(data->attributes));
 
@@ -1541,7 +1541,10 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
         res = loadAttribute_ConstantValue(cf, input, info);
         if (res < 0)
             return res;
+        logInfo("Current info    : %p\r\n", info);
+        logInfo("Field attributes: %p\r\n", field->attributes);
         field->off_ConstantValue = (u2) (0xffff & ((int) info - (int) field->attributes));
+        logInfo("Offset          : %i\r\n", field->off_ConstantValue);
         return res;
     }
 #else
@@ -1800,6 +1803,23 @@ loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
+#ifdef QUICK_REFERENCE
+#if VER_CMP(45, 3)
+    cf->off_InnerClasses = -1;
+#endif
+#if VER_CMP(49, 0)
+    cf->off_EnclosingMethod = -1;
+    cf->off_RuntimeVisibleAnnotations = -1;
+    cf->off_RuntimeInvisibleAnnotations = -1;
+#endif
+#if VER_CMP(51, 0)
+    cf->off_BootstrapMethods = -1;
+#endif
+#if VER_CMP(52, 0)
+    cf->off_RuntimeVisibleTypeAnnotations = -1;
+    cf->off_RuntimeInvisibleTypeAnnotations = -1;
+#endif
+#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_class(cf, input, &((*attributes)[i]));
     return 0;
@@ -1910,8 +1930,11 @@ freeAttributes_field(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 
 
 extern int
-loadAttributes_field(ClassFile *cf, struct BufferIO *input, field_info *field,
-        u2 *attributes_count, attr_info **attributes)
+loadAttributes_field(ClassFile *cf,
+        struct BufferIO *input,
+        field_info *field,
+        u2 *attributes_count,
+        attr_info **attributes)
 {
     u2 i;
 
@@ -1922,6 +1945,19 @@ loadAttributes_field(ClassFile *cf, struct BufferIO *input, field_info *field,
     //*attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     *attributes = (attr_info *) allocMemory(*attributes_count, sizeof (attr_info));
     if (!*attributes) return -1;
+#ifdef QUICK_REFERENCE
+#if VER_CMP(45, 3)
+    field->off_ConstantValue = -1;
+#endif
+#if VER_CMP(49, 0)
+    field->off_RuntimeVisibleAnnotations = -1;
+    field->off_RuntimeInvisibleAnnotations = -1;
+#endif
+#if VER_CMP(52, 0)
+    field->off_RuntimeVisibbleTypeAnnotations = -1;
+    field->off_RuntimeInvisibleTypeAnnotations = -1;
+#endif
+#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_field(cf, input, field, &((*attributes)[i]));
     return 0;
@@ -1984,8 +2020,11 @@ freeAttributes_method(ClassFile * cf, u2 attributes_count, attr_info *attributes
 }
 
 extern int
-loadAttributes_method(ClassFile *cf, struct BufferIO *input, method_info *method,
-        u2 *attributes_count, attr_info **attributes)
+loadAttributes_method(ClassFile *cf,
+        struct BufferIO *input,
+        method_info *method,
+        u2 *attributes_count,
+        attr_info **attributes)
 {
     u2 i;
 
@@ -1994,6 +2033,23 @@ loadAttributes_method(ClassFile *cf, struct BufferIO *input, method_info *method
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
+#ifdef QUICK_REFERENCE
+#if VER_CMP(45, 3)
+    method->off_Code = -1;
+    method->off_Exceptions = -1;
+#endif
+#if VER_CMP(49, 0)
+    method->off_RuntimeVisibleParameterAnnotations = -1;
+    method->off_RuntimeInvisibleParameterAnnotations = -1;
+    method->off_AnnotationDefault = -1;
+    method->off_RuntimeVisibleAnnotations = -1;
+    method->off_RuntimeInvisibleAnnotations = -1;
+#endif
+#if VER_CMP(52, 0)
+    method->off_RuntimeVisibleTypeAnnotations = -1;
+    method->off_RuntimeInvisibleTypeAnnotations = -1;
+#endif
+#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_method(cf, input, method, &((*attributes)[i]));
 
@@ -2049,7 +2105,11 @@ freeAttributes_code(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 }
 
 extern int
-loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count, attr_info **attributes)
+loadAttributes_code(ClassFile *cf,
+        struct BufferIO *input,
+        attr_Code_info *code,
+        u2 *attributes_count,
+        attr_info **attributes)
 {
     u2 i;
 
@@ -2058,6 +2118,15 @@ loadAttributes_code(ClassFile *cf, struct BufferIO *input, u2 *attributes_count,
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
+#ifdef QUICK_REFERENCE
+#if VER_CMP(50, 0)
+    code->off_StackMapTable = -1;
+#endif
+#if VER_CMP(52, 0)
+    code->off_RuntimeVisibleTypeAnnotations = -1;
+    code->off_RuntimeInvisibleTypeAnnotations = -1;
+#endif
+#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_code(cf, input, &((*attributes)[i]));
     return 0;
