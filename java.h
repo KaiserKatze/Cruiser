@@ -73,29 +73,29 @@ extern "C" {
 #define REF_invokeInterface     9
 
 // Cruise-specific constants
-#define TAG_ATTR_CONSTANTVALUE                          1
-#define TAG_ATTR_CODE                                   2
-#define TAG_ATTR_STACKMAPTABLE                          3
-#define TAG_ATTR_EXCEPTIONS                             4
-#define TAG_ATTR_INNERCLASSES                           5
-#define TAG_ATTR_ENCLOSINGMETHOD                        6
-#define TAG_ATTR_SYNTHETIC                              7
-#define TAG_ATTR_SIGNATURE                              8
-#define TAG_ATTR_SOURCEFILE                             9
-#define TAG_ATTR_SOURCEDEBUGEXTENSION                   10
-#define TAG_ATTR_LINENUMBERTABLE                        11
-#define TAG_ATTR_LOCALVARIABLETABLE                     12
-#define TAG_ATTR_LOCALVARIABLETYPETABLE                 13
-#define TAG_ATTR_DEPRECATED                             14
-#define TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS              15
-#define TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS            16
-#define TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     17
-#define TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   18
-#define TAG_ATTR_ANNOTATIONDEFAULT                      19
-#define TAG_ATTR_BOOTSTRAPMETHODS                       20
-#define TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS          21
-#define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        22
-#define TAG_ATTR_METHODPARAMETERS                       23
+#define TAG_ATTR_CONSTANTVALUE                          0x1
+#define TAG_ATTR_CODE                                   0x2
+#define TAG_ATTR_STACKMAPTABLE                          0x4
+#define TAG_ATTR_EXCEPTIONS                             0x8
+#define TAG_ATTR_INNERCLASSES                           0x10
+#define TAG_ATTR_ENCLOSINGMETHOD                        0x20
+#define TAG_ATTR_SYNTHETIC                              0x40
+#define TAG_ATTR_SIGNATURE                              0x80
+#define TAG_ATTR_SOURCEFILE                             0x100
+#define TAG_ATTR_SOURCEDEBUGEXTENSION                   0x200
+#define TAG_ATTR_LINENUMBERTABLE                        0x400
+#define TAG_ATTR_LOCALVARIABLETABLE                     0x800
+#define TAG_ATTR_LOCALVARIABLETYPETABLE                 0x1000
+#define TAG_ATTR_DEPRECATED                             0x2000
+#define TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS              0x4000
+#define TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS            0x8000
+#define TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS     0x10000
+#define TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS   0x20000
+#define TAG_ATTR_ANNOTATIONDEFAULT                      0x40000
+#define TAG_ATTR_BOOTSTRAPMETHODS                       0x80000
+#define TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS          0x100000
+#define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        0x200000
+#define TAG_ATTR_METHODPARAMETERS                       0x400000
 
     typedef struct
     {
@@ -108,7 +108,7 @@ extern "C" {
         u2 attribute_name_index;
         u4 attribute_length;
         // Cruise-specific members
-        u2 tag;
+        u4 tag;
         void *data;
     } attr_info;
 
@@ -598,6 +598,14 @@ extern "C" {
 #endif
     } ClassFile;
 
+    struct AttributeFilter
+    {
+        u4 class_attribute_filter;
+        u4 field_attribute_filter; 
+        u4 method_attribute_filter;
+        u4 code_attribute_filter;
+    };
+
     extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
     extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *, u2);
     extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *, u2);
@@ -621,6 +629,7 @@ extern "C" {
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, field_info *, u2 *, attr_info **);
     extern int loadAttributes_method(ClassFile *, struct BufferIO *, method_info *, u2 *, attr_info **);
     extern int loadAttributes_code(ClassFile *, struct BufferIO *, u2 *, attr_info **);
+
     extern int freeAttributes_class(ClassFile *, u2, attr_info *);
     extern int freeAttributes_field(ClassFile *, u2, attr_info *);
     extern int freeAttributes_method(ClassFile *, u2, attr_info *);
