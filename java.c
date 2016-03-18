@@ -3065,7 +3065,9 @@ logFields(ClassFile *cf)
 }
 
 static int
-writeParameterTable(char *out, u2 len, u1 *str)
+writeParameterTable(char *out,
+        method_info *method,
+        u2 len, u1 *str)
 {
     char *src;
     size_t n;
@@ -3137,6 +3139,8 @@ writeParameterTable(char *out, u2 len, u1 *str)
         out += n;
     }
 
+    method->parameters_count = count;
+
     return out - src;
 }
 
@@ -3157,7 +3161,6 @@ logMethods(ClassFile *cf)
     CONSTANT_Utf8_info *name, *descriptor;
 
     memset(buf, 0, sizeof (buf));
-    ptr = (char *) buf;
     methods_count = cf->methods_count;
     methods = cf->methods;
     this_class = getConstant_Class(cf, cf->this_class);
@@ -3173,6 +3176,10 @@ logMethods(ClassFile *cf)
             continue;
         if (access_flags & ACC_SYNTHETIC)
             continue;
+
+        if (ptr > buf)
+            memset(buf, 0, ptr - buf);
+        ptr = (char *) buf;
 
         n = sprintf(ptr, "\t");
         if (n < 0) return -1;
@@ -3294,6 +3301,7 @@ logMethods(ClassFile *cf)
 
             // parameter table
             n = writeParameterTable(ptr,
+                    method,
                     descriptor->data->length,
                     descriptor->data->bytes);
             if (n < 0) return -1;
@@ -3302,7 +3310,7 @@ logMethods(ClassFile *cf)
 
         attributes_count = method->attributes_count;
 
-        n = sprintf(ptr, "\t}\r\n");
+        n = sprintf(ptr, "\t}\r\n\r\n");
         if (n < 0) return -1;
         ptr += n;
     }
