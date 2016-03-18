@@ -3159,6 +3159,7 @@ logMethods(ClassFile *cf)
     CONSTANT_Class_info *this_class;
     CONSTANT_Utf8_info *class_name;
     CONSTANT_Utf8_info *name, *descriptor;
+    attr_Code_info *code, *exceptions;
 
     memset(buf, 0, sizeof (buf));
     methods_count = cf->methods_count;
@@ -3308,7 +3309,34 @@ logMethods(ClassFile *cf)
             ptr += n;
         }
 
+        // find Code attribute & Exceptions attribute
         attributes_count = method->attributes_count;
+        attributes = method->attributes;
+        code = (attr_Code_info *) 0;
+        exceptions = (attr_Exceptions_info *) 0;
+
+        for (j = 0; j < attributes_count; j++)
+        {
+            attribute = &(attributes[j]);
+
+            switch (attribute->tag)
+            {
+                case TAG_ATTR_CODE:
+                    code = (attr_Code_info *)
+                        attribute->data;
+                    break;
+                case TAG_ATTR_EXCEPTIONS:
+                    exceptions = (attr_Exceptions_info *)
+                        attribute->data;
+                    break;
+                default:
+                    continue;
+            }
+
+            if (code && exceptions) break;
+        }
+
+        // analyze Exceptions attribute
 
         n = sprintf(ptr, "\t}\r\n\r\n");
         if (n < 0) return -1;
