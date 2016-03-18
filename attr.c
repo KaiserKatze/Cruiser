@@ -89,8 +89,7 @@ loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (rbs(data->code, input, data->code_length) < 0)
         return -1;
     
-    if (disassembleCode(data->code_length, data->code) < 0)
-        return -1;
+    //if (disassembleCode(data->code_length, data->code) < 0) return -1;
     
     if (ru2(&(data->exception_table_length), input) < 0)
         return -1;

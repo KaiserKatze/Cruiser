@@ -129,10 +129,11 @@ parseClassfile(struct BufferIO * input, ClassFile *cf,
         return -1;
     if (logFields(cf) < 0)                      return -1;
 
-    /*
     if (loadMethods(input, cf) < 0)
         return -1;
+    if (logMethods(cf) < 0)                     return -1;
 
+    /*
     loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
 #ifdef RT_H
     // constant pool validation
@@ -2628,6 +2629,41 @@ logConstantPool(ClassFile *cf)
 }
 
 static int
+writeClassName0(char *out,
+        u2 len, u1 *str)
+{
+    size_t n;
+    u2 i;
+
+    n = sprintf(out, "%.*s", len, str);
+    if (n < 0) return -1;
+
+    for (i = 0; i < len; i++)
+        if (out[i] == '/')
+            out[i] = '.';
+
+    return n;
+}
+
+static int
+writeClassName(char *out,
+        ClassFile *cf,
+        u2 class_index)
+{
+    CONSTANT_Class_info *class_info;
+    CONSTANT_Utf8_info *class_name;
+
+    class_info = getConstant_Class(cf,
+            class_index);
+    class_name = getConstant_Utf8(cf,
+            class_info->data->name_index);
+
+    return writeClassName0(out,
+            class_name->data->length,
+            class_name->data->bytes);
+}
+
+static int
 logClassHeader(ClassFile *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
@@ -2664,6 +2700,19 @@ logClassHeader(ClassFile *cf)
         ptr += n;
     }
 
+    if (access_flags & ACC_ABSTRACT)
+    {
+        n = sprintf(ptr, "abstract ");
+        if (n < 0) return -1;
+        ptr += n;
+    }
+    else if (access_flags & ACC_FINAL)
+    {
+        n = sprintf(ptr, "final ");
+        if (n < 0) return -1;
+        ptr += n;
+    }
+
     // type
     if (access_flags & ACC_ANNOTATION)
         n = sprintf(ptr, "@interface ");
@@ -2672,28 +2721,15 @@ logClassHeader(ClassFile *cf)
     else if (access_flags & ACC_INTERFACE)
         n = sprintf(ptr, "interface ");
     else
-    {
-        if (access_flags & ACC_ABSTRACT)
-            n = sprintf(ptr, "abstract ");
-        else if (access_flags & ACC_FINAL)
-            n = sprintf(ptr, "final ");
-        if (n < 0) return -1;
-        ptr += n;
         n = sprintf(ptr, "class ");
-    }
     if (n < 0) return -1;
     ptr += n;
 
     // name
-    cci = getConstant_Class(cf, this_class);
-    if (!cci) return -1;
-    cui = getConstant_Utf8(cf, cci->data->name_index);
-    if (!cui) return -1;
-    n = sprintf(ptr, "%.*s ",
-            cui->data->length,
-            cui->data->bytes);
+    n = writeClassName(ptr, cf, this_class);
     if (n < 0) return -1;
     ptr += n;
+    *ptr++ = ' ';
 
     // super class
     if (super_class > 0)
@@ -2706,11 +2742,15 @@ logClassHeader(ClassFile *cf)
                     (char *) cui->data->bytes,
                     cui->data->length))
         {
-            n = sprintf(ptr, "extends %.*s",
+            n = sprintf(ptr, "extends ");
+            if (n < 0) return -1;
+            ptr += n;
+            n = writeClassName0(ptr,
                     cui->data->length,
                     cui->data->bytes);
             if (n < 0) return -1;
             ptr += n;
+            *ptr++ = ' ';
         }
     }
 
@@ -2718,9 +2758,9 @@ logClassHeader(ClassFile *cf)
     if (interfaces_count > 0)
     {
         if (access_flags & ACC_INTERFACE)
-            n = sprintf(ptr, "extends ");
+            n = sprintf(ptr, "\r\n\textends ");
         else
-            n = sprintf(ptr, "implements ");
+            n = sprintf(ptr, "\r\n\timplements ");
         if (n < 0) return -1;
         ptr += n;
 
@@ -2728,26 +2768,15 @@ logClassHeader(ClassFile *cf)
         {
             if (i > 0)
             {
-                n = sprintf(ptr, ", ");
+                n = sprintf(ptr, ",\r\n\t\t");
                 if (n < 0) return -1;
                 ptr += n;
             }
-            cci = getConstant_Class(cf, interfaces[i]);
-            if (!cci) return -1;
-            cui = getConstant_Utf8(cf, cci->data->name_index);
-            if (!cui) return -1;
-            n = sprintf(ptr, "%.*s",
-                    cui->data->length,
-                    cui->data->bytes);
+            n = writeClassName(ptr, cf, interfaces[i]);
             if (n < 0) return -1;
             ptr += n;
         }
     }
-
-    n = strlen(buf);
-    for (m = 0; m < n; m++)
-        if (buf[m] == '/')
-            buf[m] = '.';
 
     logInfo("%s\r\n{\r\n", buf);
 #endif
@@ -2755,7 +2784,7 @@ logClassHeader(ClassFile *cf)
 }
 
 static int
-getFieldDescriptor(char *out, u2 len, u1 *str)
+writeFieldDescriptor(char *out, u2 len, u1 *str)
 {
     u2 i, j, m, n;
 
@@ -2779,6 +2808,9 @@ getFieldDescriptor(char *out, u2 len, u1 *str)
                 return sprintf(out, "short");
             case 'Z':
                 return sprintf(out, "boolean");
+            // return type only
+            case 'V':
+                return sprintf(out, "void");
             default:
                 return -1;
         }
@@ -2790,7 +2822,7 @@ getFieldDescriptor(char *out, u2 len, u1 *str)
             for (i = 1; i < len; i++)
                 if (str[i] != '[')
                     break;
-            m = getFieldDescriptor(out, len - i, str + i);
+            m = writeFieldDescriptor(out, len - i, str + i);
             if (m < 0) return -1;
             for (j = 0; j < i; j++)
             {
@@ -2888,14 +2920,14 @@ logFields(ClassFile *cf)
         if (n < 0) return -1;
         ptr += n;
 
+        // hide this field if it is synthetic
+        if (access_flags & ACC_SYNTHETIC)
+            continue;
+
         // display access flags and descriptor
         // only when the field is not an enum value
         if (!(access_flags & ACC_ENUM))
         {
-            // hide this field if it is synthetic
-            if (access_flags & ACC_SYNTHETIC)
-                continue;
-
             // flags
             if (access_flags & ACC_PUBLIC)
             {
@@ -2941,7 +2973,7 @@ logFields(ClassFile *cf)
             }
 
             // descriptor
-            n = getFieldDescriptor(ptr,
+            n = writeFieldDescriptor(ptr,
                     descriptor->data->length,
                     descriptor->data->bytes);
             if (n < 0) return -1;
@@ -3033,9 +3065,249 @@ logFields(ClassFile *cf)
 }
 
 static int
+writeParameterTable(char *out, u2 len, u1 *str)
+{
+    char *src;
+    size_t n;
+    u2 i, j;
+    u2 m;
+    u1 *p;
+    u2 count;
+
+    src = out;
+    *out++ = '(';
+    --len;
+    ++str;
+    count = 0;
+
+    for (i = 0; i < len; i++)
+    {
+        if (str[i] == ')')
+        {
+            n = sprintf(out, ") {\r\n");
+            if (n < 0) return -1;
+            out += n;
+            break;
+        }
+
+        if (i > 0)
+        {
+            n = sprintf(out, ", ");
+            if (n < 0) return -1;
+            out += n;
+        }
+
+        j = i;
+        // Object parameter
+        if (str[i] == 'L')
+        {
+            for (++j; j < len; j++)
+                if (str[j] == ';')
+                    break;
+            m = j + 1 - i;
+        }
+        // Array parameter
+        else if (str[i] == '[')
+        {
+            for (++j; j < len; j++)
+                if (str[j] != '[')
+                    break;
+            if (str[j] == 'L')
+                for (++j; j < len; j++)
+                    if (str[j] == ';')
+                        break;
+            m = j + 1 - i;
+        }
+        // Primitive parameter
+        else
+        {
+            m = 1;
+        }
+        p = str + i;
+        i = j;
+
+        n = writeFieldDescriptor(out, m, p);
+        if (n < 0) return -1;
+        out += n;
+
+        // parameter name
+        ++count;
+        n = sprintf(out, " param%i", count);
+        if (n < 0) return -1;
+        out += n;
+    }
+
+    return out - src;
+}
+
+static int
 logMethods(ClassFile *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
+    char buf[65536], *ptr;
+    size_t n;
+    u2 i, j;
+    u2 methods_count;
+    method_info *methods, *method;
+    u2 access_flags, name_index, descriptor_index;
+    u2 attributes_count;
+    attr_info *attributes, *attribute;
+    CONSTANT_Class_info *this_class;
+    CONSTANT_Utf8_info *class_name;
+    CONSTANT_Utf8_info *name, *descriptor;
+
+    memset(buf, 0, sizeof (buf));
+    ptr = (char *) buf;
+    methods_count = cf->methods_count;
+    methods = cf->methods;
+    this_class = getConstant_Class(cf, cf->this_class);
+    class_name = getConstant_Utf8(cf,
+            this_class->data->name_index);
+
+    for (i = 0; i < methods_count; i++)
+    {
+        method = &(methods[i]);
+
+        access_flags = method->access_flags;
+        if (access_flags & ACC_BRIDGE)
+            continue;
+        if (access_flags & ACC_SYNTHETIC)
+            continue;
+
+        n = sprintf(ptr, "\t");
+        if (n < 0) return -1;
+        ptr += n;
+
+        if (access_flags & ACC_PUBLIC)
+        {
+            n = sprintf(ptr, "public ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        else if (access_flags & ACC_PRIVATE)
+        {
+            n = sprintf(ptr, "private ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        else if (access_flags & ACC_PROTECTED)
+        {
+            n = sprintf(ptr, "protected ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        if (access_flags & ACC_STATIC)
+        {
+            n = sprintf(ptr, "static ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        if (access_flags & ACC_SYNCHRONIZED)
+        {
+            n = sprintf(ptr, "synchronized ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        if (access_flags & ACC_ABSTRACT)
+        {
+            n = sprintf(ptr, "final ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        else
+        {
+            if (access_flags & ACC_NATIVE)
+            {
+                n = sprintf(ptr, "native ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            if (access_flags & ACC_FINAL)
+            {
+                n = sprintf(ptr, "final ");
+                if (n < 0) return -1;
+                ptr += n;
+            }
+        }
+        if (access_flags & ACC_STRICT)
+        {
+            n = sprintf(ptr, "strictfp ");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+
+        // note ACC_NATIVE, ACC_VARARGS
+        name_index = method->name_index;
+        descriptor_index = method->descriptor_index;
+        name = getConstant_Utf8(cf, name_index);
+        descriptor = getConstant_Utf8(cf, descriptor_index);
+
+        if (strncmp("<clinit>",
+                    (char *) name->data->bytes,
+                    name->data->length) == 0)
+        {
+            n = sprintf(ptr, "static {\r\n");
+            if (n < 0) return -1;
+            ptr += n;
+        }
+        else
+        {
+            if (strncmp("<init>", (char *) name->data->bytes,
+                        name->data->length) == 0)
+            {
+                // class name
+                n = writeClassName0(ptr,
+                        class_name->data->length,
+                        class_name->data->bytes);
+                if (n < 0) return -1;
+                ptr += n;
+            }
+            else
+            {
+                // return type
+                for (j = descriptor->data->length - 1;
+                        j > 0; j--)
+                {
+                    if (descriptor->data->bytes[j] != ')')
+                        continue;
+
+                    ++j;
+                    n = writeFieldDescriptor(ptr,
+                            descriptor->data->length - j,
+                            descriptor->data->bytes + j);
+                    if (n < 0) return -1;
+                    ptr += n;
+                    n = sprintf(ptr, " ");
+                    if (n < 0) return -1;
+                    ptr += n;
+
+                    break;
+                }
+
+                // method name
+                n = sprintf(ptr, "%.*s",
+                        name->data->length,
+                        name->data->bytes);
+                if (n < 0) return -1;
+                ptr += n;
+            }
+
+            // parameter table
+            n = writeParameterTable(ptr,
+                    descriptor->data->length,
+                    descriptor->data->bytes);
+            if (n < 0) return -1;
+            ptr += n;
+        }
+
+        attributes_count = method->attributes_count;
+
+        n = sprintf(ptr, "\t}\r\n");
+        if (n < 0) return -1;
+        ptr += n;
+    }
+
+    logInfo("%s\r\n", buf);
 #endif
     return 0;
 }
