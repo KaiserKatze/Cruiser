@@ -5,6 +5,7 @@ This project is under construction. Disassembling is, I think, fully supported. 
 ## Usage
 1. Install libzip;
 2. Execute `make`.
+3. Run `./cruise --class_filter=<filterA> --field_filter=<filterB> --method_filter=<filterC> --code_filter=<filterD> <class_file_absolute_path>`
 
 ## References
 - https://docs.oracle.com/javase/specs/jvms/se7/jvms7.pdf
