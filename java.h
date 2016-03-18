@@ -449,6 +449,8 @@ extern "C" {
         attr_info *attributes;
         // Cruise-specific member
         u4 attr_mark;
+        u2 parameters_count;
+        u1 return_type;
 
 #ifdef QUICK_REFERENCE
 #if VER_CMP(45, 3)
