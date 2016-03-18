@@ -3159,7 +3159,8 @@ logMethods(ClassFile *cf)
     CONSTANT_Class_info *this_class;
     CONSTANT_Utf8_info *class_name;
     CONSTANT_Utf8_info *name, *descriptor;
-    attr_Code_info *code, *exceptions;
+    attr_Code_info *code;
+    attr_Exceptions_info *exceptions;
 
     memset(buf, 0, sizeof (buf));
     methods_count = cf->methods_count;
