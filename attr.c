@@ -58,7 +58,10 @@ freeAttribute_ConstantValue(attr_info *info)
 }
 
 static int
-loadAttribute_Code(ClassFile *cf, struct BufferIO *input, attr_info *info)
+loadAttribute_Code(ClassFile *cf,
+        struct BufferIO *input,
+        method_info *method,
+        attr_info *info)
 {
     struct attr_Code_info *data;
     u2 i;
@@ -1589,7 +1592,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #if VER_CMP(45, 3)
     if (!strncmp((char *) attribute_name, "Code", 4))
     {
-        res = loadAttribute_Code(cf, input, info);
+        res = loadAttribute_Code(cf, input, method, info);
         if (res < 0)
             return res;
 #ifdef QUICK_REFERENCE
