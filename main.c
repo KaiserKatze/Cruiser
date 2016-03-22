@@ -15,9 +15,18 @@
 #define OPTION_METHOD_FILTER    "--method_filter"
 #define OPTION_CODE_FILTER      "--code_filter"
 
-static void generateFilter(struct AttributeFilter *, int, char *);
-static int interpreteFilter(struct AttributeFilter *, int, char **);
+#define OPTION_DISASSEMBLE      "-a"
+#define MARK_DISASSEMBLE        0x0001
+#define OPTION_DECOMPILE        "-c"
+#define MARK_DECOMPILE          0x0002
 
+static void generateFilter(struct AttributeFilter *, int, char *);
+static void interpreteFilter(struct AttributeFilter *, int, char **);
+static int interpreteFlags(int, char **);
+
+/*
+ * ./cruise [-a] [-c] [--class_filter=<filterA|filterB>] [--field_filter=<filterC>] [--method_filter=<filterD>] [--code_filter=<filterE>]
+ */
 int
 main(int argc, char** argv)
 {
@@ -26,39 +35,37 @@ main(int argc, char** argv)
     struct BufferIO input;
     struct AttributeFilter filter;
     time_t t;
-    int pos_path;
+    int flags;
     int result;
 
-    path = (char *) 0;
+    if (argc < 2)
+    {
+        logError("Usage: %s <classfile_absolute_path>\r\n", argv[0]);
+        return -1;
+    }
+
+    path = argv[argc - 1];
     memset((void *) &input, 0, sizeof (struct BufferIO));
     memset((void *) &filter, 0, sizeof (struct AttributeFilter));
     time(&t);
 
-    // <exec> <classfile_absolute_path>
-    if (argc == 2)
-    {
-        pos_path = interpreteFilter(&filter, argc, argv);
-        path = argv[pos_path];
-        logInfo("Classfile '%s'...\r\n", path);
+    flags = interpreteFlags(argc, argv);
+    interpreteFilter(&filter, argc, argv);
+    logInfo("Classfile '%s'...\r\n", path);
 
-        if (initWithFile(&input, path) < 0)
-            goto bad_end;
+    if (initWithFile(&input, path) < 0)
+        goto bad_end;
 
-        memset(&cf, 0, sizeof (ClassFile));
-        result = parseClassfile(&input, &cf, &filter);
+    memset(&cf, 0, sizeof (ClassFile));
+    result = parseClassfile(&input, &cf, &filter);
 
-        freeClassfile(&cf);
-        free(input.buffer);
-        fclose(input.file);
+    freeClassfile(&cf);
+    free(input.buffer);
+    fclose(input.file);
 
-        if (result < 0) goto bad_end;
-        else            goto good_end;
-    }
-    else
-    {
-        logError("Usage: %s <classfile_absolute_path>\r\n", argv[0]);
-        return 0;
-    }
+    if (result < 0) goto bad_end;
+    else            goto good_end;
+
 good_end:
     logInfo("Succeed! Time used: %.2f seconds.\r\n",
             difftime(time(0), t));
@@ -67,6 +74,27 @@ bad_end:
     logInfo("Fail! Time used: %.2f seconds.\r\n",
             difftime(time(0), t));
     return -1;
+}
+
+static int
+interpreteFlags(int argc, char **argv)
+{
+    int i, res;
+
+    res = 0;
+    for (i = 1; i < argc - 1; i++)
+    {
+        if (strcmp(argv[i], OPTION_DISASSEMBLE) == 0)
+        {
+            res |= MARK_DISASSEMBLE;
+        }
+        else if (strcmp(argv[i], OPTION_DECOMPILE) == 0)
+        {
+            res |= MARK_DECOMPILE;
+        }
+    }
+
+    return res;
 }
 
 static void
@@ -98,7 +126,7 @@ generateFilter(struct AttributeFilter *attr_filter,
 
 // example:
 // --method_filter="Code|Exceptions"
-static int
+static void
 interpreteFilter(struct AttributeFilter *attr_filter,
         int argc, char ** argv)
 {
@@ -140,6 +168,4 @@ interpreteFilter(struct AttributeFilter *attr_filter,
         }
         break;
     }
-
-    return i;
 }
