@@ -3255,7 +3255,7 @@ logMethods(ClassFile *cf)
                     (char *) name->data->bytes,
                     name->data->length) == 0)
         {
-            n = sprintf(ptr, "static {\r\n");
+            n = sprintf(ptr, "{\r\n");
             if (n < 0) return -1;
             ptr += n;
         }
