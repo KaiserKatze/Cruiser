@@ -3075,18 +3075,28 @@ writeParameterTable(char *out,
     u2 m;
     u1 *p;
     u2 count;
+    u2 access_flags;
 
     src = out;
     *out++ = '(';
     --len;
     ++str;
-    count = 0;
+
+    // instance methods start with 'this' parameter
+    access_flags = method->access_flags;
+    if (access_flags & ACC_STATIC)
+        count = 0;
+    else
+        count = 1;
 
     for (i = 0; i < len; i++)
     {
         if (str[i] == ')')
         {
-            n = sprintf(out, ") {\r\n");
+            // remove " {\r\n" coz some methods
+            // with ACC_NATIVE, ACC_ABSTRACT flags
+            // end with ';'
+            n = sprintf(out, ")");
             if (n < 0) return -1;
             out += n;
             break;
@@ -3133,8 +3143,7 @@ writeParameterTable(char *out,
         out += n;
 
         // parameter name
-        ++count;
-        n = sprintf(out, " param%i", count);
+        n = sprintf(out, " param%i", count++);
         if (n < 0) return -1;
         out += n;
     }
@@ -3265,16 +3274,10 @@ logMethods(ClassFile *cf)
         }
 
         // write method name
+        // static initializer has no name
         if (strncmp("<clinit>",
                     (char *) name->data->bytes,
-                    name->data->length) == 0)
-        {
-            // static initializer has no name
-            n = sprintf(ptr, "{\r\n");
-            if (n < 0) return -1;
-            ptr += n;
-        }
-        else
+                    name->data->length) != 0)
         {
             if (strncmp("<init>", (char *) name->data->bytes,
                         name->data->length) == 0)
@@ -3324,6 +3327,16 @@ logMethods(ClassFile *cf)
             if (n < 0) return -1;
             ptr += n;
         }
+
+        // native methods and abstract methods
+        // have no method body
+        if ((access_flags & ACC_NATIVE)
+                || (access_flags & ACC_ABSTRACT))
+            n = sprintf(ptr, ";\r\n");
+        else
+            n = sprintf(ptr, " {\r\n");
+        if (n < 0) return -1;
+        ptr += n;
 
         // 1. retrieve exception attribute
         // 2. interprete exception table
