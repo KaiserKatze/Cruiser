@@ -3169,19 +3169,38 @@ logMethods(ClassFile *cf)
     class_name = getConstant_Utf8(cf,
             this_class->data->name_index);
 
+    logInfo("// Method count: %i.\r\n\r\n", methods_count);
+
     for (i = 0; i < methods_count; i++)
     {
         method = &(methods[i]);
-
         access_flags = method->access_flags;
-        if (access_flags & ACC_BRIDGE)
-            continue;
-        if (access_flags & ACC_SYNTHETIC)
-            continue;
+        name_index = method->name_index;
+        descriptor_index = method->descriptor_index;
+        attributes_count = method->attributes_count;
+        attributes = method->attributes;
+
+        // note ACC_NATIVE, ACC_VARARGS
+        name = getConstant_Utf8(cf, name_index);
+        descriptor = getConstant_Utf8(cf, descriptor_index);
+
+        // initialize Code attribute & Exceptions attribute
+        code = (attr_Code_info *) 0;
+        exceptions = (attr_Exceptions_info *) 0;
 
         if (ptr > buf)
             memset(buf, 0, ptr - buf);
         ptr = (char *) buf;
+
+        // write meta info
+        n = sprintf(ptr, "\t// Method #%i:\r\n", i);
+        if (n < 0) return -1;
+        ptr += n;
+
+        if (access_flags & ACC_BRIDGE)
+            continue;
+        if (access_flags & ACC_SYNTHETIC)
+            continue;
 
         n = sprintf(ptr, "\t");
         if (n < 0) return -1;
@@ -3245,16 +3264,12 @@ logMethods(ClassFile *cf)
             ptr += n;
         }
 
-        // note ACC_NATIVE, ACC_VARARGS
-        name_index = method->name_index;
-        descriptor_index = method->descriptor_index;
-        name = getConstant_Utf8(cf, name_index);
-        descriptor = getConstant_Utf8(cf, descriptor_index);
-
+        // write method name
         if (strncmp("<clinit>",
                     (char *) name->data->bytes,
                     name->data->length) == 0)
         {
+            // static initializer has no name
             n = sprintf(ptr, "{\r\n");
             if (n < 0) return -1;
             ptr += n;
@@ -3310,12 +3325,10 @@ logMethods(ClassFile *cf)
             ptr += n;
         }
 
-        // find Code attribute & Exceptions attribute
-        attributes_count = method->attributes_count;
-        attributes = method->attributes;
-        code = (attr_Code_info *) 0;
-        exceptions = (attr_Exceptions_info *) 0;
-
+        // 1. retrieve exception attribute
+        // 2. interprete exception table
+        // 3. retrieve code attribute
+        // 4. decompile with exceptions
         for (j = 0; j < attributes_count; j++)
         {
             attribute = &(attributes[j]);
@@ -3342,9 +3355,10 @@ logMethods(ClassFile *cf)
         n = sprintf(ptr, "\t}\r\n\r\n");
         if (n < 0) return -1;
         ptr += n;
+    
+        logInfo("%s\r\n", buf);
     }
 
-    logInfo("%s\r\n", buf);
 #endif
     return 0;
 }
