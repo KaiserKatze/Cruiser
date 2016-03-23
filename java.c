@@ -3328,15 +3328,9 @@ logMethods(ClassFile *cf)
             ptr += n;
         }
 
-        // native methods and abstract methods
-        // have no method body
-        if ((access_flags & ACC_NATIVE)
-                || (access_flags & ACC_ABSTRACT))
-            n = sprintf(ptr, ";\r\n");
-        else
-            n = sprintf(ptr, " {\r\n");
-        if (n < 0) return -1;
-        ptr += n;
+#if ! VER_CMP(45, 3)
+    #error "Class version should be higher than 45.3"
+#endif
 
         // 1. retrieve exception attribute
         // 2. interprete exception table
@@ -3364,6 +3358,16 @@ logMethods(ClassFile *cf)
         }
 
         // analyze Exceptions attribute
+
+        // native methods and abstract methods
+        // have no method body
+        if ((access_flags & ACC_NATIVE)
+                || (access_flags & ACC_ABSTRACT))
+            n = sprintf(ptr, ";\r\n");
+        else
+            n = sprintf(ptr, " {\r\n");
+        if (n < 0) return -1;
+        ptr += n;
 
         n = sprintf(ptr, "\t}\r\n\r\n");
         if (n < 0) return -1;
