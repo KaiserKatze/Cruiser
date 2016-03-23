@@ -3173,6 +3173,8 @@ logMethods(ClassFile *cf)
     u2 number_of_exceptions;
     u2 *exception_index_table;
     int has_method_body;
+    CONSTANT_Class_info *cci;
+    CONSTANT_Utf8_info *cui;
 
     memset(buf, 0, sizeof (buf));
     methods_count = cf->methods_count;
@@ -3365,9 +3367,28 @@ logMethods(ClassFile *cf)
         {
             number_of_exceptions = exceptions->number_of_exceptions;
             exception_index_table = exceptions->exception_index_table;
+
+            n = sprintf(ptr, "\r\n\t\tthrows ");
+            if (n < 0) return -1;
+            ptr += n;
+
+            for (j = 0; j < number_of_exceptions; j++)
+            {
+                if (j > 0)
+                {
+                    n = sprintf(ptr, ",\r\n\t\t\t");
+                    if (n < 0) return -1;
+                    ptr += n;
+                }
+
+                n = writeClassName(ptr, cf,
+                        exception_index_table[j]);
+                if (n < 0) return -1;
+                ptr += n;
+            }
         }
 
-        has_method_body = access_flags & (ACC_NATIVE | ACC_ABSTRACT);
+        has_method_body = !(access_flags & (ACC_NATIVE | ACC_ABSTRACT));
         // native methods and abstract methods
         // have no method body
         if (has_method_body)
