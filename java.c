@@ -3170,6 +3170,9 @@ logMethods(ClassFile *cf)
     CONSTANT_Utf8_info *name, *descriptor;
     attr_Code_info *code;
     attr_Exceptions_info *exceptions;
+    u2 number_of_exceptions;
+    u2 *exception_index_table;
+    int has_method_body;
 
     memset(buf, 0, sizeof (buf));
     methods_count = cf->methods_count;
@@ -3358,20 +3361,28 @@ logMethods(ClassFile *cf)
         }
 
         // analyze Exceptions attribute
+        if (exceptions)
+        {
+            number_of_exceptions = exceptions->number_of_exceptions;
+            exception_index_table = exceptions->exception_index_table;
+        }
 
+        has_method_body = access_flags & (ACC_NATIVE | ACC_ABSTRACT);
         // native methods and abstract methods
         // have no method body
-        if ((access_flags & ACC_NATIVE)
-                || (access_flags & ACC_ABSTRACT))
-            n = sprintf(ptr, ";\r\n");
-        else
+        if (has_method_body)
             n = sprintf(ptr, " {\r\n");
+        else
+            n = sprintf(ptr, ";\r\n");
         if (n < 0) return -1;
         ptr += n;
 
-        n = sprintf(ptr, "\t}\r\n\r\n");
-        if (n < 0) return -1;
-        ptr += n;
+        if (has_method_body)
+        {
+            n = sprintf(ptr, "\t}\r\n\r\n");
+            if (n < 0) return -1;
+            ptr += n;
+        }
     
         logInfo("%s\r\n", buf);
     }
