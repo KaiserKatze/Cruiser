@@ -3154,6 +3154,56 @@ writeParameterTable(char *out,
 }
 
 static int
+writeTryCatch(char *out,
+        u4 code_length,
+        u1 *code,
+        struct exception_table_entry *try_catch_entry,
+        struct exception_table_entry *finally_entry,
+        int tab)
+{
+    char *src;
+
+    src = out;
+
+    return out - src;
+}
+
+
+static int
+writeCode(char *out, ClassFile *cf,
+        method_info *method,
+        attr_Code_info *info)
+{
+    char *src;
+    int tab, t;
+    size_t n;
+    u4 code_length;
+    u1 *code;
+    u2 exception_table_length;
+    struct exception_table_entry *exceptions;
+    struct exception_table_entry *try_catch_entry;
+    struct exception_table_entry *finally_entry;
+    u2 i, j;
+
+    src = out;
+    tab = 2;
+
+    code_length = info->code_length;
+    code = info->code;
+    exception_table_length = info->exception_table_length;
+    exceptions = info->exceptions;
+
+    // analyze exception_table
+    for (i = 0; i < exception_table_length; i++)
+    {
+        entry = &(exceptions[i]);
+
+    }
+
+    return out - src;
+}
+
+static int
 logMethods(ClassFile *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
@@ -3337,30 +3387,29 @@ logMethods(ClassFile *cf)
     #error "Class version should be higher than 45.3"
 #endif
 
-        // 1. retrieve exception attribute
-        // 2. interprete exception table
-        // 3. retrieve code attribute
-        // 4. decompile with exceptions
+        has_method_body = !(access_flags & (ACC_NATIVE | ACC_ABSTRACT));
+
         for (j = 0; j < attributes_count; j++)
         {
             attribute = &(attributes[j]);
 
-            switch (attribute->tag)
-            {
-                case TAG_ATTR_CODE:
-                    code = (attr_Code_info *)
-                        attribute->data;
-                    break;
-                case TAG_ATTR_EXCEPTIONS:
-                    exceptions = (attr_Exceptions_info *)
-                        attribute->data;
-                    break;
-                default:
-                    continue;
-            }
-
-            if (code && exceptions) break;
+            if (attribute->tag != TAG_ATTR_EXCEPTIONS)
+                continue;
+            exceptions = (attr_Exceptions_info *)
+                attribute->data;
+            break;
         }
+        if (has_method_body)
+            for (j = 0; j < attributes_count; j++)
+            {
+                attribute = &(attributes[j]);
+
+                if (attribute->tag != TAG_ATTR_CODE)
+                    continue;
+                code = (attr_Code_info *)
+                    attribute->data;
+                break;
+            }
 
         // analyze Exceptions attribute
         if (exceptions)
@@ -3388,7 +3437,13 @@ logMethods(ClassFile *cf)
             }
         }
 
-        has_method_body = !(access_flags & (ACC_NATIVE | ACC_ABSTRACT));
+        if (code)
+        {
+            n = writeCode(ptr, cf, method, code);
+            if (n < 0) return -1;
+            ptr += n;
+        }
+
         // native methods and abstract methods
         // have no method body
         if (has_method_body)
