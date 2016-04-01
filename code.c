@@ -1,3 +1,4 @@
+#if 0
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
@@ -2526,4 +2527,5 @@ decompileCode(ClassFile *cf, method_info *method,
     }
     return 0;
 }
+#endif
 #endif
