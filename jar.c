@@ -1,3 +1,4 @@
+#if 0
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -362,3 +363,4 @@ zip_readLine(struct zip_file *zf, u1 *buffer, u1 **save)
 end:
     return res;
 }
+#endif

@@ -2,7 +2,7 @@ TOOL=g++
 DIR_BUILD=build
 INCLUDE=-I.
 MACRO=-DDEBUG -DLOG_ERROR -DLOG_INFO -DQUICK_REFERENCE
-SOURCE_MAIN=`find -type f \( -name "*.c" -or -name "*.cpp" \) -and ! -name "test.c*"`
+SOURCE_MAIN=`find -type f \( -name "*.c" -or -name "*.cpp" \) -and ! -name "test.c*" -and ! -name "jar.c*"`
 LIB_MAIN=`pkg-config --libs libzip` -lm
 EXEC=cruise
 
