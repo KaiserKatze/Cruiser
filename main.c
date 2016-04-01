@@ -30,7 +30,6 @@ static int interpreteFlags(int, char **);
 int
 main(int argc, char** argv)
 {
-    ClassFile cf;
     char *path;
     struct BufferIO input;
     struct AttributeFilter filter;
@@ -56,10 +55,8 @@ main(int argc, char** argv)
     if (initWithFile(&input, path) < 0)
         goto bad_end;
 
-    memset(&cf, 0, sizeof (ClassFile));
-    result = parseClassfile(&input, &cf, &filter);
+    result = parseClassfile(&input, &filter);
 
-    freeClassfile(&cf);
     free(input.buffer);
     fclose(input.file);
 

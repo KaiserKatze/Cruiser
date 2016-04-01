@@ -8,6 +8,9 @@
 #include "memory.h"
 #include "rt.h"
 
+static int
+freeClassfile(ClassFile *);
+
 static const char *
 get_cp_name(u1);
 
@@ -63,93 +66,93 @@ static int
 logConstantPool(ClassFile *);
 
 static int
-logClassHeader(ClassFile *);
+logClassHeader(rt_Class *);
 
 static int
-logFields(ClassFile *);
+logFields(rt_Class *);
 
 static int
-logMethods(ClassFile *);
+logMethods(rt_Class *);
 
 extern int
-parseClassfile(struct BufferIO * input, ClassFile *cf,
+parseClassfile(struct BufferIO * input,
         struct AttributeFilter *attr_filter)
 {
+    u4 magic;
+    ClassFile cf;
+    rt_Class rtc;
+
     if (!input)
     {
         logError("Parameter 'input' in function %s is NULL!\r\n", __func__);
         return -1;
     }
-    if (!cf)
-    {
-        logError("Parameter 'cf' in function %s is NULL!\r\n", __func__);
-        return -1;
-    }
 
     // validate file structure
-    if (ru4(&(cf->magic), input) < 0)
+    if (ru4(&magic, input) < 0)
     {
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    if (cf->magic != 0XCAFEBABE)
+    if (magic != 0XCAFEBABE)
     {
-        logError("File structure invalid, fail to decompile! [0x%X]\r\n", cf->magic);
+        logError("File structure invalid, fail to decompile! [0x%X]\r\n", magic);
         return -1;
     }
+    // initialize ClassFile
+    memset(&cf, 0, sizeof (ClassFile));
     // retrieve version
-    if (ru2(&(cf->minor_version), input) < 0)
+    if (ru2(&(cf.minor_version), input) < 0)
         return -1;
-    if (ru2(&(cf->major_version), input) < 0)
+    if (ru2(&(cf.major_version), input) < 0)
         return -1;
 #ifndef DEBUG
     // check compatibility
-    if (compareVersion(cf->major_version, cf->minor_version) > 0)
+    if (compareVersion(cf.major_version, cf.minor_version) > 0)
     {
         logError("Class file version is higher than this implementation!\r\n");
         goto close;
     }
 #endif
 
-    if (loadConstantPool(input, cf) < 0)
+    if (loadConstantPool(input, &cf) < 0)
         return -1;
-    //if (logConstantPool(cf) < 0)                return -1;
 
-    if (ru2(&(cf->access_flags), input) < 0)
+    if (ru2(&(cf.access_flags), input) < 0)
         return -1;
-    if (ru2(&(cf->this_class), input) < 0)
+    if (ru2(&(cf.this_class), input) < 0)
         return -1;
-    if (ru2(&(cf->super_class), input) < 0)
+    if (ru2(&(cf.super_class), input) < 0)
         return -1;
-    if (loadInterfaces(input, cf) < 0)
+    if (loadInterfaces(input, &cf) < 0)
         return -1;
-    if (logClassHeader(cf) < 0)                 return -1;
-
-    if (loadFields(input, cf) < 0)
+    if (loadFields(input, &cf) < 0)
         return -1;
-    if (logFields(cf) < 0)                      return -1;
-
-    if (loadMethods(input, cf) < 0)
+    if (loadMethods(input, &cf) < 0)
         return -1;
-    if (logMethods(cf) < 0)                     return -1;
 
     /*
-    loadAttributes_class(cf, input, &(cf->attributes_count), &(cf->attributes));
+    loadAttributes_class(&cf, input, &(cf.attributes_count), &(cf.attributes));
 #ifdef RT_H
     // constant pool validation
-    if (validateConstantPool(cf) < 0)
+    if (validateConstantPool(&cf) < 0)
         return -1;
-    if (validateFields(cf) < 0)
+    if (validateFields(&cf) < 0)
         return -1;
-    if (validateMethods(cf) < 0)
+    if (validateMethods(&cf) < 0)
         return -1;
 #endif
     */
+    if (linkClass(&cf, &rtc) < 0)                   return -1;
+    if (logClassHeader(&rtc) < 0)                   return -1;
+    if (logFields(&rtc) < 0)                        return -1;
+    if (logMethods(&rtc) < 0)                       return -1;
+    if (freeClassfile(&cf) < 0)                     return -1;
 
     return 0;
 }
 
-extern int
+static int
 freeClassfile(ClassFile *cf)
 {
     u2 i;
@@ -2664,7 +2667,7 @@ writeClassName(char *out,
 }
 
 static int
-logClassHeader(ClassFile *cf)
+logClassHeader(rt_Class *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[1024], *ptr;
@@ -2876,7 +2879,7 @@ writeConstantString(char *out, u2 len, u1 *str)
 }
 
 static int
-logFields(ClassFile *cf)
+logFields(rt_Class *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[1024], *ptr;
@@ -3064,10 +3067,17 @@ logFields(ClassFile *cf)
     return 0;
 }
 
+struct ParameterTable
+{
+    int local_count;
+    char **local_names;
+};
+
 static int
 writeParameterTable(char *out,
         method_info *method,
-        u2 len, u1 *str)
+        u2 len, u1 *str,
+        struct ParameterTable *pt)
 {
     char *src;
     size_t n;
@@ -3076,11 +3086,13 @@ writeParameterTable(char *out,
     u1 *p;
     u2 count;
     u2 access_flags;
+    u1 parameter_type;
 
     src = out;
     *out++ = '(';
     --len;
     ++str;
+    memset(pt, 0, sizeof (struct ParameterTable));
 
     // instance methods start with 'this' parameter
     access_flags = method->access_flags;
@@ -3089,6 +3101,7 @@ writeParameterTable(char *out,
     else
         count = 1;
 
+    pt->local_count = count;
     for (i = 0; i < len; i++)
     {
         if (str[i] == ')')
@@ -3110,6 +3123,7 @@ writeParameterTable(char *out,
         }
 
         j = i;
+        parameter_type = 1;
         // Object parameter
         if (str[i] == 'L')
         {
@@ -3134,6 +3148,10 @@ writeParameterTable(char *out,
         else
         {
             m = 1;
+            // detect long/double parameter
+            if (str[i] == 'J'
+                    || str[i] == 'D')
+                parameter_type = 2;
         }
         p = str + i;
         i = j;
@@ -3146,33 +3164,43 @@ writeParameterTable(char *out,
         n = sprintf(out, " param%i", count++);
         if (n < 0) return -1;
         out += n;
+
+        pt->local_count += parameter_type;
     }
+    pt->local_names = (char **)
+        allocMemory(pt->local_count, sizeof (char *));
+
 
     method->parameters_count = count;
 
     return out - src;
 }
 
-static int
-writeTryCatch(char *out,
-        u4 code_length,
-        u1 *code,
-        struct exception_table_entry *try_catch_entry,
-        struct exception_table_entry *finally_entry,
-        int tab)
+static void
+insertTabIndent(size_t len, char *str)
 {
-    char *src;
+    char *ptr, *dst;
 
-    src = out;
-
-    return out - src;
+    dst = str + len;
+    do
+    {
+        // find the beginning of each line
+        ptr = strstr(str, "\r\n");
+        ptr += 2;
+        // move each line rightwards
+        memcpy(ptr + 1, ptr, len - (ptr - str));
+        *ptr = '\t';
+        // change length
+        ++dst;
+    }
+    while (ptr && ptr < dst);
 }
-
 
 static int
 writeCode(char *out, ClassFile *cf,
         method_info *method,
-        attr_Code_info *info)
+        attr_Code_info *info,
+        struct ParameterTable *pt)
 {
     char *src;
     int tab, t;
@@ -3180,10 +3208,9 @@ writeCode(char *out, ClassFile *cf,
     u4 code_length;
     u1 *code;
     u2 exception_table_length;
-    struct exception_table_entry *exceptions;
-    struct exception_table_entry *try_catch_entry;
-    struct exception_table_entry *finally_entry;
-    u2 i, j;
+    struct exception_table_entry *exceptions, *entry;
+    u4 i;
+    u2 j;
 
     src = out;
     tab = 2;
@@ -3191,20 +3218,28 @@ writeCode(char *out, ClassFile *cf,
     code_length = info->code_length;
     code = info->code;
     exception_table_length = info->exception_table_length;
-    exceptions = info->exceptions;
+    exceptions = info->exception_table;
 
-    // analyze exception_table
-    for (i = 0; i < exception_table_length; i++)
+    i = 0;
+    for (j = 0; j < exception_table_length; j++)
     {
-        entry = &(exceptions[i]);
+        entry = &(exceptions[j]);
 
+        while (i < code_length
+                && i < entry->start_pc)
+        {
+        }
+        while (i < code_length
+                && i < entry->end_pc)
+        {
+        }
     }
 
     return out - src;
 }
 
 static int
-logMethods(ClassFile *cf)
+logMethods(rt_Class *cf)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[65536], *ptr;

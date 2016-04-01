@@ -569,7 +569,6 @@ extern "C" {
 
     typedef struct
     {
-        u4 magic;
         u2 minor_version, major_version;
         u2 constant_pool_count;
         cp_info * constant_pool;
@@ -627,8 +626,7 @@ extern "C" {
     
     extern int disassembleCode(u4, u1 *);
 
-    extern int parseClassfile(struct BufferIO *, ClassFile *, struct AttributeFilter *);
-    extern int freeClassfile(ClassFile *);
+    extern int parseClassfile(struct BufferIO *, struct AttributeFilter *);
 
     extern int compareVersion(u2, u2);
     
