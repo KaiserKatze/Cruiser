@@ -129,5 +129,7 @@
     };
 #else
 #error C++ TOOLCHAIN IS NEEDED TO COMPILE CRUISER!
+#endif
+
 #endif	/* RT_H */
 
