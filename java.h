@@ -105,10 +105,8 @@ extern "C" {
 
     typedef struct
     {
-        u2 attribute_name_index;
+        u4 tag;                 // represents attribute name with TAG_ATTR
         u4 attribute_length;
-        // Cruise-specific members
-        u4 tag;
         void *data;
     } attr_info;
 
@@ -586,26 +584,6 @@ extern "C" {
         method_info * methods;
         u2 attributes_count;
         attr_info * attributes;
-        // Cruise-specific member
-        u4 attr_mark;
-
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-        u2 off_InnerClasses;
-#endif
-#if VER_CMP(49, 0)
-        u2 off_EnclosingMethod;
-        u2 off_RuntimeVisibleAnnotations;
-        u2 off_RuntimeInvisibleAnnotations;
-#endif
-#if VER_CMP(51, 0)
-        u2 off_BootstrapMethods;
-#endif
-#if VER_CMP(52, 0)
-        u2 off_RuntimeVisibleTypeAnnotations;
-        u2 off_RuntimeInvisibleTypeAnnotations;
-#endif
-#endif
     } ClassFile;
 
     struct AttributeFilter
