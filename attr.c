@@ -10,8 +10,6 @@
 static int
 loadAttribute(struct BufferIO *input, attr_info *info)
 {
-    if (ru2(&(info->attribute_name_index), input) < 0)
-        goto error;
     if (ru4(&(info->attribute_length), input) < 0)
         goto error;
     return 0;
@@ -21,10 +19,14 @@ error:
 }
 
 static int
-skipAttribute(struct BufferIO *input, attr_info *info)
+skipAttribute(struct BufferIO *input,
+        int length,
+        char *name,
+        attr_info *info)
 {
-    logError("Skip attribute{name_index: 0x%02X, length: %i}!\r\n",
-            info->attribute_name_index, info->attribute_length);
+    logError("Skip attribute{name_index: %.*s, length: %i}!\r\n",
+            length, name,
+            info->attribute_length);
     return skp(input, info->attribute_length);
 }
 
@@ -1400,21 +1402,25 @@ freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
 extern int
 loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
+    u2 attribute_name_index;
     CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
+    int attribute_name_length;
+    char *attribute_name;
     int res;
 
+    if (ru2(&attribute_name_index, input) < 0)
+        return -1;
     if (loadAttribute(input, info) < 0)
         return -1;
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
+    attribute_name_length = (int) utf8->data->length;
+    attribute_name = (char *) utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strncmp((char *) attribute_name, "SourceFile", 10))
+    if (!strncmp(attribute_name, "SourceFile", 10))
         return loadAttribute_SourceFile(cf, input, info);
-    if (!strncmp((char *) attribute_name, "InnerClasses", 12))
+    if (!strncmp(attribute_name, "InnerClasses", 12))
     {
         res = loadAttribute_InnerClasses(cf, input, info);
         if (res < 0)
@@ -1424,13 +1430,13 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "Synthetic", 9))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strncmp((char *) attribute_name, "Deprecated", 10))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strncmp((char *) attribute_name, "EnclosingMethod", 15))
+    if (!strncmp(attribute_name, "EnclosingMethod", 15))
     {
         res = loadAttribute_EnclosingMethod(cf, input, info);
         if (res < 0)
@@ -1440,11 +1446,11 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "SourceDebugExtension", 20))
+    if (!strncmp(attribute_name, "SourceDebugExtension", 20))
         return loadAttribute_SourceDebugExtension(cf, input, info);
-    if (!strncmp((char *) attribute_name, "Signature", 9))
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleAnnotations", 25))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
         if (res < 0)
@@ -1454,7 +1460,7 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleAnnotations", 27))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
         if (res < 0)
@@ -1466,7 +1472,7 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     }
 #endif
 #if VER_CMP(51, 0)
-    if (!strncmp((char *) attribute_name, "BootstrapMethods", 16))
+    if (!strncmp(attribute_name, "BootstrapMethods", 16))
     {
         res = loadAttribute_BootstrapMethods(cf, input, info);
         if (res < 0)
@@ -1478,7 +1484,7 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     }
 #endif
 #if VER_CMP(52, 0)
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleTypeAnnotations", 29))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
         if (res < 0)
@@ -1488,7 +1494,7 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
         if (res < 0)
@@ -1500,26 +1506,30 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     }
 #endif
     logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
-    return skipAttribute(input, info);
+    return skipAttribute(input, attribute_name_length, attribute_name, info);
 }
 
 extern int
 loadAttribute_field(ClassFile *cf, struct BufferIO *input,
         field_info *field, attr_info *info)
 {
+    u2 attribute_name_index;
     CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
+    int attribute_name_length;
+    char *attribute_name;
     int res;
 
+    if (ru2(&attribute_name_index, input) < 0)
+        return -1;
     if (loadAttribute(input, info) < 0)
         return -1;
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
+    attribute_name_length = (int) utf8->data->length;
+    attribute_name = (char *) utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strncmp((char *) attribute_name, "ConstantValue", 13))
+    if (!strncmp(attribute_name, "ConstantValue", 13))
     {
         res = loadAttribute_ConstantValue(cf, input, info);
 #ifdef QUICK_REFERENCE
@@ -1527,15 +1537,15 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "Synthetic", 9))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strncmp((char *) attribute_name, "Deprecated", 10))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strncmp((char *) attribute_name, "Signature", 9))
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleAnnotations", 25))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
 #ifdef QUICK_REFERENCE
@@ -1543,7 +1553,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleAnnotations", 27))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
 #ifdef QUICK_REFERENCE
@@ -1553,7 +1563,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     }
 #endif
 #if VER_CMP(52, 0)
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleTypeAnnotations", 29))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
 #ifdef QUICK_REFERENCE
@@ -1561,7 +1571,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #ifdef QUICK_REFERENCE
@@ -1571,26 +1581,30 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     }
 #endif
     logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
-    return skipAttribute(input, info);
+    return skipAttribute(input, attribute_name_length, attribute_name, info);
 }
 
 extern int
 loadAttribute_method(ClassFile *cf, struct BufferIO *input,
         method_info *method, attr_info *info)
 {
+    u2 attribute_name_index;
     CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
+    int attribute_name_length;
+    char *attribute_name;
     int res;
 
+    if (ru2(&attribute_name_index, input) < 0)
+        return -1;
     if (loadAttribute(input, info) < 0)
         return -1;
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
+    attribute_name_length = (int) utf8->data->length;
+    attribute_name = (char *) utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strncmp((char *) attribute_name, "Code", 4))
+    if (!strncmp(attribute_name, "Code", 4))
     {
         res = loadAttribute_Code(cf, input, method, info);
         if (res < 0)
@@ -1600,7 +1614,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "Exceptions", 10))
+    if (!strncmp(attribute_name, "Exceptions", 10))
     {
         res = loadAttribute_Exceptions(cf, input, info);
         if (res < 0)
@@ -1610,13 +1624,13 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "Synthetic", 9))
+    if (!strncmp(attribute_name, "Synthetic", 9))
         return loadAttribute_Synthetic(cf, input, info);
-    if (!strncmp((char *) attribute_name, "Deprecated", 10))
+    if (!strncmp(attribute_name, "Deprecated", 10))
         return loadAttribute_Deprecated(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleParameterAnnotations", 34))
+    if (!strncmp(attribute_name, "RuntimeVisibleParameterAnnotations", 34))
     {
         res = loadAttribute_RuntimeVisibleParameterAnnotations(cf, input, info);
         if (res < 0)
@@ -1626,7 +1640,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleParameterAnnotations", 36))
+    if (!strncmp(attribute_name, "RuntimeInvisibleParameterAnnotations", 36))
     {
         res = loadAttribute_RuntimeInvisibleParameterAnnotations(cf, input, info);
         if (res < 0)
@@ -1636,7 +1650,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "AnnotationDefault", 17))
+    if (!strncmp(attribute_name, "AnnotationDefault", 17))
     {
         res = loadAttribute_AnnotationDefault(cf, input, info);
         if (res < 0)
@@ -1646,9 +1660,9 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "Signature", 9))
+    if (!strncmp(attribute_name, "Signature", 9))
         return loadAttribute_Signature(cf, input, info);
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleAnnotations", 25))
+    if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
         if (res < 0)
@@ -1658,7 +1672,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleAnnotations", 27))
+    if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
         if (res < 0)
@@ -1670,9 +1684,9 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     }
 #endif
 #if VER_CMP(52, 0)
-    if (!strncmp((char *) attribute_name, "MethodParameters", 16))
+    if (!strncmp(attribute_name, "MethodParameters", 16))
         return loadAttribute_MethodParameters(cf, input, info);
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleTypeAnnotations", 29))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
         if (res < 0)
@@ -1682,7 +1696,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
 #endif
         return res;
     }
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
         if (res < 0)
@@ -1694,44 +1708,48 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     }
 #endif
     logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
-    return skipAttribute(input, info);
+    return skipAttribute(input, attribute_name_length, attribute_name, info);
 }
 
 extern int
 loadAttribute_code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
+    u2 attribute_name_index;
     CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
+    int attribute_name_length;
+    char *attribute_name;
 
+    if (ru2(&attribute_name_index, input) < 0)
+        return -1;
     if (loadAttribute(input, info) < 0)
         return -1;
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
+    utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
+    attribute_name_length = (int) utf8->data->length;
+    attribute_name = (char *) utf8->data->bytes;
 
 #if VER_CMP(45, 3)
-    if (!strncmp((char *) attribute_name, "LineNumberTable", 15))
+    if (!strncmp(attribute_name, "LineNumberTable", 15))
         return loadAttribute_LineNumberTable(cf, input, info);
-    if (!strncmp((char *) attribute_name, "LocalVariableTable", 18))
+    if (!strncmp(attribute_name, "LocalVariableTable", 18))
         return loadAttribute_LocalVariableTable(cf, input, info);
 #endif
 #if VER_CMP(49, 0)
-    if (!strncmp((char *) attribute_name, "LocalVariableTypeTable", 22))
+    if (!strncmp(attribute_name, "LocalVariableTypeTable", 22))
         return loadAttribute_LocalVariableTypeTable(cf, input, info);
 #endif
 #if VER_CMP(50, 0)
-    if (!strncmp((char *) attribute_name, "StackMapTable", 13))
+    if (!strncmp(attribute_name, "StackMapTable", 13))
         return loadAttribute_StackMapTable(cf, input, info);
 #endif
 #if VER_CMP(52, 0)
-    if (!strncmp((char *) attribute_name, "RuntimeVisibleTypeAnnotations", 29))
+    if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
         return loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-    if (!strncmp((char *) attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
+    if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
         return loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
 #endif
     logError("Fail to load incompatible attribute: %s.\r\n", attribute_name);
-    return skipAttribute(input, info);
+    return skipAttribute(input, attribute_name_length, attribute_name, info);
 }
 
 extern int
@@ -1769,10 +1787,6 @@ loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
 static int
 freeAttribute_class(ClassFile * cf, attr_info *info)
 {
-    CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
-    
-    //logError("Free class attribute tagged %i\r\n", info->tag);
 #if VER_CMP(45, 3)
     if (!freeAttribute_SourceFile(info))
         return 0;
@@ -1801,11 +1815,7 @@ freeAttribute_class(ClassFile * cf, attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
-    if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
-    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
+    logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
     return -1;
 }
 
@@ -1826,9 +1836,6 @@ freeAttributes_class(ClassFile * cf, u2 attributes_count, attr_info *attributes)
 static int
 freeAttribute_field(ClassFile * cf, attr_info *info)
 {
-    CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
-    
 #if VER_CMP(45, 3)
     if (!freeAttribute_ConstantValue(info))
         return 0;
@@ -1847,11 +1854,7 @@ freeAttribute_field(ClassFile * cf, attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
-    if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
-    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
+    logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
     return -1;
 }
 
@@ -1907,9 +1910,6 @@ loadAttributes_field(ClassFile *cf,
 static int
 freeAttribute_method(ClassFile * cf, attr_info *info)
 {
-    CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
-    
 #if VER_CMP(45, 3)
     if (!freeAttribute_Code(cf, info))
         return 0;
@@ -1938,11 +1938,7 @@ freeAttribute_method(ClassFile * cf, attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
-    if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
-    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
+    logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
     return -1;
 }
 
@@ -2000,9 +1996,6 @@ loadAttributes_method(ClassFile *cf,
 static int
 freeAttribute_code(ClassFile * cf, attr_info *info)
 {
-    CONSTANT_Utf8_info *utf8;
-    u1 *attribute_name;
-    
 #if VER_CMP(45, 3)
     if (!freeAttribute_LineNumberTable(info))
         return 0;
@@ -2023,11 +2016,7 @@ freeAttribute_code(ClassFile * cf, attr_info *info)
     if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
         return 0;
 #endif
-    utf8 = getConstant_Utf8(cf, info->attribute_name_index);
-    if (!utf8) return -1;
-    if (utf8->tag != CONSTANT_Utf8) return -1;
-    attribute_name = utf8->data->bytes;
-    logError("Fail to free incompatible attribute: %s.\r\n", attribute_name);
+    logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
     return -1;
 }
 
