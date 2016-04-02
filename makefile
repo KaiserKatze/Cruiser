@@ -1,13 +1,14 @@
 TOOL=g++
 DIR_BUILD=build
 INCLUDE=-I.
-MACRO=-DDEBUG -DLOG_ERROR -DLOG_INFO -DQUICK_REFERENCE
+MACRO=-DDEBUG -DLOG_ERROR -DLOG_INFO
+# -DQUICK_REFERENCE
 SOURCE_MAIN=`find -type f \( -name "*.c" -or -name "*.cpp" \) -and ! -name "test.c*" -and ! -name "jar.c*"`
 LIB_MAIN=`pkg-config --libs libzip` -lm
 EXEC=cruise
 
 cruise: main.c java.c java.h jar.c jar.h log.c log.h attr.c
-	@clear
+	@clear;clear
 	@if [ ! -d ${DIR_BUILD} ]; then mkdir ${DIR_BUILD}; fi
 	@echo "Tool   : "${TOOL}
 	@echo "Macros : "${MACRO}
