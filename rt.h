@@ -77,6 +77,13 @@ typedef struct
     } * data;
 }                                   rt_InvokeDynamic_info;
 
+struct rt_Attributes
+{
+    u2              attributes_count;
+    attr_info *     attributes;
+    u4              attributes_mark;
+};
+
 /*
  * Run-time structures and functions
  */
@@ -124,9 +131,7 @@ private:
     field_info *    fields;
     u2              methods_count;
     method_info *   methods;
-    u2              attributes_count;
-    attr_info *     attributes;
-    u4              attributes_mark;
+    rt_Attributes * attributes;
 
 #if VER_CMP(45, 3)
     u2 off_InnerClasses;
@@ -158,6 +163,24 @@ public:
 
 class rt_Field
 {
+private:
+    u2              access_flags;
+    u2              name_index;
+    u2              descriptor_index;
+    u2              attributes_count;
+    rt_Attributes * attributes;
+
+#if VER_CMP(45, 3)
+    u2              off_ConstantValue;
+#endif
+#if VER_CMP(49, 0)
+    u2              off_RuntimeVisibleAnnotations;
+    u2              off_RuntimeInvisibleAnnotations;
+#endif
+#if VER_CMP(52, 0)
+    u2              off_RuntimeVisibleTypeAnnotations;
+    u2              off_RuntimeInvisibleTypeAnnotations;
+#endif
 };
 
 #endif	/* RT_H */
