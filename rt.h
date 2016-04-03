@@ -146,7 +146,7 @@
         bool                isAnnotation();
         bool                isSynthetic();
         rt_Class_info *     getThisClass();
-        rt_Class_info *     getSuperclass();
+        rt_Class_info *     getSuperClass();
         u2                  getInterfacesCount();
         rt_Class_info *     getInterfaces(rt_Class_info *);
         rt_Class_info *     getComponentType();
