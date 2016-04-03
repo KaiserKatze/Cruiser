@@ -83,31 +83,31 @@
         u2              getAccessFlags();
         u2              getFieldsCount();
         rt_Class_info *
-            getConstant_Class(rt_Class *, u2);
+            getConstant_Class(u2);
         rt_Fieldref_info *
-            getConstant_Fieldref(rt_Class *, u2);
+            getConstant_Fieldref(u2);
         rt_Methodref_info *
-            getConstant_Methodref(rt_Class *, u2);
+            getConstant_Methodref(u2);
         rt_InterfaceMethodref_info *
-            getConstant_InterfaceMethodref(rt_Class *, u2);
+            getConstant_InterfaceMethodref(u2);
         rt_String_info *
-            getConstant_String(rt_Class *, u2);
+            getConstant_String(u2);
         rt_Integer_info *
-            getConstant_Integer(rt_Class *, u2);
+            getConstant_Integer(u2);
         rt_Float_info *
-            getConstant_Float(rt_Class *, u2);
+            getConstant_Float(u2);
         rt_Long_info *
-            getConstant_Long(rt_Class *, u2);
+            getConstant_Long(u2);
         rt_Double_info *
-            getConstant_Double(rt_Class *, u2);
+            getConstant_Double(u2);
         rt_Utf8_info *
-            getConstant_Utf8(rt_Class *, u2);
+            getConstant_Utf8(u2);
         rt_MethodHandle_info *
-            getConstant_MethodHandle(rt_Class *, u2);
+            getConstant_MethodHandle(u2);
         rt_MethodType_info *
-            getConstant_MethodType(rt_Class *, u2);
+            getConstant_MethodType(u2);
         rt_InvokeDynamic_info *
-            getConstant_InvokeDynamic(rt_Class *, u2);
+            getConstant_InvokeDynamic(u2);
     private:
         int             hash;
         u2              constant_pool_count;
