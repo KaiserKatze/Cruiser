@@ -2424,13 +2424,13 @@ writeClassName0(char *out,
 static int
 writeClassName(char *out,
         rt_Class *rtc,
-        u2 class_index)
+        rt_Class_info *class_info)
 {
-    CONSTANT_Class_info *class_info;
-    CONSTANT_Utf8_info *class_name;
+    rt_Utf8_info *class_name;
+    u2 class_name_index;
 
-    class_info = rtc->getConstant_Class(class_index);
-    class_name = rtc->getConstant_Utf8(class_info->data->name_index);
+    class_name_index = class_info->data->class_name_index;
+    class_name = rtc->getConstant_Utf8(class_name_index);
 
     return writeClassName0(out,
             class_name->data->length,
@@ -2438,24 +2438,27 @@ writeClassName(char *out,
 }
 
 static int
-logClassHeader(rt_Class *cf)
+logClassHeader(rt_Class *rtc)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[1024], *ptr;
     size_t n, m;
     u2 access_flags;
-    u2 this_class, super_class;
+    rt_Class_info * this_class, * super_class;
     u2 interfaces_count;
-    u2 * interfaces;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Utf8_info *cui;
+    rt_Class_info * interfaces;
+    rt_Utf8_info *cui;
     u2 i;
 
-    access_flags = cf->access_flags;
-    this_class = cf->this_class;
-    super_class = cf->super_class;
-    interfaces_count = cf->interfaces_count;
-    interfaces = cf->interfaces;
+    access_flags = rtc->getAccessFlags();
+    this_class = rtc->getThisClass();
+    super_class = rtc->getSuperClass();
+    interfaces_count = rtc->getInterfacesCount();
+    interfaces = (rt_Class_info *)
+        allocMemory(interfaces_count,
+                sizeof (rt_Class_info));
+    if (!rtc->getInterfaces(interfaces))
+        goto error;
 
     memset(buf, 0, sizeof (buf));
     ptr = (char *) buf;
@@ -2463,20 +2466,20 @@ logClassHeader(rt_Class *cf)
     if (access_flags & ACC_PUBLIC)
     {
         n = sprintf(ptr, "public ");
-        if (n < 0) return -1;
+        if (n < 0) goto error;
         ptr += n;
     }
 
     if (access_flags & ACC_ABSTRACT)
     {
         n = sprintf(ptr, "abstract ");
-        if (n < 0) return -1;
+        if (n < 0) goto error;
         ptr += n;
     }
     else if (access_flags & ACC_FINAL)
     {
         n = sprintf(ptr, "final ");
-        if (n < 0) return -1;
+        if (n < 0) goto error;
         ptr += n;
     }
 
@@ -2489,33 +2492,31 @@ logClassHeader(rt_Class *cf)
         n = sprintf(ptr, "interface ");
     else
         n = sprintf(ptr, "class ");
-    if (n < 0) return -1;
+    if (n < 0) goto error;
     ptr += n;
 
     // name
-    n = writeClassName(ptr, cf, this_class);
-    if (n < 0) return -1;
+    n = writeClassName(ptr, rtc, this_class);
+    if (n < 0) goto error;
     ptr += n;
     *ptr++ = ' ';
 
     // super class
-    if (super_class > 0)
+    if (super_class)
     {
-        cci = rtc->getConstant_Class(super_class);
-        if (!cci) return -1;
-        cui = rtc->getConstant_Utf8(cci->data->name_index);
-        if (!cui) return -1;
+        cui = rtc->getConstant_Utf8(super_class->data->class_name_index);
+        if (!cui) goto error;
         if (strncmp("java/lang/Object",
                     (char *) cui->data->bytes,
                     cui->data->length))
         {
             n = sprintf(ptr, "extends ");
-            if (n < 0) return -1;
+            if (n < 0) goto error;
             ptr += n;
             n = writeClassName0(ptr,
                     cui->data->length,
                     cui->data->bytes);
-            if (n < 0) return -1;
+            if (n < 0) goto error;
             ptr += n;
             *ptr++ = ' ';
         }
@@ -2528,7 +2529,7 @@ logClassHeader(rt_Class *cf)
             n = sprintf(ptr, "\r\n\textends ");
         else
             n = sprintf(ptr, "\r\n\timplements ");
-        if (n < 0) return -1;
+        if (n < 0) goto error;
         ptr += n;
 
         for (i = 0u; i < interfaces_count; i++)
@@ -2536,18 +2537,24 @@ logClassHeader(rt_Class *cf)
             if (i > 0)
             {
                 n = sprintf(ptr, ",\r\n\t\t");
-                if (n < 0) return -1;
+                if (n < 0) goto error;
                 ptr += n;
             }
-            n = writeClassName(ptr, cf, interfaces[i]);
-            if (n < 0) return -1;
+            n = writeClassName(ptr, rtc, &(interfaces[i]));
+            if (n < 0) goto error;
             ptr += n;
         }
     }
 
     logInfo("%s\r\n{\r\n", buf);
 #endif
+    freeMemory(interfaces);
+    interfaces = (rt_Class_info *) 0;
     return 0;
+error:
+    freeMemory(interfaces);
+    interfaces = (rt_Class_info *) 0;
+    return -1;
 }
 
 static int
