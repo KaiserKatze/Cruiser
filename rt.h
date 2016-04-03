@@ -79,6 +79,35 @@
      */
     class rt_Class
     {
+    public:
+        u2              getAccessFlags();
+        u2              getFieldsCount();
+        rt_Class_info *
+            getConstant_Class(rt_Class *, u2);
+        rt_Fieldref_info *
+            getConstant_Fieldref(rt_Class *, u2);
+        rt_Methodref_info *
+            getConstant_Methodref(rt_Class *, u2);
+        rt_InterfaceMethodref_info *
+            getConstant_InterfaceMethodref(rt_Class *, u2);
+        rt_String_info *
+            getConstant_String(rt_Class *, u2);
+        rt_Integer_info *
+            getConstant_Integer(rt_Class *, u2);
+        rt_Float_info *
+            getConstant_Float(rt_Class *, u2);
+        rt_Long_info *
+            getConstant_Long(rt_Class *, u2);
+        rt_Double_info *
+            getConstant_Double(rt_Class *, u2);
+        rt_Utf8_info *
+            getConstant_Utf8(rt_Class *, u2);
+        rt_MethodHandle_info *
+            getConstant_MethodHandle(rt_Class *, u2);
+        rt_MethodType_info *
+            getConstant_MethodType(rt_Class *, u2);
+        rt_InvokeDynamic_info *
+            getConstant_InvokeDynamic(rt_Class *, u2);
     private:
         int             hash;
         u2              constant_pool_count;
@@ -116,16 +145,12 @@
         bool                isArray();
         bool                isAnnotation();
         bool                isSynthetic();
-        rt_Class_info *     getName();
+        rt_Class_info *     getThisClass();
         rt_Class_info *     getSuperclass();
         u2                  getInterfacesCount();
         rt_Class_info *     getInterfaces(rt_Class_info *);
         rt_Class_info *     getComponentType();
         u2                  getModifiers();
-    };
-
-    struct rt_ClassLoader
-    {
     };
 #else
 #error C++ TOOLCHAIN IS NEEDED TO COMPILE CRUISER!
