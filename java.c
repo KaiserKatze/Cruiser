@@ -2521,8 +2521,8 @@ logConstantPool(ClassFile *cf)
                 break;
             case CONSTANT_NameAndType:
                 cni = (CONSTANT_NameAndType_info *) info;
-                cui_n = getConstant_Utf8(cf, cni->data->name_index);
-                cui_d = getConstant_Utf8(cf, cni->data->descriptor_index);
+                cui_n = rtc->getConstant_Utf8(cni->data->name_index);
+                cui_d = rtc->getConstant_Utf8(cni->data->descriptor_index);
                 logInfo("NameAndType\t\t"
                         "#%i:#%i\t\t"
                         "// %.*s:"
@@ -2577,7 +2577,7 @@ logConstantPool(ClassFile *cf)
                         cfi->data->class_index);
                 cni = getConstant_NameAndType(cf,
                         cfi->data->name_and_type_index);
-                cui = getConstant_Utf8(cf, cci->data->name_index);
+                cui = rtc->getConstant_Utf8(cci->data->name_index);
                 cui_n = getConstant_Utf8(cf,
                         cni->data->name_index);
                 cui_d = getConstant_Utf8(cf,
@@ -2650,15 +2650,15 @@ writeClassName0(char *out,
 
 static int
 writeClassName(char *out,
-        ClassFile *cf,
+        rt_Class *rtc,
         u2 class_index)
 {
     CONSTANT_Class_info *class_info;
     CONSTANT_Utf8_info *class_name;
 
-    class_info = getConstant_Class(cf,
+    class_info = getConstant_Class(rtc,
             class_index);
-    class_name = getConstant_Utf8(cf,
+    class_name = getConstant_Utf8(rtc,
             class_info->data->name_index);
 
     return writeClassName0(out,
@@ -2730,9 +2730,9 @@ logClassHeader(rt_Class *cf)
     // super class
     if (super_class > 0)
     {
-        cci = getConstant_Class(cf, super_class);
+        cci = rtc->getConstant_Class(super_class);
         if (!cci) return -1;
-        cui = getConstant_Utf8(cf, cci->data->name_index);
+        cui = rtc->getConstant_Utf8(cci->data->name_index);
         if (!cui) return -1;
         if (strncmp("java/lang/Object",
                     (char *) cui->data->bytes,
@@ -2910,7 +2910,7 @@ logFields(rt_Class *cf)
         attributes_count = field->attributes_count;
         attributes = field->attributes;
 
-        descriptor = getConstant_Utf8(cf, descriptor_index);
+        descriptor = rtc->getConstant_Utf8(descriptor_index);
 
         n = sprintf(ptr, "\t");
         if (n < 0) return -1;
@@ -2976,7 +2976,7 @@ logFields(rt_Class *cf)
             ptr += n;
         }
 
-        name = getConstant_Utf8(cf, name_index);
+        name = rtc->getConstant_Utf8(name_index);
         n = sprintf(ptr, " %.*s",
                 name->data->length,
                 name->data->bytes);
@@ -3257,7 +3257,7 @@ logMethods(rt_Class *cf)
     memset(buf, 0, sizeof (buf));
     methods_count = cf->methods_count;
     methods = cf->methods;
-    this_class = getConstant_Class(cf, cf->this_class);
+    this_class = rtc->getConstant_Class(cf->this_class);
     class_name = getConstant_Utf8(cf,
             this_class->data->name_index);
 
@@ -3273,8 +3273,8 @@ logMethods(rt_Class *cf)
         attributes = method->attributes;
 
         // note ACC_NATIVE, ACC_VARARGS
-        name = getConstant_Utf8(cf, name_index);
-        descriptor = getConstant_Utf8(cf, descriptor_index);
+        name = rtc->getConstant_Utf8(name_index);
+        descriptor = rtc->getConstant_Utf8(descriptor_index);
 
         // initialize Code attribute & Exceptions attribute
         code = (attr_Code_info *) 0;
