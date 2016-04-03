@@ -143,11 +143,11 @@ parseClassfile(struct BufferIO * input,
         return -1;
 #endif
     */
-    if (linkClass(&cf, &rtc) < 0)                   return -1;
-    if (logClassHeader(&rtc) < 0)                   return -1;
-    if (logFields(&rtc) < 0)                        return -1;
-    if (logMethods(&rtc) < 0)                       return -1;
-    if (freeClassfile(&cf) < 0)                     return -1;
+    //if (linkClass(&cf, &rtc) < 0)                   return -1;
+    //if (logClassHeader(&rtc) < 0)                   return -1;
+    //if (logFields(&rtc) < 0)                        return -1;
+    //if (logMethods(&rtc) < 0)                       return -1;
+    //if (freeClassfile(&cf) < 0)                     return -1;
 
     return 0;
 }
@@ -2170,7 +2170,7 @@ validateAttributes_method(ClassFile *cf, method_info *method)
                     + sizeof (ac->attributes_count);
                 for (j = 0; j < ac->attributes_count; j++)
                 {
-                    attribute_length += (sizeof (ac->attributes[j].attribute_name_index) + sizeof (ac->attributes[j].attribute_length));
+                    attribute_length += sizeof (ac->attributes[j].attribute_length);
                     attribute_length += ac->attributes[j].attribute_length;
                 }
                 if (attribute_length != attribute->attribute_length)
@@ -2672,7 +2672,6 @@ logClassHeader(rt_Class *cf)
 #if (defined DEBUG && defined LOG_INFO)
     char buf[1024], *ptr;
     size_t n, m;
-    u2 minor_version, major_version;
     u2 access_flags;
     u2 this_class, super_class;
     u2 interfaces_count;
@@ -2681,8 +2680,6 @@ logClassHeader(rt_Class *cf)
     CONSTANT_Utf8_info *cui;
     u2 i;
 
-    minor_version = cf->minor_version;
-    major_version = cf->major_version;
     access_flags = cf->access_flags;
     this_class = cf->this_class;
     super_class = cf->super_class;
@@ -2691,10 +2688,6 @@ logClassHeader(rt_Class *cf)
 
     memset(buf, 0, sizeof (buf));
     ptr = (char *) buf;
-    n = sprintf(ptr, "Class version: %i.%i\r\n",
-            major_version, minor_version);
-    if (n < 0) return -1;
-    ptr += n;
 
     if (access_flags & ACC_PUBLIC)
     {
