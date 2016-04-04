@@ -77,12 +77,40 @@ typedef struct
     } * data;
 }                                   rt_InvokeDynamic_info;
 
-struct rt_Attributes
+typedef struct
 {
     u2              attributes_count;
     attr_info *     attributes;
     u4              attributes_mark;
-};
+}                                   rt_Attributes;
+
+typedef struct
+{
+    u2              off_parameter_descriptor;
+    u2              len_parameter_descirptor;
+    // TODO
+    // If the value of the name_index item is zero,
+    // then this parameters element
+    // indicates a formal parameter with no name.
+    // WTF???
+    u2              name_index;
+    u2              name_length;
+    u1 *            name_bytes;
+    // The value of the access_flags item is as follows:
+    // 0x0010 (ACC_FINAL)
+    // 0x1000 (ACC_SYNTHETIC)
+    // 0x8000 (ACC_MANDATED)
+    u2              access_flags;
+}                                   rt_Parameter;
+
+typedef struct
+{
+    u2              off_return_descriptor;
+    u2              len_return_descriptor;
+    u1              parameters_count;
+    u1              parameters_length;
+    rt_Parameter *  parameters;
+}                                   rt_Descriptor;
 
 /*
  * Run-time structures and functions
@@ -131,7 +159,7 @@ private:
     field_info *    fields;
     u2              methods_count;
     method_info *   methods;
-    rt_Attributes * attributes;
+    rt_Attributes   attributes;
 
 #if VER_CMP(45, 3)
     u2 off_InnerClasses;
@@ -167,13 +195,38 @@ private:
     u2              access_flags;
     u2              name_index;
     u2              descriptor_index;
-    u2              attributes_count;
-    rt_Attributes * attributes;
+    rt_Attributes   attributes;
 
 #if VER_CMP(45, 3)
     u2              off_ConstantValue;
 #endif
 #if VER_CMP(49, 0)
+    u2              off_RuntimeVisibleAnnotations;
+    u2              off_RuntimeInvisibleAnnotations;
+#endif
+#if VER_CMP(52, 0)
+    u2              off_RuntimeVisibleTypeAnnotations;
+    u2              off_RuntimeInvisibleTypeAnnotations;
+#endif
+};
+
+class rt_Method
+{
+private:
+    u2              access_flags;
+    u2              name_index;
+    u2              descriptor_index;
+    rt_Attributes   attributes;
+    rt_Descriptor   descriptor;
+
+#if VER_CMP(45, 3)
+    u2              off_Code;
+    u2              off_Exceptions;
+#endif
+#if VER_CMP(49, 0)
+    u2              off_RuntimeVisibleParameterAnnotations;
+    u2              off_RuntimeInvisibleParameterAnnotations;
+    u2              off_AnnotationDefault;
     u2              off_RuntimeVisibleAnnotations;
     u2              off_RuntimeInvisibleAnnotations;
 #endif
