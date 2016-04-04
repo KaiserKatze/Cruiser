@@ -39,6 +39,7 @@ typedef struct
 {
     u2              class_name_index;
 }                                   rt_Class_data;
+typedef struct CONSTANT_Class_info  rt_Class_info;
 
 typedef struct
 {
@@ -49,14 +50,19 @@ typedef struct
 }                                   rt_Fieldref_data,
                                     rt_Methodref_data,
                                     rt_InterfaceMethodref_data;
-typedef CONSTANT_String_info        rt_String_data;
-typedef CONSTANT_Integer_info       rt_Integer_data;
-typedef CONSTANT_Float_info         rt_Float_data;
-typedef CONSTANT_Long_info          rt_Long_data;
-typedef CONSTANT_Double_info        rt_Double_data;
+
+typedef CONSTANT_Fieldref_info      rt_Fieldref_info;
+typedef CONSTANT_Methodref_info     rt_Methodref_info;
+typedef CONSTANT_InterfaceMethodref_info
+                                    rt_InterfaceMethodref_info;
+typedef CONSTANT_String_info        rt_String_info;
+typedef CONSTANT_Integer_info       rt_Integer_info;
+typedef CONSTANT_Float_info         rt_Float_info;
+typedef CONSTANT_Long_info          rt_Long_info;
+typedef CONSTANT_Double_info        rt_Double_info;
 // I don't think NameAndType need to be resolved
 // because it's a middle info
-typedef CONSTANT_Utf8_info          rt_Utf8_data;
+typedef CONSTANT_Utf8_info          rt_Utf8_info;
 typedef struct
 {
     u1              reference_kind;
