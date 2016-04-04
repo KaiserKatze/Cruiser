@@ -178,6 +178,7 @@ public:
     bool            isSynthetic();
     rt_Class_info * getThisClass();
     rt_Class_info * getSuperClass();
+    rt_Utf8_info *  getClassName();
     u2              getInterfacesCount();
     rt_Class_info * getInterfaces(rt_Class_info *);
     rt_Class_info * getComponentType();
