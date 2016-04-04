@@ -95,8 +95,11 @@ class rt_Accessible
 {
 public:
     virtual u2      getAccessFlags();
+    virtual rt_Attributes *
+                    getAttributes();
 private:
     u2              access_flags;
+    rt_Attributes   attributes;
 };
 
 class rt_Field;
@@ -152,7 +155,6 @@ private:
     rt_Field *      fields;
     u2              methods_count;
     rt_Method *     methods;
-    rt_Attributes   attributes;
 
 #if VER_CMP(45, 3)
     u2 off_InnerClasses;
@@ -196,9 +198,6 @@ class rt_Field :
     public rt_Accessible,
     public rt_Member
 {
-private:
-    rt_Attributes   attributes;
-
 #if VER_CMP(45, 3)
     u2              off_ConstantValue;
 #endif
@@ -220,7 +219,6 @@ private:
     u2              access_flags;
     u2              name_index;
     u2              descriptor_index;
-    rt_Attributes   attributes;
     rt_Descriptor   descriptor;
 
 #if VER_CMP(45, 3)
