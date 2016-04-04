@@ -35,7 +35,7 @@ typedef struct
     rt_Parameter *  parameters;
 }                                   rt_Descriptor;
 
-typedef struct CONSTANT_Class_info  rt_Class_info;
+typedef CONSTANT_Class_info         rt_Class_info;
 
 typedef struct
 {
@@ -95,31 +95,31 @@ class rt_Class
 public:
     u2              getAccessFlags();
     u2              getFieldsCount();
-    rt_Class_data *
+    rt_Class_info *
                     getConstant_Class(u2);
-    rt_Fieldref_data *
+    rt_Fieldref_info *
                     getConstant_Fieldref(u2);
-    rt_Methodref_data *
+    rt_Methodref_info *
                     getConstant_Methodref(u2);
-    rt_InterfaceMethodref_data *
+    rt_InterfaceMethodref_info *
                     getConstant_InterfaceMethodref(u2);
-    rt_String_data *
+    rt_String_info *
                     getConstant_String(u2);
-    rt_Integer_data *
+    rt_Integer_info *
                     getConstant_Integer(u2);
-    rt_Float_data *
+    rt_Float_info *
                     getConstant_Float(u2);
-    rt_Long_data *
+    rt_Long_info *
                     getConstant_Long(u2);
-    rt_Double_data *
+    rt_Double_info *
                     getConstant_Double(u2);
-    rt_Utf8_data *
+    rt_Utf8_info *
                     getConstant_Utf8(u2);
-    rt_MethodHandle_data *
+    rt_MethodHandle_info *
                     getConstant_MethodHandle(u2);
-    rt_MethodType_data *
+    rt_MethodType_info *
                     getConstant_MethodType(u2);
-    rt_InvokeDynamic_data *
+    rt_InvokeDynamic_info *
                     getConstant_InvokeDynamic(u2);
 private:
     int             hash;
