@@ -2429,7 +2429,7 @@ writeClassName(char *out,
     rt_Utf8_info *class_name;
     u2 class_name_index;
 
-    class_name_index = class_info->data->class_name_index;
+    class_name_index = class_info->data->name_index;
     class_name = rtc->getConstant_Utf8(class_name_index);
 
     return writeClassName0(out,
@@ -2504,7 +2504,7 @@ logClassHeader(rt_Class *rtc)
     // super class
     if (super_class)
     {
-        cui = rtc->getConstant_Utf8(super_class->data->class_name_index);
+        cui = rtc->getConstant_Utf8(super_class->data->name_index);
         if (!cui) goto error;
         if (strncmp("java/lang/Object",
                     (char *) cui->data->bytes,
@@ -3022,16 +3022,16 @@ logMethods(rt_Class *rtc)
     u2 access_flags, name_index, descriptor_index;
     u2 attributes_count;
     attr_info *attributes, *attribute;
-    CONSTANT_Class_info *this_class;
-    CONSTANT_Utf8_info *class_name;
-    CONSTANT_Utf8_info *name, *descriptor;
+    rt_Class_info *this_class;
+    rt_Utf8_info *class_name;
+    rt_Utf8_info *name, *descriptor;
     attr_Code_info *code;
     attr_Exceptions_info *exceptions;
     u2 number_of_exceptions;
     u2 *exception_index_table;
     int has_method_body;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Utf8_info *cui;
+    rt_Class_info *cci;
+    rt_Utf8_info *cui;
 
     memset(buf, 0, sizeof (buf));
     // FIXME
