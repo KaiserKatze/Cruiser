@@ -1,11 +1,17 @@
 #!/bin/sh
 
+if [ -z $JAVA_HOME ]
+then
+    echo "Environment variable JAVA_HOME is null!"
+fi
+
 path_rt=$JAVA_HOME/jre/lib/rt.jar
 path_tmp=$HOME/tmp/runtime
+alias command='javap -v -p -s -constants -c -l'
 
 parse()
 {
-    javap -v $1 > $1.log;
+    command $1 > $1.log;
 }
 
 check()
