@@ -90,14 +90,30 @@ typedef struct
     u4              attributes_mark;
 }                                   rt_Attributes;
 
+
+class rt_Accessible
+{
+public:
+    virtual u2      getAccessFlags();
+private:
+    u2              access_flags;
+};
+
+class rt_Field;
+class rt_Method;
+
 /*
  * Run-time structures and functions
  */
-class rt_Class
+class rt_Class :
+    public rt_Accessible
 {
 public:
-    u2              getAccessFlags();
     u2              getFieldsCount();
+    rt_Field *      getFields();
+    u2              getMethodsCount();
+    rt_Method *     getMethods();
+
     rt_Class_info *
                     getConstant_Class(u2);
     rt_Fieldref_info *
@@ -128,15 +144,14 @@ private:
     int             hash;
     u2              constant_pool_count;
     cp_info *       constant_pool;
-    u2              access_flags;
     u2              this_class;
     u2              super_class;
     u2              interfaces_count;
     u2 *            interfaces;
     u2              fields_count;
-    field_info *    fields;
+    rt_Field *      fields;
     u2              methods_count;
-    method_info *   methods;
+    rt_Method *     methods;
     rt_Attributes   attributes;
 
 #if VER_CMP(45, 3)
@@ -167,12 +182,21 @@ public:
     u2              getModifiers();
 }; // rt_Class
 
-class rt_Field
+class rt_Member
 {
+public:
+    rt_Utf8_info *  getName(rt_Class *);
+    rt_Utf8_info *  getDescriptor(rt_Class *);
 private:
-    u2              access_flags;
     u2              name_index;
     u2              descriptor_index;
+};
+
+class rt_Field :
+    public rt_Accessible,
+    public rt_Member
+{
+private:
     rt_Attributes   attributes;
 
 #if VER_CMP(45, 3)
@@ -188,7 +212,9 @@ private:
 #endif
 }; // rt_Field
 
-class rt_Method
+class rt_Method :
+    public rt_Accessible,
+    public rt_Member
 {
 private:
     u2              access_flags;
