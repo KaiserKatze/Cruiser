@@ -9,83 +9,6 @@
 
 typedef struct
 {
-    u1 tag;
-    struct
-    {
-        u2 class_name_index;
-    } * data;
-}                                   rt_Class_info;
-typedef struct
-{
-    u2 access_flags;
-    u2 descriptor_index;
-    u2 name_index;
-}                                   rt_Parameter;
-typedef struct
-{
-    u1 tag;
-    struct
-    {
-        u2 class_name_index;
-        u2 name_index;
-        u2 descriptor_index;
-        u2 parameters_count;
-        u2 parameters_length;
-        rt_Parameter * parameters;
-    } * data;
-}                                   rt_Fieldref_info,
-                                    rt_Methodref_info,
-                                    rt_InterfaceMethodref_info;
-typedef CONSTANT_String_info        rt_String_info;
-typedef CONSTANT_Integer_info       rt_Integer_info;
-typedef CONSTANT_Float_info         rt_Float_info;
-typedef CONSTANT_Long_info          rt_Long_info;
-typedef CONSTANT_Double_info        rt_Double_info;
-// I don't think NameAndType need to be resolved
-// because it's a middle info
-typedef CONSTANT_Utf8_info          rt_Utf8_info;
-typedef struct
-{
-    u1 tag;
-    struct
-    {
-        u1 reference_kind;
-        union
-        {
-            u2 off_Fieldref;
-            u2 off_Methodref;
-            u2 off_InterfaceMethodref;
-        };
-    } * data;
-}                                   rt_MethodHandle_info;
-typedef struct
-{
-    u1 tag;
-    struct
-    {
-        u2 descriptor_index;
-    } * data;
-}                                   rt_MethodType_info;
-typedef struct
-{
-    u1 tag;
-    struct
-    {
-        u2 bootstrap_method_attr_index;
-        u2 name_index;
-        u2 descriptor_index;
-    } * data;
-}                                   rt_InvokeDynamic_info;
-
-typedef struct
-{
-    u2              attributes_count;
-    attr_info *     attributes;
-    u4              attributes_mark;
-}                                   rt_Attributes;
-
-typedef struct
-{
     u2              off_parameter_descriptor;
     u2              len_parameter_descirptor;
     // TODO
@@ -112,6 +35,56 @@ typedef struct
     rt_Parameter *  parameters;
 }                                   rt_Descriptor;
 
+typedef struct
+{
+    u2              class_name_index;
+}                                   rt_Class_data;
+
+typedef struct
+{
+    u2              class_name_index;
+    u2              name_index;
+    u2              descriptor_index;
+    rt_Descriptor   descriptor;
+}                                   rt_Fieldref_data,
+                                    rt_Methodref_data,
+                                    rt_InterfaceMethodref_data;
+typedef CONSTANT_String_info        rt_String_data;
+typedef CONSTANT_Integer_info       rt_Integer_data;
+typedef CONSTANT_Float_info         rt_Float_data;
+typedef CONSTANT_Long_info          rt_Long_data;
+typedef CONSTANT_Double_info        rt_Double_data;
+// I don't think NameAndType need to be resolved
+// because it's a middle info
+typedef CONSTANT_Utf8_info          rt_Utf8_data;
+typedef struct
+{
+    u1              reference_kind;
+    union
+    {
+        u2          off_Fieldref;
+        u2          off_Methodref;
+        u2          off_InterfaceMethodref;
+    };
+}                                   rt_MethodHandle_data;
+typedef struct
+{
+    u2              descriptor_index;
+}                                   rt_MethodType_data;
+typedef struct
+{
+    u2              bootstrap_method_attr_index;
+    u2              name_index;
+    u2              descriptor_index;
+}                                   rt_InvokeDynamic_data;
+
+typedef struct
+{
+    u2              attributes_count;
+    attr_info *     attributes;
+    u4              attributes_mark;
+}                                   rt_Attributes;
+
 /*
  * Run-time structures and functions
  */
@@ -120,31 +93,31 @@ class rt_Class
 public:
     u2              getAccessFlags();
     u2              getFieldsCount();
-    rt_Class_info *
+    rt_Class_data *
                     getConstant_Class(u2);
-    rt_Fieldref_info *
+    rt_Fieldref_data *
                     getConstant_Fieldref(u2);
-    rt_Methodref_info *
+    rt_Methodref_data *
                     getConstant_Methodref(u2);
-    rt_InterfaceMethodref_info *
+    rt_InterfaceMethodref_data *
                     getConstant_InterfaceMethodref(u2);
-    rt_String_info *
+    rt_String_data *
                     getConstant_String(u2);
-    rt_Integer_info *
+    rt_Integer_data *
                     getConstant_Integer(u2);
-    rt_Float_info *
+    rt_Float_data *
                     getConstant_Float(u2);
-    rt_Long_info *
+    rt_Long_data *
                     getConstant_Long(u2);
-    rt_Double_info *
+    rt_Double_data *
                     getConstant_Double(u2);
-    rt_Utf8_info *
+    rt_Utf8_data *
                     getConstant_Utf8(u2);
-    rt_MethodHandle_info *
+    rt_MethodHandle_data *
                     getConstant_MethodHandle(u2);
-    rt_MethodType_info *
+    rt_MethodType_data *
                     getConstant_MethodType(u2);
-    rt_InvokeDynamic_info *
+    rt_InvokeDynamic_data *
                     getConstant_InvokeDynamic(u2);
 private:
     int             hash;
@@ -181,13 +154,13 @@ public:
     bool            isArray();
     bool            isAnnotation();
     bool            isSynthetic();
-    rt_Class_info * getThisClass();
-    rt_Class_info * getSuperClass();
+    rt_Class_data * getThisClass();
+    rt_Class_data * getSuperClass();
     u2              getInterfacesCount();
-    rt_Class_info * getInterfaces(rt_Class_info *);
-    rt_Class_info * getComponentType();
+    rt_Class_data * getInterfaces(rt_Class_data *);
+    rt_Class_data * getComponentType();
     u2              getModifiers();
-};
+}; // rt_Class
 
 class rt_Field
 {
@@ -208,7 +181,7 @@ private:
     u2              off_RuntimeVisibleTypeAnnotations;
     u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
-};
+}; // rt_Field
 
 class rt_Method
 {
@@ -234,7 +207,7 @@ private:
     u2              off_RuntimeVisibleTypeAnnotations;
     u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
-};
+}; // rt_Method
 
 #endif	/* RT_H */
 
