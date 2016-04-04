@@ -57,10 +57,14 @@ extern "C" {
 #define ACC_NATIVE                      0x0100 // Declared native; implemented in a language other than Java
 #define ACC_STRICT                      0x0800 // Declared strictfp; floating-point mode is FP-strict
 
+// Parameter access (additional)
+#define ACC_MANDATED                    0x8000
+
 #define ACC_CLASS                       (ACC_PUBLIC | ACC_FINAL | ACC_SUPER | ACC_INTERFACE | ACC_ABSTRACT | ACC_SYNTHETIC | ACC_ANNOTATION | ACC_ENUM)
 #define ACC_NESTED_CLASS                (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_INTERFACE | ACC_ABSTRACT | ACC_SYNTHETIC | ACC_ANNOTATION | ACC_ENUM)
 #define ACC_FIELD                       (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_VOLATILE | ACC_TRANSIENT | ACC_SYNTHETIC | ACC_ENUM)
 #define ACC_METHOD                      (ACC_PUBLIC | ACC_PRIVATE | ACC_PROTECTED | ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_VARARGS | ACC_NATIVE | ACC_ABSTRACT | ACC_STRICT | ACC_SYNTHETIC)
+#define ACC_PARAMETER                   (ACC_FINAL | ACC_SYNTHETIC | ACC_MANDATED)
 
 #define REF_getField            1
 #define REF_getStatic           2
