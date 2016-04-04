@@ -2656,7 +2656,7 @@ logFields(rt_Class *rtc)
     char buf[1024], *ptr;
     u2 i, j;
     u2 fields_count;
-    field_info *fields, *field;
+    rt_Field * fields, * field;
     u2 access_flags;
     u2 name_index;
     u2 descriptor_index;
@@ -2667,29 +2667,28 @@ logFields(rt_Class *rtc)
     CONSTANT_Utf8_info *name, *descriptor;
     attr_ConstantValue_info *acv;
     u2 constantvalue_index;
-    CONSTANT_Long_info *cv_long;
-    CONSTANT_Float_info *cv_float;
-    CONSTANT_Double_info *cv_double;
-    CONSTANT_Integer_info *cv_integer;
-    CONSTANT_String_info *cv_string;
-    CONSTANT_Utf8_info *cui;
+    rt_Long_info *cv_long;
+    rt_Float_info *cv_float;
+    rt_Double_info *cv_double;
+    rt_Integer_info *cv_integer;
+    rt_String_info *cv_string;
+    rt_Utf8_info *cui;
 
     memset(buf, 0, sizeof (buf));
     ptr = (char *) buf;
-    // FIXME
-    fields_count = cf->fields_count;
-    fields = cf->fields;
+    fields_count = rtc->getFieldsCount();
+    fields = rtc->getFields();
 
     for (i = 0; i < fields_count; i++)
     {
         field = &(fields[i]);
-        access_flags = field->access_flags;
-        name_index = field->name_index;
-        descriptor_index = field->descriptor_index;
-        attributes_count = field->attributes_count;
-        attributes = field->attributes;
 
-        descriptor = rtc->getConstant_Utf8(descriptor_index);
+        access_flags = field->getAccessFlags();
+        name = field->getName(rtc);
+        descriptor = field->getDescriptor(rtc);
+
+        attributes_count = field->getAttributes()->attributes_count;
+        attributes = field->getAttributes()->attributes;
 
         n = sprintf(ptr, "\t");
         if (n < 0) return -1;
@@ -2755,7 +2754,6 @@ logFields(rt_Class *rtc)
             ptr += n;
         }
 
-        name = rtc->getConstant_Utf8(name_index);
         n = sprintf(ptr, " %.*s",
                 name->data->length,
                 name->data->bytes);
@@ -2780,7 +2778,7 @@ logFields(rt_Class *rtc)
                 switch (descriptor->data->bytes[0])
                 {
                     case 'J':
-                        cv_long = getConstant_Long(cf,
+                        cv_long = rtc->getConstant_Long(
                                 constantvalue_index);
                         n = sprintf(ptr, "%llil",
                                 cv_long->data->long_value);
@@ -2788,7 +2786,7 @@ logFields(rt_Class *rtc)
                         ptr += n;
                         break;
                     case 'F':
-                        cv_float = getConstant_Float(cf,
+                        cv_float = rtc->getConstant_Float(
                                 constantvalue_index);
                         n = sprintf(ptr, "%ff",
                                 cv_float->data->float_value);
@@ -2796,7 +2794,7 @@ logFields(rt_Class *rtc)
                         ptr += n;
                         break;
                     case 'D':
-                        cv_double = getConstant_Double(cf,
+                        cv_double = rtc->getConstant_Double(
                                 constantvalue_index);
                         n = sprintf(ptr, "%fd",
                                 cv_double->data->double_value);
@@ -2804,9 +2802,9 @@ logFields(rt_Class *rtc)
                         ptr += n;
                         break;
                     case 'L':
-                        cv_string = getConstant_String(cf,
+                        cv_string = rtc->getConstant_String(
                                 constantvalue_index);
-                        cui = getConstant_Utf8(cf,
+                        cui = rtc->getConstant_Utf8(
                                 cv_string->data->string_index);
                         n = writeConstantString(ptr,
                                 cui->data->length,
@@ -2815,7 +2813,7 @@ logFields(rt_Class *rtc)
                         ptr += n;
                         break;
                     default:
-                        cv_integer = getConstant_Integer(cf,
+                        cv_integer = rtc->getConstant_Integer(
                                 constantvalue_index);
                         n = sprintf(ptr, "%i",
                                 cv_integer->data->bytes);
@@ -2845,9 +2843,10 @@ struct ParameterTable
     char **local_names;
 };
 
+// FIXME
 static int
 writeParameterTable(char *out,
-        method_info *method,
+        rt_Method *method,
         u2 len, u1 *str,
         struct ParameterTable *pt)
 {
@@ -2867,7 +2866,7 @@ writeParameterTable(char *out,
     memset(pt, 0, sizeof (struct ParameterTable));
 
     // instance methods start with 'this' parameter
-    access_flags = method->access_flags;
+    access_flags = method->getAccessFlags();
     if (access_flags & ACC_STATIC)
         count = 0;
     else
@@ -2943,7 +2942,7 @@ writeParameterTable(char *out,
         allocMemory(pt->local_count, sizeof (char *));
 
 
-    method->parameters_count = count;
+    //method->parameters_count = count;
 
     return out - src;
 }
@@ -3018,11 +3017,10 @@ logMethods(rt_Class *rtc)
     size_t n;
     u2 i, j;
     u2 methods_count;
-    method_info *methods, *method;
+    rt_Method *methods, *method;
     u2 access_flags, name_index, descriptor_index;
     u2 attributes_count;
     attr_info *attributes, *attribute;
-    rt_Class_info *this_class;
     rt_Utf8_info *class_name;
     rt_Utf8_info *name, *descriptor;
     attr_Code_info *code;
@@ -3034,28 +3032,24 @@ logMethods(rt_Class *rtc)
     rt_Utf8_info *cui;
 
     memset(buf, 0, sizeof (buf));
-    // FIXME
-    methods_count = cf->methods_count;
-    methods = cf->methods;
-    this_class = rtc->getConstant_Class(cf->this_class);
-    class_name = getConstant_Utf8(cf,
-            this_class->data->name_index);
+    methods_count = rtc->getMethodsCount();
+    methods = rtc->getMethods();
+    class_name = rtc->getClassName();
 
     logInfo("// Method count: %i.\r\n\r\n", methods_count);
 
     for (i = 0; i < methods_count; i++)
     {
         method = &(methods[i]);
-        access_flags = method->access_flags;
-        name_index = method->name_index;
-        descriptor_index = method->descriptor_index;
-        attributes_count = method->attributes_count;
-        attributes = method->attributes;
+
+        access_flags = method->getAccessFlags();
+        name = method->getName(rtc);
+        descriptor = method->getDescriptor(rtc);
+
+        attributes_count = method->getAttributes()->attributes_count;
+        attributes = method->getAttributes()->attributes;
 
         // note ACC_NATIVE, ACC_VARARGS
-        name = rtc->getConstant_Utf8(name_index);
-        descriptor = rtc->getConstant_Utf8(descriptor_index);
-
         // initialize Code attribute & Exceptions attribute
         code = (attr_Code_info *) 0;
         exceptions = (attr_Exceptions_info *) 0;
@@ -3183,6 +3177,7 @@ logMethods(rt_Class *rtc)
             }
 
             // parameter table
+            // FIXME
             n = writeParameterTable(ptr,
                     method,
                     descriptor->data->length,
@@ -3238,6 +3233,7 @@ logMethods(rt_Class *rtc)
                     ptr += n;
                 }
 
+                // FIXME
                 n = writeClassName(ptr, cf,
                         exception_index_table[j]);
                 if (n < 0) return -1;
@@ -3247,6 +3243,7 @@ logMethods(rt_Class *rtc)
 
         if (code)
         {
+            // FIXME
             n = writeCode(ptr, cf, method, code);
             if (n < 0) return -1;
             ptr += n;
