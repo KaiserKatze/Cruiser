@@ -35,10 +35,6 @@ typedef struct
     rt_Parameter *  parameters;
 }                                   rt_Descriptor;
 
-typedef struct
-{
-    u2              class_name_index;
-}                                   rt_Class_data;
 typedef struct CONSTANT_Class_info  rt_Class_info;
 
 typedef struct
