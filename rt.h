@@ -69,16 +69,19 @@ typedef struct
         u2          off_InterfaceMethodref;
     };
 }                                   rt_MethodHandle_data;
+typedef CONSTANT_MethodHandle_info  rt_MethodHandle_info;
 typedef struct
 {
     u2              descriptor_index;
 }                                   rt_MethodType_data;
+typedef CONSTANT_MethodType_info    rt_MethodType_info;
 typedef struct
 {
     u2              bootstrap_method_attr_index;
     u2              name_index;
     u2              descriptor_index;
 }                                   rt_InvokeDynamic_data;
+typedef CONSTANT_InvokeDynamic_info rt_InvokeDynamic_info;
 
 typedef struct
 {
@@ -156,11 +159,11 @@ public:
     bool            isArray();
     bool            isAnnotation();
     bool            isSynthetic();
-    rt_Class_data * getThisClass();
-    rt_Class_data * getSuperClass();
+    rt_Class_info * getThisClass();
+    rt_Class_info * getSuperClass();
     u2              getInterfacesCount();
-    rt_Class_data * getInterfaces(rt_Class_data *);
-    rt_Class_data * getComponentType();
+    rt_Class_info * getInterfaces(rt_Class_info *);
+    rt_Class_info * getComponentType();
     u2              getModifiers();
 }; // rt_Class
 
