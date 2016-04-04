@@ -2650,7 +2650,7 @@ writeConstantString(char *out, u2 len, u1 *str)
 }
 
 static int
-logFields(rt_Class *cf)
+logFields(rt_Class *rtc)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[1024], *ptr;
@@ -2676,6 +2676,7 @@ logFields(rt_Class *cf)
 
     memset(buf, 0, sizeof (buf));
     ptr = (char *) buf;
+    // FIXME
     fields_count = cf->fields_count;
     fields = cf->fields;
 
@@ -3010,7 +3011,7 @@ writeCode(char *out, ClassFile *cf,
 }
 
 static int
-logMethods(rt_Class *cf)
+logMethods(rt_Class *rtc)
 {
 #if (defined DEBUG && defined LOG_INFO)
     char buf[65536], *ptr;
@@ -3033,6 +3034,7 @@ logMethods(rt_Class *cf)
     CONSTANT_Utf8_info *cui;
 
     memset(buf, 0, sizeof (buf));
+    // FIXME
     methods_count = cf->methods_count;
     methods = cf->methods;
     this_class = rtc->getConstant_Class(cf->this_class);
