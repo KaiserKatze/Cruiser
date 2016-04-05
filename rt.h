@@ -217,9 +217,6 @@ class rt_Method :
     public rt_Member
 {
 private:
-    u2              access_flags;
-    u2              name_index;
-    u2              descriptor_index;
     rt_Descriptor   descriptor;
 
 #if VER_CMP(45, 3)
@@ -238,6 +235,12 @@ private:
     u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
 }; // rt_Method
+
+typedef struct
+{
+    rt_Method *     caller;
+    rt_Method *     self;
+}                   rt_Frame;
 
 #endif	/* RT_H */
 
