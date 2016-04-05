@@ -36,12 +36,16 @@ typedef struct
 }                                   rt_Descriptor;
 
 typedef CONSTANT_Class_info         rt_Class_info;
-
+typedef struct
+{
+    u2              name_index;
+    u2              descriptor_index;
+}                                   rt_NameAndType_data;
 typedef struct
 {
     u2              class_name_index;
-    u2              name_index;
-    u2              descriptor_index;
+    rt_NameAndType_data
+                    name_and_type;
     rt_Descriptor   descriptor;
 }                                   rt_Fieldref_data,
                                     rt_Methodref_data,
@@ -78,8 +82,8 @@ typedef CONSTANT_MethodType_info    rt_MethodType_info;
 typedef struct
 {
     u2              bootstrap_method_attr_index;
-    u2              name_index;
-    u2              descriptor_index;
+    rt_NameAndType_data
+                    name_and_type;
 }                                   rt_InvokeDynamic_data;
 typedef CONSTANT_InvokeDynamic_info rt_InvokeDynamic_info;
 
@@ -191,8 +195,8 @@ public:
     rt_Utf8_info *  getName(rt_Class *);
     rt_Utf8_info *  getDescriptor(rt_Class *);
 private:
-    u2              name_index;
-    u2              descriptor_index;
+    rt_NameAndType_data
+                    name_and_type;
 };
 
 class rt_Field :
