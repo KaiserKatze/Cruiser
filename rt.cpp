@@ -126,4 +126,11 @@ rt_Class::getConstant_Double(u2 index)
                    constant_pool);
 }
 
-
+rt_Utf8_info *
+rt_Class::getConstant_Utf8(u2 index)
+{
+    return rt_getConstant<rt_Utf8_info,
+           CONSTANT_Utf8>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
