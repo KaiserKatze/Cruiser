@@ -18,3 +18,9 @@ rt_Class::getMethodsCount()
 {
     return methods_count;
 }
+
+rt_Method *
+rt_Class::getMethods()
+{
+    return methods;
+}
