@@ -116,3 +116,14 @@ rt_Class::getConstant_Long(u2 index)
                    constant_pool_count,
                    constant_pool);
 }
+
+rt_Double_info *
+rt_Class::getConstant_Double(u2 index)
+{
+    return rt_getConstant<rt_Double_info,
+           CONSTANT_Double>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
+
+
