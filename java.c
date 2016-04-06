@@ -2845,8 +2845,7 @@ struct ParameterTable
 static int
 writeParameterTable(char *out,
         rt_Method *method,
-        u2 len, u1 *str,
-        struct ParameterTable *pt)
+        u2 len, u1 *str)
 {
     char *src;
     size_t n;
@@ -2861,7 +2860,6 @@ writeParameterTable(char *out,
     *out++ = '(';
     --len;
     ++str;
-    memset(pt, 0, sizeof (struct ParameterTable));
 
     // instance methods start with 'this' parameter
     access_flags = method->getAccessFlags();
@@ -2870,7 +2868,6 @@ writeParameterTable(char *out,
     else
         count = 1;
 
-    pt->local_count = count;
     for (i = 0; i < len; i++)
     {
         if (str[i] == ')')
@@ -2933,12 +2930,7 @@ writeParameterTable(char *out,
         n = sprintf(out, " param%i", count++);
         if (n < 0) return -1;
         out += n;
-
-        pt->local_count += parameter_type;
     }
-    pt->local_names = (char **)
-        allocMemory(pt->local_count, sizeof (char *));
-
 
     //method->parameters_count = count;
 
