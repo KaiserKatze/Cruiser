@@ -71,3 +71,13 @@ rt_Class::getConstant_Methodref(u2 index)
                    constant_pool_count,
                    constant_pool);
 }
+
+rt_InterfaceMethodref_info *
+rt_Class::getConstant_InterfaceMethodref(u2 index)
+{
+    return rt_getConstant<rt_InterfaceMethodref_info,
+           CONSTANT_InterfaceMethodref>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
+
