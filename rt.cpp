@@ -215,3 +215,11 @@ rt_Class::getClassName()
 
     return getConstant_Utf8(name_index);
 }
+
+u2
+rt_Class::getInterfacesCount()
+{
+    return interfaces_count;
+}
+
+
