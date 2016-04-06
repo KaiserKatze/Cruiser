@@ -90,3 +90,13 @@ rt_Class::getConstant_String(u2 index)
                    constant_pool);
 }
 
+rt_Integer_info *
+rt_Class::getConstant_Integer(u2 index)
+{
+    return rt_getConstant<rt_Integer_info,
+           CONSTANT_Integer>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
+
+
