@@ -222,4 +222,10 @@ rt_Class::getInterfacesCount()
     return interfaces_count;
 }
 
+u2 *
+rt_Class::getInterfaces()
+{
+    return interfaces;
+}
+
 
