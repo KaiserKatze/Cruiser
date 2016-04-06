@@ -179,18 +179,6 @@ extern "C" {
         struct exception_table_entry *exception_table;
         u2 attributes_count;
         attr_info *attributes;
-        // Cruise-specific member
-        u4 attr_mark;
-
-#ifdef QUICK_REFERENCE
-#if VER_CMP(50, 0)
-        u2 off_StackMapTable;
-#endif
-#if VER_CMP(52, 0)
-        u2 off_RuntimeVisibleTypeAnnotations;
-        u2 off_RuntimeInvisibleTypeAnnotations;
-#endif
-#endif
     };
 
     struct attr_Exceptions_info
@@ -425,22 +413,6 @@ extern "C" {
         u2 descriptor_index;
         u2 attributes_count;
         attr_info *attributes;
-        // Cruise-specific member
-        u4 attr_mark;
-
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-        u2 off_ConstantValue;
-#endif
-#if VER_CMP(49, 0)
-        u2 off_RuntimeVisibleAnnotations;
-        u2 off_RuntimeInvisibleAnnotations;
-#endif
-#if VER_CMP(52, 0)
-        u2 off_RuntimeVisibleTypeAnnotations;
-        u2 off_RuntimeInvisibleTypeAnnotations;
-#endif
-#endif
     } field_info;
 
     typedef struct {
@@ -449,28 +421,6 @@ extern "C" {
         u2 descriptor_index;
         u2 attributes_count;
         attr_info *attributes;
-        // Cruise-specific member
-        u4 attr_mark;
-        u2 parameters_count;
-        u1 return_type;
-
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-        u2 off_Code;
-        u2 off_Exceptions;
-#endif
-#if VER_CMP(49, 0)
-        u2 off_RuntimeVisibleParameterAnnotations;
-        u2 off_RuntimeInvisibleParameterAnnotations;
-        u2 off_AnnotationDefault;
-        u2 off_RuntimeVisibleAnnotations;
-        u2 off_RuntimeInvisibleAnnotations;
-#endif
-#if VER_CMP(52, 0)
-        u2 off_RuntimeVisibleTypeAnnotations;
-        u2 off_RuntimeInvisibleTypeAnnotations;
-#endif
-#endif
     } method_info;
     
     typedef struct

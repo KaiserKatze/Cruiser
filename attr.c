@@ -1423,11 +1423,6 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "InnerClasses", 12))
     {
         res = loadAttribute_InnerClasses(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_InnerClasses = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "Synthetic", 9))
@@ -1439,11 +1434,6 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "EnclosingMethod", 15))
     {
         res = loadAttribute_EnclosingMethod(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_EnclosingMethod = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "SourceDebugExtension", 20))
@@ -1453,21 +1443,11 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_RuntimeVisibleAnnotations = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_RuntimeInvisibleAnnotations = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
 #endif
@@ -1475,11 +1455,6 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "BootstrapMethods", 16))
     {
         res = loadAttribute_BootstrapMethods(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_BootstrapMethods = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
 #endif
@@ -1487,21 +1462,11 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
     if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_RuntimeVisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        cf->off_RuntimeInvisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) cf->attributes));
-#endif
         return res;
     }
 #endif
@@ -1532,9 +1497,6 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "ConstantValue", 13))
     {
         res = loadAttribute_ConstantValue(cf, input, info);
-#ifdef QUICK_REFERENCE
-        field->off_ConstantValue = (u2) (0xffff & ((int) info - (int) field->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "Synthetic", 9))
@@ -1548,17 +1510,11 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-#ifdef QUICK_REFERENCE
-        field->off_RuntimeVisibleAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
-#ifdef QUICK_REFERENCE
-        field->off_RuntimeInvisibleAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
-#endif
         return res;
     }
 #endif
@@ -1566,17 +1522,11 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-#ifdef QUICK_REFERENCE
-        field->off_RuntimeVisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
-#ifdef QUICK_REFERENCE
-        field->off_RuntimeInvisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) field->attributes));
-#endif
         return res;
     }
 #endif
@@ -1607,21 +1557,11 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "Code", 4))
     {
         res = loadAttribute_Code(cf, input, method, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_Code = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "Exceptions", 10))
     {
         res = loadAttribute_Exceptions(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_Exceptions = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "Synthetic", 9))
@@ -1633,31 +1573,16 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "RuntimeVisibleParameterAnnotations", 34))
     {
         res = loadAttribute_RuntimeVisibleParameterAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeVisibleParameterAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleParameterAnnotations", 36))
     {
         res = loadAttribute_RuntimeInvisibleParameterAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeInvisibleParameterAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "AnnotationDefault", 17))
     {
         res = loadAttribute_AnnotationDefault(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_AnnotationDefault = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "Signature", 9))
@@ -1665,21 +1590,11 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "RuntimeVisibleAnnotations", 25))
     {
         res = loadAttribute_RuntimeVisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeVisibleAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleAnnotations", 27))
     {
         res = loadAttribute_RuntimeInvisibleAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeInvisibleAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
 #endif
@@ -1689,21 +1604,11 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
     if (!strncmp(attribute_name, "RuntimeVisibleTypeAnnotations", 29))
     {
         res = loadAttribute_RuntimeVisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeVisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
     if (!strncmp(attribute_name, "RuntimeInvisibleTypeAnnotations", 31))
     {
         res = loadAttribute_RuntimeInvisibleTypeAnnotations(cf, input, info);
-        if (res < 0)
-            return res;
-#ifdef QUICK_REFERENCE
-        method->off_RuntimeInvisibleTypeAnnotations = (u2) (0xffff & ((int) info - (int) method->attributes));
-#endif
         return res;
     }
 #endif
@@ -1762,23 +1667,6 @@ loadAttributes_class(ClassFile *cf, struct BufferIO *input, u2 *attributes_count
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-    cf->off_InnerClasses = -1;
-#endif
-#if VER_CMP(49, 0)
-    cf->off_EnclosingMethod = -1;
-    cf->off_RuntimeVisibleAnnotations = -1;
-    cf->off_RuntimeInvisibleAnnotations = -1;
-#endif
-#if VER_CMP(51, 0)
-    cf->off_BootstrapMethods = -1;
-#endif
-#if VER_CMP(52, 0)
-    cf->off_RuntimeVisibleTypeAnnotations = -1;
-    cf->off_RuntimeInvisibleTypeAnnotations = -1;
-#endif
-#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_class(cf, input, &((*attributes)[i]));
     return 0;
@@ -1889,19 +1777,6 @@ loadAttributes_field(ClassFile *cf,
     //*attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
     *attributes = (attr_info *) allocMemory(*attributes_count, sizeof (attr_info));
     if (!*attributes) return -1;
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-    field->off_ConstantValue = -1;
-#endif
-#if VER_CMP(49, 0)
-    field->off_RuntimeVisibleAnnotations = -1;
-    field->off_RuntimeInvisibleAnnotations = -1;
-#endif
-#if VER_CMP(52, 0)
-    field->off_RuntimeVisibbleTypeAnnotations = -1;
-    field->off_RuntimeInvisibleTypeAnnotations = -1;
-#endif
-#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_field(cf, input, field, &((*attributes)[i]));
     return 0;
@@ -1970,23 +1845,6 @@ loadAttributes_method(ClassFile *cf,
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
-#ifdef QUICK_REFERENCE
-#if VER_CMP(45, 3)
-    method->off_Code = -1;
-    method->off_Exceptions = -1;
-#endif
-#if VER_CMP(49, 0)
-    method->off_RuntimeVisibleParameterAnnotations = -1;
-    method->off_RuntimeInvisibleParameterAnnotations = -1;
-    method->off_AnnotationDefault = -1;
-    method->off_RuntimeVisibleAnnotations = -1;
-    method->off_RuntimeInvisibleAnnotations = -1;
-#endif
-#if VER_CMP(52, 0)
-    method->off_RuntimeVisibleTypeAnnotations = -1;
-    method->off_RuntimeInvisibleTypeAnnotations = -1;
-#endif
-#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_method(cf, input, method, &((*attributes)[i]));
 
@@ -2048,15 +1906,6 @@ loadAttributes_code(ClassFile *cf,
     if (ru2(attributes_count, input) < 0)
         return -1;
     *attributes = (attr_info *) malloc(*attributes_count * sizeof (attr_info));
-#ifdef QUICK_REFERENCE
-#if VER_CMP(50, 0)
-    code->off_StackMapTable = -1;
-#endif
-#if VER_CMP(52, 0)
-    code->off_RuntimeVisibleTypeAnnotations = -1;
-    code->off_RuntimeInvisibleTypeAnnotations = -1;
-#endif
-#endif
     for (i = 0u; i < *attributes_count; i++)
         loadAttribute_code(cf, input, &((*attributes)[i]));
     return 0;

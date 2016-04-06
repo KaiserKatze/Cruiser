@@ -128,7 +128,6 @@ parseClassfile(struct BufferIO * input,
     if (loadMethods(input, &cf) < 0)
         return -1;
 
-    /*
     loadAttributes_class(&cf, input, &(cf.attributes_count), &(cf.attributes));
 #ifdef RT_H
     // constant pool validation
@@ -139,7 +138,7 @@ parseClassfile(struct BufferIO * input,
     if (validateMethods(&cf) < 0)
         return -1;
 #endif
-    */
+
     //if (linkClass(&cf, &rtc) < 0)                   return -1;
     //if (logClassHeader(&rtc) < 0)                   return -1;
     //if (logFields(&rtc) < 0)                        return -1;
@@ -962,7 +961,6 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 return -1;
             }
             dataBootstrapMethods = (struct attr_BootstrapMethods_info *) 0;
-#ifndef QUICK_REFERENCE
             for (j = 0; j < cf->attributes_count; j++)
             {
                 if (cf->attributes[j].tag != TAG_ATTR_BOOTSTRAPMETHODS)
@@ -971,13 +969,6 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         cf->attributes[j].data;
                 break;
             }
-#else
-            if (cf->off_BootstrapMethods >= 0)
-            {
-                dataBootstrapMethods = (struct attr_BootstrapMethods_info *)
-                        cf->attributes[cf->off_BootstrapMethods].data;
-            }
-#endif
             if (!dataBootstrapMethods)
             {
                 logError("Attribute BootstrapMethods is not found!\r\n");
@@ -3229,7 +3220,6 @@ logMethods(rt_Class *rtc)
 
         if (code)
         {
-            // FIXME
             n = writeCode(ptr, rtc, method, code);
             if (n < 0) return -1;
             ptr += n;
