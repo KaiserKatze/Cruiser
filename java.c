@@ -2446,7 +2446,7 @@ logClassHeader(rt_Class *rtc)
     u2 access_flags;
     rt_Class_info * this_class, * super_class;
     u2 interfaces_count;
-    rt_Class_info * interfaces;
+    rt_Class_info ** interfaces;
     rt_Utf8_info *cui;
     u2 i;
 
@@ -2454,10 +2454,7 @@ logClassHeader(rt_Class *rtc)
     this_class = rtc->getThisClass();
     super_class = rtc->getSuperClass();
     interfaces_count = rtc->getInterfacesCount();
-    // FIXME
-    interfaces = (rt_Class_info *)
-        allocMemory(interfaces_count,
-                sizeof (rt_Class_info));
+    interfaces = (rt_Class_info **) NULL;
     if (!rtc->getInterfaces(interfaces))
         goto error;
 
@@ -2541,7 +2538,7 @@ logClassHeader(rt_Class *rtc)
                 if (n < 0) goto error;
                 ptr += n;
             }
-            n = writeClassName(ptr, rtc, &(interfaces[i]));
+            n = writeClassName(ptr, rtc, interfaces[i]);
             if (n < 0) goto error;
             ptr += n;
         }
@@ -2550,11 +2547,11 @@ logClassHeader(rt_Class *rtc)
     logInfo("%s\r\n{\r\n", buf);
 #endif
     freeMemory(interfaces);
-    interfaces = (rt_Class_info *) 0;
+    interfaces = (rt_Class_info **) 0;
     return 0;
 error:
     freeMemory(interfaces);
-    interfaces = (rt_Class_info *) 0;
+    interfaces = (rt_Class_info **) 0;
     return -1;
 }
 

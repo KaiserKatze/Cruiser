@@ -1,5 +1,6 @@
 #include "java.h"
 #include "rt.h"
+#include "memory.h"
 
 u2
 rt_Accessible::getAccessFlags()
@@ -222,10 +223,27 @@ rt_Class::getInterfacesCount()
     return interfaces_count;
 }
 
-u2 *
-rt_Class::getInterfaces()
+rt_Class_info **
+rt_Class::getInterfaces(rt_Class_info ** out)
 {
-    return interfaces;
+    u2 count;
+    u2 i;
+
+    count = getInterfacesCount();
+    if (count == 0)
+        return (rt_Class_info **) NULL;
+    if (!out)
+    {
+        out = (rt_Class_info **)
+            allocMemory(count, sizeof (rt_Class_info *));
+        if (!out)
+            return out;
+    }
+
+    for (i = 0; i < count; i++)
+        out[i] = getConstant_Class(interfaces[i]);
+
+    return out;
 }
 
 rt_Class *
