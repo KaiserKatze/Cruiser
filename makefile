@@ -16,11 +16,11 @@ cruise: main.c java.c java.h jar.c jar.h log.c log.h attr.c
 	@echo ${LOG}
 	@${TOOL} -g -o ${DIR_BUILD}/${EXEC} ${SOURCE_MAIN} ${INCLUDE} ${LIB_MAIN} ${MACRO}
 
-runtime: rt.h rt.cpp
+rt: rt.h rt.cpp
 	@clear
 	@if [ ! -d ${DIR_BUILD} ]; then mkdir ${DIR_BUILD}; fi
 	@echo ${LOG}
-	@${TOOL} -g -o ${DIR_BUILD}/rt.o rt.cpp ${INCLUDE} ${MACRO}
+	@${TOOL} -g -c -o ${DIR_BUILD}/rt.o rt.cpp ${INCLUDE} ${MACRO}
 
 test: test.c
 	@clear
