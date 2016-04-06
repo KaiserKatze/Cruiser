@@ -180,3 +180,15 @@ rt_Class::isInterface()
     return getAccessFlags() & ACC_INTERFACE;
 }
 
+bool
+rt_Class::isAnnotation()
+{
+    return getAccessFlags() & ACC_ANNOTATION;
+}
+
+bool
+rt_Class::isSynthetic()
+{
+    return getAccessFlags() & ACC_SYNTHETIC;
+}
+
