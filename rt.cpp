@@ -24,3 +24,12 @@ rt_Class::getMethods()
 {
     return methods;
 }
+
+u1
+rt_Class::getConstantTag(u2 index)
+{
+    if (index < 1 ||
+            index > constant_pool_count)
+        return 0xff;
+    return constant_pool[index].tag;
+}
