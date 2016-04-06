@@ -134,3 +134,14 @@ rt_Class::getConstant_Utf8(u2 index)
                    constant_pool_count,
                    constant_pool);
 }
+
+rt_MethodHandle_info *
+rt_Class::getConstant_MethodHandle(u2 index)
+{
+    return rt_getConstant<rt_MethodHandle_info,
+           CONSTANT_MethodHandle>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
+
+
