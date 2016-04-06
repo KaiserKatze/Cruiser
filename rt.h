@@ -112,9 +112,8 @@ typedef struct
 class rt_Accessible
 {
 public:
-    virtual u2      getAccessFlags();
-    virtual rt_Attributes *
-                    getAttributes();
+    u2              getAccessFlags();
+    rt_Attributes * getAttributes();
 private:
     u2              access_flags;
     rt_Attributes   attributes;
