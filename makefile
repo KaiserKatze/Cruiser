@@ -7,14 +7,20 @@ SOURCE_MAIN=`find -type f \( -name "*.c" -or -name "*.cpp" \) -and ! -name "test
 LIB_MAIN=`pkg-config --libs libzip` -lm
 EXEC=cruise
 
+
+LOG="Tool   : "${TOOL}"\r\nMacros : "${MACRO}"\r\nTarget : "${DIR_BUILD}/${EXEC}"\r\n"
+
 cruise: main.c java.c java.h jar.c jar.h log.c log.h attr.c
-	@clear;clear
+	@clear
 	@if [ ! -d ${DIR_BUILD} ]; then mkdir ${DIR_BUILD}; fi
-	@echo "Tool   : "${TOOL}
-	@echo "Macros : "${MACRO}
-	@echo "Target : "${DIR_BUILD}/${EXEC}
-	@echo "\r\n"
+	@echo ${LOG}
 	@${TOOL} -g -o ${DIR_BUILD}/${EXEC} ${SOURCE_MAIN} ${INCLUDE} ${LIB_MAIN} ${MACRO}
+
+runtime: rt.h rt.cpp
+	@clear
+	@if [ ! -d ${DIR_BUILD} ]; then mkdir ${DIR_BUILD}; fi
+	@echo ${LOG}
+	@${TOOL} -g -o ${DIR_BUILD}/rt.o rt.cpp ${INCLUDE} ${MACRO}
 
 test: test.c
 	@clear
