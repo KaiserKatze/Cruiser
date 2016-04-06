@@ -198,8 +198,6 @@ public:
     rt_Utf8_info *  getClassName();
     u2              getInterfacesCount();
     u2 *            getInterfaces();
-    rt_Class_info * getComponentType();
-    u2              getModifiers();
 }; // rt_Class
 
 class rt_Member
