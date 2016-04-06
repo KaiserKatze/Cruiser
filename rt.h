@@ -207,8 +207,8 @@ public:
 class rt_Member
 {
 public:
-    rt_Utf8_info *  getName(rt_Class *);
-    rt_Utf8_info *  getDescriptor(rt_Class *);
+    rt_Utf8_info *  getName();
+    rt_Utf8_info *  getDescriptor();
     rt_Class *      getDefClass();
 private:
     rt_Class *      def_class;
