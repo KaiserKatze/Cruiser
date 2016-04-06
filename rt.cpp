@@ -12,3 +12,9 @@ rt_Class::getFields()
 {
     return fields;
 }
+
+u2
+rt_Class::getMethodsCount()
+{
+    return methods_count;
+}
