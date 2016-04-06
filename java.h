@@ -9,6 +9,7 @@
 extern "C" {
 #endif
 
+#define MAGIC                           0xCAFEBABE
 #define MINOR_VERSION                   0
 #define MAJOR_VERSION                   51
     

@@ -91,7 +91,7 @@ parseClassfile(struct BufferIO * input,
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    if (magic != 0XCAFEBABE)
+    if (magic != MAGIC)
     {
         logError("File structure invalid, fail to decompile! [0x%X]\r\n", magic);
         return -1;
