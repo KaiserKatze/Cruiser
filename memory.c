@@ -4,7 +4,6 @@
 #include "memory.h"
 #include "java.h"
 #include "log.h"
-#include "rt.h"
 
 extern void *
 allocMemory(size_t count, size_t size)
