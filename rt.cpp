@@ -197,3 +197,9 @@ rt_Class::getThisClass()
 {
     return getConstant_Class(this_class);
 }
+
+rt_Class_info *
+rt_Class::getSuperClass()
+{
+    return getConstant_Class(super_class);
+}
