@@ -152,3 +152,12 @@ rt_Class::getConstant_MethodType(u2 index)
                    constant_pool_count,
                    constant_pool);
 }
+
+rt_InvokeDynamic_info *
+rt_Class::getConstant_InvokeDynamic(u2 index)
+{
+    return rt_getConstant<rt_InvokeDynamic_info,
+           CONSTANT_InvokeDynamic>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
