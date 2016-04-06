@@ -144,4 +144,11 @@ rt_Class::getConstant_MethodHandle(u2 index)
                    constant_pool);
 }
 
-
+rt_MethodType_info *
+rt_Class::getConstant_MethodType(u2 index)
+{
+    return rt_getConstant<rt_MethodType_info,
+           CONSTANT_MethodType>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
