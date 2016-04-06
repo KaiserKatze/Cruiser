@@ -2,6 +2,18 @@
 #include "rt.h"
 
 u2
+rt_Accessible::getAccessFlags()
+{
+    return access_flags;
+}
+
+rt_Attributes *
+rt_Accessible::getAttributes()
+{
+    return &attributes;
+}
+
+u2
 rt_Class::getFieldsCount()
 {
     return fields_count;
@@ -161,3 +173,10 @@ rt_Class::getConstant_InvokeDynamic(u2 index)
                    constant_pool_count,
                    constant_pool);
 }
+
+bool
+rt_Class::isInterface()
+{
+    return getAccessFlags() & ACC_INTERFACE;
+}
+
