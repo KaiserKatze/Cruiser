@@ -197,7 +197,7 @@ public:
     rt_Class_info * getSuperClass();
     rt_Utf8_info *  getClassName();
     u2              getInterfacesCount();
-    u2 *            getInterfaces();
+    rt_Class_info **getInterfaces(rt_Class_info **);
 }; // rt_Class
 
 class rt_Member
