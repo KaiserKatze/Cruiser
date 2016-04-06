@@ -191,7 +191,6 @@ private:
 #endif
 public:
     bool            isInterface();
-    bool            isArray();
     bool            isAnnotation();
     bool            isSynthetic();
     rt_Class_info * getThisClass();
