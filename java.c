@@ -2454,6 +2454,7 @@ logClassHeader(rt_Class *rtc)
     this_class = rtc->getThisClass();
     super_class = rtc->getSuperClass();
     interfaces_count = rtc->getInterfacesCount();
+    // FIXME
     interfaces = (rt_Class_info *)
         allocMemory(interfaces_count,
                 sizeof (rt_Class_info));
