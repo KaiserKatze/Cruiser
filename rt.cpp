@@ -99,4 +99,12 @@ rt_Class::getConstant_Integer(u2 index)
                    constant_pool);
 }
 
+rt_Float_info *
+rt_Class::getConstant_Float(u2 index)
+{
+    return rt_getConstant<rt_Float_info,
+           CONSTANT_Float>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
 
