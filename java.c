@@ -2957,10 +2957,9 @@ insertTabIndent(size_t len, char *str)
 }
 
 static int
-writeCode(char *out, ClassFile *cf,
-        method_info *method,
-        attr_Code_info *info,
-        struct ParameterTable *pt)
+writeCode(char *out, rt_Class *rtc,
+        rt_Method *method,
+        attr_Code_info *info)
 {
     char *src;
     int tab, t;
@@ -3231,7 +3230,7 @@ logMethods(rt_Class *rtc)
         if (code)
         {
             // FIXME
-            n = writeCode(ptr, cf, method, code);
+            n = writeCode(ptr, rtc, method, code);
             if (n < 0) return -1;
             ptr += n;
         }
