@@ -2685,7 +2685,7 @@ logFields(rt_Class *rtc)
 
         access_flags = field->getAccessFlags();
         name = field->getName();
-        descriptor = field->getDescriptor(rtc);
+        descriptor = field->getDescriptor();
 
         attributes_count = field->getAttributes()->attributes_count;
         attributes = field->getAttributes()->attributes;
@@ -3044,7 +3044,7 @@ logMethods(rt_Class *rtc)
 
         access_flags = method->getAccessFlags();
         name = method->getName();
-        descriptor = method->getDescriptor(rtc);
+        descriptor = method->getDescriptor();
 
         attributes_count = method->getAttributes()->attributes_count;
         attributes = method->getAttributes()->attributes;
