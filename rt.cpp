@@ -33,3 +33,18 @@ rt_Class::getConstantTag(u2 index)
         return 0xff;
     return constant_pool[index].tag;
 }
+
+template <typename rt_info, u1 tag>
+rt_info *
+getConstant(u2 index, u2 cp_count, cp_info *cp)
+{
+    cp_info * info;
+
+    if (index < 1 ||
+            index > cp_count)
+        return (rt_info *) NULL;
+    info = &(cp[index]);
+    if (info->tag != tag)
+        return (rt_info *) NULL;
+    return (rt_info *) info;
+}
