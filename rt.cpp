@@ -228,4 +228,10 @@ rt_Class::getInterfaces()
     return interfaces;
 }
 
+rt_Class *
+rt_Member::getDefClass()
+{
+    return def_class;
+}
+
 
