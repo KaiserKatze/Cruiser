@@ -36,7 +36,7 @@ rt_Class::getConstantTag(u2 index)
 
 template <typename rt_info, u1 tag>
 rt_info *
-getConstant(u2 index, u2 cp_count, cp_info *cp)
+rt_getConstant(u2 index, u2 cp_count, cp_info *cp)
 {
     cp_info * info;
 
@@ -47,4 +47,11 @@ getConstant(u2 index, u2 cp_count, cp_info *cp)
     if (info->tag != tag)
         return (rt_info *) NULL;
     return (rt_info *) info;
+}
+
+rt_Class_info *
+rt_Class::getConstant_Class(u2 index)
+{
+    return rt_getConstant<rt_Class_info, CONSTANT_Class>(index,
+            constant_pool_count, constant_pool);
 }
