@@ -203,3 +203,15 @@ rt_Class::getSuperClass()
 {
     return getConstant_Class(super_class);
 }
+
+rt_Utf8_info *
+rt_Class::getClassName()
+{
+    rt_Class_info * info;
+    u2              name_index;
+
+    info = getThisClass();
+    name_index = info->data->name_index;
+
+    return getConstant_Utf8(name_index);
+}
