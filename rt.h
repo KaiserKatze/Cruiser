@@ -38,6 +38,14 @@ typedef struct
 
 typedef struct
 {
+    // value type
+    u2              descriptor_index;
+    u2              off_descriptor;
+    u2              len_descriptor;
+}                                   rt_Value;
+
+typedef struct
+{
     u2              off_return_descriptor;
     u2              len_return_descriptor;
     u1              parameters_count;
@@ -127,6 +135,7 @@ public:
     u2              getMethodsCount();
     rt_Method *     getMethods();
 
+    u1              getConstantTag(u2);
     rt_Class_info *
                     getConstant_Class(u2);
     rt_Fieldref_info *
@@ -200,7 +209,9 @@ class rt_Member
 public:
     rt_Utf8_info *  getName(rt_Class *);
     rt_Utf8_info *  getDescriptor(rt_Class *);
+    rt_Class *      getDefClass();
 private:
+    rt_Class *      def_class;
     u2              name_index;
     u2              descriptor_index;
 };
