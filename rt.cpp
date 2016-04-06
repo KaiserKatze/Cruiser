@@ -192,3 +192,8 @@ rt_Class::isSynthetic()
     return getAccessFlags() & ACC_SYNTHETIC;
 }
 
+rt_Class_info *
+rt_Class::getThisClass()
+{
+    return getConstant_Class(this_class);
+}
