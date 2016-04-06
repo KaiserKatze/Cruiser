@@ -108,3 +108,11 @@ rt_Class::getConstant_Float(u2 index)
                    constant_pool);
 }
 
+rt_Long_info *
+rt_Class::getConstant_Long(u2 index)
+{
+    return rt_getConstant<rt_Long_info,
+           CONSTANT_Long>(index,
+                   constant_pool_count,
+                   constant_pool);
+}
