@@ -28,6 +28,16 @@ typedef struct
 
 typedef struct
 {
+    u2              start_pc;
+    u2              length;
+    u2              name_index;
+    u2              descriptor_index;
+    u2              signature_index;
+    u2              index;
+}                                   rt_Local;
+
+typedef struct
+{
     u2              off_return_descriptor;
     u2              len_return_descriptor;
     u1              parameters_count;
@@ -36,16 +46,12 @@ typedef struct
 }                                   rt_Descriptor;
 
 typedef CONSTANT_Class_info         rt_Class_info;
-typedef struct
-{
-    u2              name_index;
-    u2              descriptor_index;
-}                                   rt_NameAndType_data;
+
 typedef struct
 {
     u2              class_name_index;
-    rt_NameAndType_data
-                    name_and_type;
+    u2              name_index;
+    u2              descriptor_index;
     rt_Descriptor   descriptor;
 }                                   rt_Fieldref_data,
                                     rt_Methodref_data,
@@ -82,8 +88,8 @@ typedef CONSTANT_MethodType_info    rt_MethodType_info;
 typedef struct
 {
     u2              bootstrap_method_attr_index;
-    rt_NameAndType_data
-                    name_and_type;
+    u2              name_index;
+    u2              descriptor_index;
 }                                   rt_InvokeDynamic_data;
 typedef CONSTANT_InvokeDynamic_info rt_InvokeDynamic_info;
 
@@ -195,8 +201,8 @@ public:
     rt_Utf8_info *  getName(rt_Class *);
     rt_Utf8_info *  getDescriptor(rt_Class *);
 private:
-    rt_NameAndType_data
-                    name_and_type;
+    u2              name_index;
+    u2              descriptor_index;
 };
 
 class rt_Field :
@@ -242,9 +248,19 @@ private:
 
 typedef struct
 {
+    // NULL placeholder
     rt_Method *     caller;
-    rt_Method *     self;
-}                   rt_Frame;
+    // the method which this frame belongs to
+    rt_Method *     callee;
+    // when a local variable or
+    // a parameter is referenced,
+    // `locals_offset` is used to retrieve
+    // its offset in `locals`
+    u2 *            locals_offset;
+    rt_Local *      locals;
+    u2 *            stack_offset;
+    rt_Value *      stack;
+}                                   rt_Frame;
 
 #endif	/* RT_H */
 
