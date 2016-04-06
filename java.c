@@ -2841,7 +2841,6 @@ struct ParameterTable
     char **local_names;
 };
 
-// FIXME
 static int
 writeParameterTable(char *out,
         rt_Method *method,
@@ -3167,7 +3166,6 @@ logMethods(rt_Class *rtc)
             }
 
             // parameter table
-            // FIXME
             n = writeParameterTable(ptr,
                     method,
                     descriptor->data->length,
@@ -3223,9 +3221,8 @@ logMethods(rt_Class *rtc)
                     ptr += n;
                 }
 
-                // FIXME
-                n = writeClassName(ptr, cf,
-                        exception_index_table[j]);
+                n = writeClassName(ptr, rtc,
+                        rtc->getConstant_Class(exception_index_table[j]));
                 if (n < 0) return -1;
                 ptr += n;
             }
