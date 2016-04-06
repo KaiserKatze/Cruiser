@@ -234,4 +234,11 @@ rt_Member::getDefClass()
     return def_class;
 }
 
+rt_Utf8_info *
+rt_Member::getName()
+{
+    rt_Class *cls;
 
+    cls = getDefClass();
+    return cls->getConstant_Utf8(name_index);
+}
