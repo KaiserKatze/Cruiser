@@ -128,7 +128,9 @@ parseClassfile(struct BufferIO * input,
     if (loadMethods(input, &cf) < 0)
         return -1;
 
-    loadAttributes_class(&cf, input, &(cf.attributes_count), &(cf.attributes));
+    if (loadAttributes_class(&cf, input,
+                &(cf.attributes_count), &(cf.attributes)) < 0)
+        return -1;
 #ifdef RT_H
     // constant pool validation
     if (validateConstantPool(&cf) < 0)
