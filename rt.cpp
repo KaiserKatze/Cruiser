@@ -55,3 +55,10 @@ rt_Class::getConstant_Class(u2 index)
     return rt_getConstant<rt_Class_info, CONSTANT_Class>(index,
             constant_pool_count, constant_pool);
 }
+
+rt_Fieldref_info *
+rt_Class::getConstant_Fieldref(u2 index)
+{
+    return rt_getConstant<rt_Class_info, CONSTANT_Fieldref>(index,
+            constant_pool_count, constant_pool);
+}
