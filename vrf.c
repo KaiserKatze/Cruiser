@@ -177,8 +177,8 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         return -1;
                 case REF_invokeStatic:
                 case REF_invokeSpecial:
-                    if (compareVersion(cf.major_version,
-                                cf.minor_version,
+                    if (compareVersion0(cf->major_version,
+                                cf->minor_version,
                                 52, 0) >= 0)
                     {
                         if (validateConstantPoolEntry(cf,
@@ -269,6 +269,13 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             if (validateConstantPoolEntry(cf,
                         cidi->data->name_and_type_index,
                         bul, CONSTANT_NameAndType) < 0)
+                return -1;
+            cni = (CONSTANT_NameAndType_info *)
+                getConstant(cf, cidi->data->name_and_type_index);
+            cui = (CONSTANT_Utf8_info *)
+                getConstant(cf, cni->data->descriptor_index);
+            if (validateMethodDescriptor(cui->data->length,
+                        cui->data->bytes) < 0)
                 return -1;
             if (!cf->attributes)
             {
