@@ -7,6 +7,7 @@
 #include "log.h"
 #include "memory.h"
 #include "rt.h"
+#include "vrf.h"
 
 static int
 freeClassfile(ClassFile *);
@@ -91,11 +92,8 @@ parseClassfile(struct BufferIO * input,
         logError("IO exception in function %s!\r\n", __func__);
         return -1;
     }
-    if (magic != MAGIC)
-    {
-        logError("File structure invalid, fail to decompile! [0x%X]\r\n", magic);
+    if (checkMagic(magic) < 0)
         return -1;
-    }
     // initialize ClassFile
     memset(&cf, 0, sizeof (ClassFile));
     // retrieve version
