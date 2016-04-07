@@ -552,6 +552,7 @@ extern "C" {
 
     extern u4 getAttributeTag(size_t, char *);
 
+    extern cp_info *getConstant(ClassFile *, u2);
     extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
     extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *, u2);
     extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *, u2);

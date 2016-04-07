@@ -396,7 +396,7 @@ get_cp_name(u1 tag)
     }
 }
 
-static cp_info *
+extern cp_info *
 getConstant(ClassFile *cf, u2 index)
 {
     if (index > 0 && index < cf->constant_pool_count)
