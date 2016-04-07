@@ -8,6 +8,5 @@ This project is under construction. Disassembling is, I think, fully supported. 
 3. Run `./cruise [-a] [-c] [--class_filter=<filterA>] [--field_filter=<filterB>] [--method_filter=<filterC>] [--code_filter=<filterD>] <class_file_absolute_path>`
 
 ## References
-- https://docs.oracle.com/javase/specs/jvms/se7/jvms7.pdf
-- https://docs.oracle.com/javase/specs/jvms/se8/jvms8.pdf
+- https://docs.oracle.com/javase/specs/
 - http://www.nih.at/libzip
