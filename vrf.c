@@ -257,6 +257,11 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         cmti->data->descriptor_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
+            cui = (CONSTANT_Utf8_info *)
+                getConstant(cf, cmti->data->descriptor_index);
+            if (validateMethodDescriptor(cui->data->length,
+                        cui->data->bytes) < 0)
+                return -1;
             break;
 #if VER_CMP(51, 0)
         case CONSTANT_InvokeDynamic:
