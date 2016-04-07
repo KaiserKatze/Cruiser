@@ -586,6 +586,7 @@ extern "C" {
 
     extern int parseClassfile(struct BufferIO *, struct AttributeFilter *);
 
+    extern int compareVersion0(u2, u2, u2, u2);
     extern int compareVersion(u2, u2);
     
     extern int isFieldDescriptor(u2, u1 *);

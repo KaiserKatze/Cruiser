@@ -741,17 +741,31 @@ extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *cf, u2 
     return info;
 }
 
+/*
+ * Return:
+ * * 1      When major.minor > major1.minor1
+ * * 0      When major.minor == major1.minor1
+ * * -1     When major.minor < major1.minor1
+ */
+extern int
+compareVersion0(u2 major_version,
+        u2 minor_version,
+        u2 major_version1,
+        u2 minor_version1)
+{
+    u4 version, version1;
+
+    version = major_version << 8 | minor_version;
+    version1 = major_version1 << 8 | minor_version;
+    version -= version1;
+    return (int) version;
+}
+
 extern int
 compareVersion(u2 major_version, u2 minor_version)
 {
-    if (major_version > MAJOR_VERSION)
-        return 1;
-    else if (major_version == MAJOR_VERSION)
-        if (minor_version > MINOR_VERSION)
-            return 1;
-        else if (minor_version == MINOR_VERSION)
-            return 0;
-    return -1;
+    return compareVersion(major_version, minor_version,
+            MAJOR_VERSION, MINOR_VERSION);
 }
 
 extern int isFieldDescriptor(u2 len, u1 *str)
