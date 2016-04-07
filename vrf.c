@@ -428,10 +428,12 @@ validateFields(ClassFile *cf)
         
         // validate field access flags
         flags = field->access_flags;
-        if (flags & ~ACC_FIELD)
+        j = flags & ~ACC_FIELD;
+        if (j)
         {
-            logError("Unknown flags [0x%X] detected @ cf->fields[%i]!\r\n",
-                    flags & ~ACC_FIELD, i);
+            logError("Unknown flags [0x%X] detected @ "
+                    "cf->fields[%i]!\r\n",
+                    j, i);
             return -1;
         }
         
