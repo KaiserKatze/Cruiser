@@ -150,6 +150,11 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 logError("Invalid CONSTANT_Utf8_info!\r\n");
                 return -1;
             }
+            for (j = 0; j < cui->data->length; j++)
+                if (cui->data->bytes[j] == 0
+                        || cui->data->bytes[j] >= 0xf0
+                        && cui->data->bytes[j] <= 0xff)
+                    return -1;
             break;
         case CONSTANT_MethodHandle:
             cmhi = (CONSTANT_MethodHandle_info *) info;
@@ -172,20 +177,22 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         return -1;
                 case REF_invokeStatic:
                 case REF_invokeSpecial:
-#if VER_CMP(52, 0)
-                    if (validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
-                                bul, CONSTANT_Methodref) < 0
-                            && validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
-                                bul, CONSTANT_InterfaceMethodref) < 0)
+                    if (compareVersion(cf.major_version,
+                                cf.minor_version,
+                                52, 0) >= 0)
+                    {
+                        if (validateConstantPoolEntry(cf,
+                                    cmhi->data->reference_index,
+                                    bul, CONSTANT_Methodref) < 0
+                                && validateConstantPoolEntry(cf,
+                                    cmhi->data->reference_index,
+                                    bul, CONSTANT_InterfaceMethodref) < 0)
                         return -1;
-#else
-                    if (validateConstantPoolEntry(cf,
+                    }
+                    else if (validateConstantPoolEntry(cf,
                                 cmhi->data->reference_index,
                                 bul, CONSTANT_Methodref) < 0)
                         return -1;
-#endif
                     break;
                 case REF_invokeInterface:
                     if (validateConstantPoolEntry(cf,
@@ -198,33 +205,47 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                             i, cmhi->data->reference_kind);
                     return -1;
             }
+            cfi = (CONSTANT_Fieldref_info *)
+                &(cf->constant_pool[cmhi->data->reference_index]);
+            cni = (CONSTANT_NameAndType_info *)
+                &(cf->constant_pool[cfi->data->name_and_type_index]);
+            cui = (CONSTANT_Utf8_info *)
+                &(cf->constant_pool[cni->data->name_index]);
             switch (cmhi->data->reference_kind)
             {
-                case 5:case 6:case 7:case 9:
-                    cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
-                    cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
-                    cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (!strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
+                case REF_invokeVirtual:
+                case REF_invokeStatic:
+                case REF_invokeSpecial:
+                case REF_invokeInterface:
+                    if (!strncmp((char *) cui->data->bytes,
+                                "<init>", cui->data->length))
                     {
-                        logError("Method name '<init>' is invalid because MethodHandle reference kind is %i!\r\n",
+                        logError("Method name '<init>' is invalid "
+                                "because MethodHandle reference kind "
+                                "is %i!\r\n",
                                 cmhi->data->reference_kind);
                         return -1;
                     }
-                    else if (!strncmp((char *) cui->data->bytes, "<clinit>", cui->data->length))
+                    else if (!strncmp((char *) cui->data->bytes,
+                                "<clinit>", cui->data->length))
                     {
-                        logError("Method name '<clinit>' is invalid because MethodHandle reference kind is %i!\r\n",
+                        logError("Method name '<clinit>' is invalid "
+                                "because MethodHandle reference kind "
+                                "is %i!\r\n",
                                 cmhi->data->reference_kind);
                         return -1;
                     }
                     break;
-                case 8:
-                    cfi = (CONSTANT_Fieldref_info *) &(cf->constant_pool[cmhi->data->reference_index]);
-                    cni = (CONSTANT_NameAndType_info *) &(cf->constant_pool[cfi->data->name_and_type_index]);
-                    cui = (CONSTANT_Utf8_info *) &(cf->constant_pool[cni->data->name_index]);
-                    if (strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
+                case REF_newInvokeSpecial:
+                    if (strncmp((char *) cui->data->bytes,
+                                "<init>", cui->data->length))
                     {
-                        logError("Method name '%.*s' is invalid because MethodHandle reference kind is %i!\r\n",
-                                (int) cui->data->length, (char *) cui->data->bytes, cmhi->data->reference_kind);
+                        logError("Method name '%.*s' is invalid "
+                                "because MethodHandle reference kind "
+                                "is %i!\r\n",
+                                cui->data->length,
+                                (char *) cui->data->bytes,
+                                cmhi->data->reference_kind);
                         return -1;
                     }
                     break;
