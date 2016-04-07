@@ -764,7 +764,7 @@ compareVersion0(u2 major_version,
 extern int
 compareVersion(u2 major_version, u2 minor_version)
 {
-    return compareVersion(major_version, minor_version,
+    return compareVersion0(major_version, minor_version,
             MAJOR_VERSION, MINOR_VERSION);
 }
 
