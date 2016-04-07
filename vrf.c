@@ -393,14 +393,36 @@ validateConstantPool(ClassFile *cf)
 extern int
 validateFields(ClassFile *cf)
 {
-    u2 i;
-    field_info *field;
+    u2 i, j, fields_count;
+    field_info *field, *field1;
     u2 flags;
     u1 is_public, is_protected, is_private;
     u1 is_final, is_volatile;
-    CONSTANT_Utf8_info *cui;
+    CONSTANT_Utf8_info *cui, *cui1;
     
-    for (i = 0; i < cf->fields_count; i++)
+    fields_count = cf->fields_count;
+    // No two fields in one `class` file may have
+    // the same name and descriptor
+    for (i = 0; i < fields_count;)
+    {
+        field = &(cf->fields[i]);
+        cui = (CONSTANT_Utf8_info *)
+            getConstant(cf, field->name_index);
+        for (j = ++i; j < fields_count; j++)
+        {
+            field1 = &(cf->fields[j]);
+            cui1 = (CONSTANT_Utf8_info *)
+                getConstant(cf, field1->name_index);
+            if (cui->data->length != cui1->data->length)
+                continue;
+            if (strncmp((char *) cui->data->bytes,
+                        (char *) cui1->data->bytes,
+                        cui->data->length) == 0)
+                return -1;
+        }
+    }
+
+    for (i = 0; i < fields_count; i++)
     {
         field = &(cf->fields[i]);
         
