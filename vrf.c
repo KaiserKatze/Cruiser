@@ -74,6 +74,42 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 return -1;
             if (validateConstantPoolEntry(cf, cfi->data->name_and_type_index, bul, CONSTANT_NameAndType) < 0)
                 return -1;
+            cni = (CONSTANT_NameAndType_info *)
+                getConstant(cf, cfi->data->name_and_type_index);
+            cui = (CONSTANT_Utf8_info *)
+                getConstant(cf, cni->data->descriptor_index);
+            if (info->tag == CONSTANT_Fieldref)
+            {
+                if (validateFieldDescriptor(cui->data->length,
+                            cui->data->bytes) < 0)
+                    return -1;
+            }
+            else
+            {
+                if (info->tag == CONSTANT_Methodref
+                        && cui->data->bytes[0] == '<')
+                {
+                    // return type must be void
+                    for (j = 0; j < cui->data->length;)
+                        if (cui->data->bytes[j++] == ')')
+                            break;
+                    if (cui->data->bytes[j++] != 'V'
+                            || cui->data->length != j)
+                        return -1;
+                    // special method name for constructors
+                    cui = (CONSTANT_Utf8_info *)
+                        getConstant(cf, cni->data->name_index);
+                    if (strncmp((char *) cui->data->bytes,
+                                "<init>", cui->data->length)
+                            && strncmp((char *) cui->data->bytes,
+                                "<clinit>", cui->data->length))
+                        return -1;
+                    break;
+                }
+                if (validateMethodDescriptor(cui->data->length,
+                        cui->data->bytes) < 0)
+                    return -1;
+            }
             break;
         case CONSTANT_String:
             csi = (CONSTANT_String_info *) info;
