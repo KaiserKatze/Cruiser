@@ -133,28 +133,15 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                         cni->data->name_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
-            cui = (CONSTANT_Utf8_info *)
-                &(cf->constant_pool[cni->data->name_index]);
-            if (strncmp((char *) cui->data->bytes,
-                        "<init>", cui->data->length)
-                    && strncmp((char *) cui->data->bytes,
-                        "<clinit>", cui->data->length))
-            {
-                for (j = 0; j < cui->data->length; j++)
-                {
-                    switch (cui->data->bytes[j])
-                    {
-                        case '.':case ';':case '[':case '/':case '<':case '>':
-                            logError("Method name '%.*s' constains invalid character!\r\n",
-                                    cui->data->length, cui->data->bytes);
-                            return -1;
-                    }
-                }
-            }
             if (validateConstantPoolEntry(cf,
                         cni->data->descriptor_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
+            // `CONSTANT_NameAndType_info` is never used directly
+            // which means Cruiser validates its items in:
+            //      `CONSTANT_Fieldref_info`,
+            //      `CONSTANT_Methodref_info`,
+            //      and `CONSTANT_InterfaceMethodref_info`
             break;
         case CONSTANT_Utf8:
             cui = (CONSTANT_Utf8_info *) info;
