@@ -548,6 +548,8 @@ extern "C" {
         u4 code_attribute_filter;
     };
 
+    extern const char * get_cp_name(u1);
+
     extern u4 getAttributeTag(size_t, char *);
 
     extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
