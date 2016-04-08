@@ -547,7 +547,8 @@ validateMethods(ClassFile *cf)
         flags = method->access_flags;
         if (flags & ~ACC_METHOD)
         {
-            logError("Unknown flags [0x%X] detected @ cf->methods[%i]!\r\n",
+            logError("Unknown flags [0x%X] detected @ "
+                    "cf->methods[%i]!\r\n",
                     flags & ~ACC_METHOD, i);
             return -1;
         }
@@ -562,12 +563,14 @@ validateMethods(ClassFile *cf)
                 || is_public && is_private
                 || is_protected && is_private)
         {
-            logError("Methods can't be PUBLIC, PROTECTED and PRIVATE simultaneously!\r\n");
+            logError("Methods can't be PUBLIC, PROTECTED and PRIVATE"
+                    " simultaneously!\r\n");
             return -1;
         }
         if (cf->access_flags & ACC_INTERFACE)
         {
-            if (flags & (ACC_PROTECTED | ACC_FINAL | ACC_SYNCHRONIZED | ACC_NATIVE))
+            if (flags & (ACC_PROTECTED | ACC_FINAL
+                        | ACC_SYNCHRONIZED | ACC_NATIVE))
             {
                 logError("Interface method has invalid access flags!\r\n");
                 return -1;
@@ -575,7 +578,8 @@ validateMethods(ClassFile *cf)
 #if VER_CMP(52, 0)
             if (!is_public && !is_private)
             {
-                logError("Interface method should either be PUBLIC or PRIVATE!\r\n");
+                logError("Interface method should either be "
+                        "PUBLIC or PRIVATE!\r\n");
                 return -1;
             }
 #else
@@ -596,7 +600,9 @@ validateMethods(ClassFile *cf)
             if (flags & (ACC_PRIVATE | ACC_STATIC | ACC_FINAL
                     | ACC_SYNCHRONIZED | ACC_NATIVE | ACC_STRICT))
             {
-                logError("Abstract method can't be PRIVATE, STATIC, FINAL, SYNCHRONIZED, NATIE or STRICT!\r\n");
+                logError("Abstract method can't be PRIVATE, "
+                        "STATIC, FINAL, SYNCHRONIZED, "
+                        "NATIE or STRICT!\r\n");
                 return -1;
             }
         }
@@ -605,11 +611,15 @@ validateMethods(ClassFile *cf)
         cui = getConstant_Utf8(cf, method->name_index);
         if (!cui)
             return -1;
-        if (!strncmp((char *) cui->data->bytes, "<init>", cui->data->length))
+        if (!strncmp((char *) cui->data->bytes,
+                    "<init>", cui->data->length))
         {
-            if (flags & ~(ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE | ACC_VARARGS | ACC_STRICT | ACC_SYNTHETIC))
+            if (flags & ~(ACC_PUBLIC | ACC_PROTECTED
+                        | ACC_PRIVATE | ACC_VARARGS
+                        | ACC_STRICT | ACC_SYNTHETIC))
             {
-                logError("Initialization method has invalid access flags!\r\n");
+                logError("Initialization method has "
+                        "invalid access flags!\r\n");
                 return -1;
             }
         }
@@ -618,9 +628,11 @@ validateMethods(ClassFile *cf)
         cui = getConstant_Utf8(cf, method->descriptor_index);
         if (!cui)
             return -1;
-        if (validateMethodDescriptor(cui->data->length, cui->data->bytes) < 0)
+        if (validateMethodDescriptor(cui->data->length,
+                    cui->data->bytes) < 0)
         {
-            logError("Invalid name \"%.*s\" detected @ cf->methods[%i]!\r\n",
+            logError("Invalid name \"%.*s\" detected @ "
+                    "cf->methods[%i]!\r\n",
                     cui->data->length, cui->data->bytes, i);
             return -1;
         }
