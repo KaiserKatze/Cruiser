@@ -406,13 +406,13 @@ validateFields(ClassFile *cf)
     for (i = 0; i < fields_count;)
     {
         field = &(cf->fields[i]);
-        cui = (CONSTANT_Utf8_info *)
-            getConstant(cf, field->name_index);
+        cui = getConstant_Utf8(cf, field->name_index);
+        if (!cui) return -1;
         for (j = ++i; j < fields_count; j++)
         {
             field1 = &(cf->fields[j]);
-            cui1 = (CONSTANT_Utf8_info *)
-                getConstant(cf, field1->name_index);
+            cui1 = getConstant_Utf8(cf, field1->name_index);
+            if (!cui1) return -1;
             if (cui->data->length != cui1->data->length)
                 continue;
             if (strncmp((char *) cui->data->bytes,
@@ -506,12 +506,39 @@ validateFields(ClassFile *cf)
 extern int
 validateMethods(ClassFile *cf)
 {
-    u2 i, flags;
-    method_info *method;
+    u2 i, j, flags;
+    method_info *method, *method1;
     u1 is_public, is_protected, is_private;
     u1 is_final, is_abstract;
-    CONSTANT_Utf8_info *cui;
-    
+    CONSTANT_Utf8_info *cui, *cui1, *cui2, *cui3;
+
+    for (i = 0; i < cf->methods_count;)
+    {
+        method = &(cf->methods[i]);
+        cui = getConstant_Utf8(cf, method->name_index);
+        if (!cui) return -1;
+        cui1 = getConstant_Utf8(cf, method_descriptor_index);
+        if (!cui1) return -1;
+        for (j = ++i; j < cf->methods_count; j++)
+        {
+            method1 = &(cf->methods[j]);
+            cui2 = getConstant_Utf8(cf, method1->name_index);
+            if (!cui2) return -1;
+            cui3 = getConstant_Utf8(cf, method1->descriptor_index);
+            if (!cui3) return -1;
+            if (cui != cui2)
+                continue;
+            if (strncmp((char *) cui->data->bytes,
+                        (char *) cui2->data->bytes,
+                        cui->data->length) != 0)
+                continue;
+            if (strncmp((char *) cui1->data->bytes,
+                        (char *) cui3->data->bytes,
+                        cui1->data->length) == 0)
+                return -1;
+        }
+    }
+
     for (i = 0; i < cf->methods_count; i++)
     {
         method = &(cf->methods[i]);
