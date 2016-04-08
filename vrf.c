@@ -447,12 +447,14 @@ validateFields(ClassFile *cf)
                 || is_public && is_private
                 || is_protected && is_private)
         {
-            logError("Fields can't be PUBLIC, PROTECTED and PRIVATE simultaneously!\r\n");
+            logError("Fields can't be PUBLIC, PROTECTED and "
+                    "PRIVATE simultaneously!\r\n");
             return -1;
         }
         if (is_final && is_volatile)
         {
-            logError("Fields can't be FINAL and VOLATILE simultaneously!\r\n");
+            logError("Fields can't be FINAL and "
+                    "VOLATILE simultaneously!\r\n");
             return -1;
         }
         if (cf->access_flags & ACC_INTERFACE)
@@ -462,7 +464,8 @@ validateFields(ClassFile *cf)
                 logError("Fields should be PUBLIC STATIC FINAL!\r\n");
                 return -1;
             }
-            if (flags & ~(ACC_PUBLIC | ACC_STATIC | ACC_FINAL | ACC_SYNTHETIC))
+            if (flags & ~(ACC_PUBLIC | ACC_STATIC
+                        | ACC_FINAL | ACC_SYNTHETIC))
             {
                 logError("Interface field has invalid access flags!\r\n");
                 return -1;
@@ -470,7 +473,8 @@ validateFields(ClassFile *cf)
         }
         else if (cf->access_flags & ACC_ENUM)
         {
-            if (!is_public || !(flags & ACC_STATIC) || !is_final || !(flags & ACC_ENUM))
+            if (!is_public || !(flags & ACC_STATIC)
+                    || !is_final || !(flags & ACC_ENUM))
             {
                 logError("Fields should be PUBLIC STATIC FINAL!\r\n");
                 return -1;
@@ -486,9 +490,11 @@ validateFields(ClassFile *cf)
         cui = getConstant_Utf8(cf, field->descriptor_index);
         if (!cui)
             return -1;
-        if (validateFieldDescriptor(cui->data->length, cui->data->bytes) < 0)
+        if (validateFieldDescriptor(cui->data->length,
+                    cui->data->bytes) < 0)
         {
-            logError("Invalid name \"%.*s\" detected @ cf->fields[%i]!\r\n",
+            logError("Invalid name \"%.*s\" detected @ "
+                    "cf->fields[%i]!\r\n",
                     cui->data->length, cui->data->bytes, i);
             return -1;
         }
