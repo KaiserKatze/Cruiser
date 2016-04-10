@@ -118,7 +118,6 @@ freeClassfile(ClassFile *cf)
 {
     u2 i;
     cp_info *cp;
-    CONSTANT_Utf8_info *cu;
 
     logInfo("Releasing ClassFile memory...\r\n");
     if (cf->interfaces)
@@ -145,19 +144,10 @@ freeClassfile(ClassFile *cf)
         for (i = 1u; i < cf->constant_pool_count; i++)
         {
             cp = &(cf->constant_pool[i]);
-            if (cp->data)
+            if (cp->tag == CONSTANT_Utf8)
             {
-                if (cp->tag == CONSTANT_Utf8)
-                {
-                    cu = (CONSTANT_Utf8_info *) cp;
-                    if (cu->data->bytes)
-                    {
-                        freeMemory(cu->data->bytes);
-                        cu->data->bytes = (u1 *) 0;
-                    }
-                }
-                freeMemory(cp->data);
-                cp->data = (void *) 0;
+                freeMemory(cp->info.cud.bytes);
+                cp->info.cud.bytes = (u1 *) 0;
             }
         }
         freeMemory(cf->constant_pool);
