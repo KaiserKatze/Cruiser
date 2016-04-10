@@ -969,20 +969,84 @@ extern u1 *getClassSimpleName(ClassFile *cf, u2 class_name_index)
 }
 
 static int
+getConstantLength(u1 tag)
+{
+    switch (tag)
+    {
+        case CONSTANT_Class:
+            return sizeof (const_Class_data);
+        case CONSTANT_Fieldref:
+        case CONSTANT_Methodref:
+        case CONSTANT_InterfaceMethodref:
+            return sizeof (const_Fieldref_data);
+        case CONSTANT_String:
+            return sizeof (const_String_data);
+        case CONSTANT_Integer:
+        case CONSTANT_Float:
+            return sizeof (const_Integer_data);
+        case CONSTANT_Long:
+        case CONSTANT_Double:
+            return sizeof (const_Long_data);
+        case CONSTANT_NameAndType:
+            return sizeof (const_NameAndType_data);
+        case CONSTANT_Utf8:
+            return sizeof (const_Utf8_data);
+        case CONSTANT_MethodHandle:
+            return sizeof (const_MethodHandle_data);
+        case CONSTANT_MethodType:
+            return sizeof (const_MethodType_data);
+        case CONSTANT_InvokeDynamic:
+            return sizeof (const_InvokeDynamic_data);
+    }
+
+    return 0;
+}
+
+static int
+loadConstant(struct BufferIO *input, cp_info *info)
+{
+    u1      tag;
+    int     length;
+    u2      len;
+    u1 *    str;
+
+    if (ru1(&tag, input) < 0)                       return -1;
+
+    if (tag == CONSTANT_Utf8)
+    {
+        if (ru2(&len, input) < 0)                   return -1;
+        str = (u1 *) allocMemory(sizeof (u1), len);
+        if (!str)                                   return -1;
+        if (rbs(str, input, len) < 0)               return -1;
+        info->info.cud.length = len;
+        info->info.cud.bytes = str;
+    }
+    else
+    {
+        length = getConstantLength(tag);
+        if (rbs(&(info->info), input, length) < 0)  return -1;
+    }
+
+    info->tag = tag;
+
+    return length;
+}
+
+static int
 loadConstantPool(struct BufferIO *input, ClassFile *cf)
 {
     u2 i;
-    cp_info *info;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Fieldref_info *cfi;
-    CONSTANT_Integer_info *cii;
-    CONSTANT_Long_info *cli;
-    CONSTANT_NameAndType_info *cni;
-    CONSTANT_String_info *csi;
-    CONSTANT_Utf8_info *cui;
-    CONSTANT_MethodHandle_info *cmhi;
-    CONSTANT_MethodType_info *cmti;
-    CONSTANT_InvokeDynamic_info *cidi;
+    cp_info *                       info;
+    CONSTANT_Class_info *           cci;
+    CONSTANT_Fieldref_info *        cfi;
+    CONSTANT_Integer_info *         cii;
+    CONSTANT_Long_info *            cli;
+    CONSTANT_NameAndType_info *     cni;
+    CONSTANT_String_info *          csi;
+    CONSTANT_Utf8_info *            cui;
+    CONSTANT_MethodHandle_info *    cmhi;
+    CONSTANT_MethodType_info *      cmti;
+    CONSTANT_InvokeDynamic_info *   cidi;
     
     // retrieve constant pool size
     if (ru2(&(cf->constant_pool_count), input) < 0)
@@ -1000,175 +1064,7 @@ loadConstantPool(struct BufferIO *input, ClassFile *cf)
         for (i = 1u; i < cf->constant_pool_count; i++)
         { // LOOP
             info = &(cf->constant_pool[i]);
-            if (ru1(&(info->tag), input) < 0)
-            {
-                logError("IO exception in function %s!\r\n", __func__);
-                return -1;
-            }
-            switch (info->tag)
-            {
-                case CONSTANT_Class:
-                    info->data = allocMemory(1, sizeof *(cci->data));
-                    if (!info->data) return -1;
-                    cci = (CONSTANT_Class_info *) info;
-                    if (ru2(&(cci->data->name_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cci = (CONSTANT_Class_info *) 0;
-                    break;
-                case CONSTANT_Fieldref:
-                case CONSTANT_Methodref:
-                case CONSTANT_InterfaceMethodref:
-                    info->data = allocMemory(1, sizeof *(cfi->data));
-                    if (!info->data) return -1;
-                    cfi = (CONSTANT_Fieldref_info *) info;
-                    if (ru2(&(cfi->data->class_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cfi->data->name_and_type_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cfi = (CONSTANT_Fieldref_info *) 0;
-                    cci = (CONSTANT_Class_info *) 0;
-                    break;
-                case CONSTANT_Integer:
-                case CONSTANT_Float:
-                    info->data = allocMemory(1, sizeof *(cii->data));
-                    if (!info->data) return -1;
-                    cii = (CONSTANT_Integer_info *) info;
-                    if (ru4(&(cii->data->bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cii = (CONSTANT_Integer_info *) 0;
-                    break;
-                case CONSTANT_Long:
-                case CONSTANT_Double:
-                    info->data = allocMemory(1, sizeof *(cli->data));
-                    if (!info->data) return -1;
-                    cli = (CONSTANT_Long_info *) info;
-                    if (ru4(&(cli->data->high_bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru4(&(cli->data->low_bytes), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    // all 8-byte constants take up two entries in the constant_pool table of the class file
-                    ++i;
-                    cli = (CONSTANT_Long_info *) 0;
-                    break;
-                case CONSTANT_NameAndType:
-                    info->data = allocMemory(1, sizeof *(cni->data));
-                    if (!info->data) return -1;
-                    cni = (CONSTANT_NameAndType_info *) info;
-                    if (ru2(&(cni->data->name_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cni->data->descriptor_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cni = (CONSTANT_NameAndType_info *) 0;
-                    break;
-                case CONSTANT_String:
-                    info->data = allocMemory(1, sizeof *(csi->data));
-                    if (!info->data) return -1;
-                    csi = (CONSTANT_String_info *) info;
-                    if (ru2(&(csi->data->string_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    csi = (CONSTANT_String_info *) 0;
-                    break;
-                case CONSTANT_Utf8:
-                    info->data = allocMemory(1, sizeof *(cui->data));
-                    if (!info->data) return -1;
-                    cui = (CONSTANT_Utf8_info *) info;
-                    if (ru2(&(cui->data->length), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cui->data->bytes = (u1 *) allocMemory(cui->data->length + 1, sizeof (u1));
-                    if (!cui->data->bytes) return -1;
-
-                    if (rbs(cui->data->bytes, input, cui->data->length) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cui->data->bytes[cui->data->length] = '\0';
-
-                    if (!cui->data->bytes)
-                    {
-                        logError("Runtime error!\r\n");
-                        return -1;
-                    }
-                    cui = (CONSTANT_Utf8_info *) 0;
-                    //cap = 0;
-                    break;
-                case CONSTANT_MethodHandle:
-                    info->data = allocMemory(1, sizeof *(cmhi->data));
-                    if (!info->data) return -1;
-                    cmhi = (CONSTANT_MethodHandle_info *) info;
-                    if (ru1(&(cmhi->data->reference_kind), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cmhi->data->reference_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cmhi = (CONSTANT_MethodHandle_info *) 0;
-                    break;
-                case CONSTANT_MethodType:
-                    info->data = allocMemory(1, sizeof *(cmti->data));
-                    if (!info->data) return -1;
-                    cmti = (CONSTANT_MethodType_info *) info;
-                    if (ru2(&(cmti->data->descriptor_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cmti = (CONSTANT_MethodType_info *) 0;
-                    break;
-                case CONSTANT_InvokeDynamic:
-                    info->data = allocMemory(1, sizeof *(cidi->data));
-                    if (!info->data) return -1;
-                    cidi = (CONSTANT_InvokeDynamic_info *) info;
-                    if (ru2(&(cidi->data->bootstrap_method_attr_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    if (ru2(&(cidi->data->name_and_type_index), input) < 0)
-                    {
-                        logError("IO exception in function %s!\r\n", __func__);
-                        return -1;
-                    }
-                    cidi = (CONSTANT_InvokeDynamic_info *) 0;
-                    break;
-                default:
-                    logError("Unknown TAG:%X\r\n", info->tag);
-                    return -1;
-            }
+            if (loadConstant(input, info) < 0) return -1;
         } // LOOP
     }
     
