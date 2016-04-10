@@ -53,7 +53,7 @@ typedef struct
     rt_Parameter *  parameters;
 }                                   rt_Descriptor;
 
-typedef CONSTANT_Class_info         rt_Class_info;
+typedef const_Class_data            rt_Class_info;
 
 typedef struct
 {
@@ -65,18 +65,18 @@ typedef struct
                                     rt_Methodref_data,
                                     rt_InterfaceMethodref_data;
 
-typedef CONSTANT_Fieldref_info      rt_Fieldref_info;
-typedef CONSTANT_Methodref_info     rt_Methodref_info;
-typedef CONSTANT_InterfaceMethodref_info
+typedef const_Fieldref_data         rt_Fieldref_info;
+typedef const_Methodref_data        rt_Methodref_info;
+typedef const_InterfaceMethodref_data
                                     rt_InterfaceMethodref_info;
-typedef CONSTANT_String_info        rt_String_info;
-typedef CONSTANT_Integer_info       rt_Integer_info;
-typedef CONSTANT_Float_info         rt_Float_info;
-typedef CONSTANT_Long_info          rt_Long_info;
-typedef CONSTANT_Double_info        rt_Double_info;
+typedef const_String_data           rt_String_info;
+typedef const_Integer_data          rt_Integer_info;
+typedef const_Float_data            rt_Float_info;
+typedef const_Long_data             rt_Long_info;
+typedef const_Double_data           rt_Double_info;
 // I don't think NameAndType need to be resolved
 // because it's a middle info
-typedef CONSTANT_Utf8_info          rt_Utf8_info;
+typedef const_Utf8_data             rt_Utf8_info;
 typedef struct
 {
     u1              reference_kind;
@@ -87,19 +87,19 @@ typedef struct
         u2          off_InterfaceMethodref;
     };
 }                                   rt_MethodHandle_data;
-typedef CONSTANT_MethodHandle_info  rt_MethodHandle_info;
+typedef const_MethodHandle_data     rt_MethodHandle_info;
 typedef struct
 {
     u2              descriptor_index;
 }                                   rt_MethodType_data;
-typedef CONSTANT_MethodType_info    rt_MethodType_info;
+typedef const_MethodType_data       rt_MethodType_info;
 typedef struct
 {
     u2              bootstrap_method_attr_index;
     u2              name_index;
     u2              descriptor_index;
 }                                   rt_InvokeDynamic_data;
-typedef CONSTANT_InvokeDynamic_info rt_InvokeDynamic_info;
+typedef const_InvokeDynamic_data    rt_InvokeDynamic_info;
 
 typedef struct
 {
