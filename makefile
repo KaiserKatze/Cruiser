@@ -10,7 +10,7 @@ EXEC=cruise
 LOG="Tool   : "${TOOL}"\r\nMacros : "${MACRO}"\r\nTarget : "${DIR_BUILD}/${EXEC}"\r\n"
 
 cruise: main.c java.c java.h jar.c jar.h log.c log.h attr.c
-	@clear
+	@clear;clear
 	@if [ ! -d ${DIR_BUILD} ]; then mkdir ${DIR_BUILD}; fi
 	@echo ${LOG}
 	@${TOOL} -g -o ${DIR_BUILD}/${EXEC} ${SOURCE_MAIN} ${INCLUDE} ${LIB_MAIN} ${MACRO}
