@@ -102,10 +102,87 @@ extern "C" {
 #define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        0x200000
 #define TAG_ATTR_METHODPARAMETERS                       0x400000
 
+    // CONSTANT_Class
+    typedef struct
+    {
+        u2      name_index;
+    } const_Class_data;
+    // CONSTANT_Fieldref
+    // CONSTANT_Methodref
+    // CONSTANT_InterfaceMethodref
+    typedef struct
+    {
+        u2      class_index;
+        u2      name_and_type_index;
+    } const_Fieldref_data,
+        const_Methodref_data,
+        const_InterfaceMethodref_data;
+    // CONSTANT_String
+    typedef struct
+    {
+        u2      string_index;
+    } const_String_data;
+    // CONSTANT_Integer
+    // CONSTANT_Float
+    typedef struct
+    {
+        u4      bytes;
+    } const_Integer_data,
+        const_Float_data;
+    // CONSTANT_Long
+    // CONSTANT_Double
+    typedef struct
+    {
+        u4      high_bytes;
+        u4      low_bytes;
+    } const_Long_data,
+        const_Double_data;
+    // CONSTANT_NameAndType
+    typedef struct
+    {
+        u2      name_index;
+        u2      descriptor_index;
+    } const_NameAndType_data;
+    // CONSTANT_Utf8
+    typedef struct
+    {
+        u2      length;
+        u1 *    bytes;
+    } const_Utf8_data;
+    // CONSTANT_MethodHandle
+    typedef struct
+    {
+        u1      reference_kind;
+        u2      reference_index;
+    } const_MethodHandle_data;
+    // CONSTANT_MethodType
+    typedef struct
+    {
+        u2      descriptor_index;
+    } const_MethodType_data;
+    // CONSTANT_InvokeDynamic
+    typedef struct
+    {
+        u2      bootstrap_method_attr_index;
+        u2      name_and_type_index;
+    } const_InvokeDynamic_data;
+
     typedef struct
     {
         u1 tag;
-        void * data;
+        union
+        {
+            const_Class_data            ccd;
+            const_Fieldref_data         cfd;
+            const_String_data           csd;
+            const_Integer_data          cid;
+            const_Long_data             cld;
+            const_NameAndType_data      cnd;
+            const_Utf8_data             cud;
+            const_MethodHandle_data     cmhd;
+            const_MethodType_data       cmtd;
+            const_InvokeDynamic_data    cidd;
+        } info;
     } cp_info;
 
     typedef struct
@@ -423,104 +500,6 @@ extern "C" {
         u2 attributes_count;
         attr_info *attributes;
     } method_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 name_index;
-        } * data;
-    } CONSTANT_Class_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 class_index;
-            u2 name_and_type_index;
-        } * data;
-    } CONSTANT_Fieldref_info,
-        CONSTANT_Methodref_info,
-        CONSTANT_InterfaceMethodref_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 string_index;
-        } * data;
-    } CONSTANT_String_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        union
-        {
-            u4 bytes;
-            float float_value;
-        } * data;
-    } CONSTANT_Integer_info,
-        CONSTANT_Float_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        union
-        {
-            struct
-            {
-                u4 low_bytes;
-                u4 high_bytes;
-            };
-            u8 long_value;
-            double double_value;
-        } * data;
-    } CONSTANT_Long_info,
-        CONSTANT_Double_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 name_index;
-            u2 descriptor_index;
-        } * data;
-    } CONSTANT_NameAndType_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 length;
-            u1 * bytes;
-        } * data;
-    } CONSTANT_Utf8_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u1 reference_kind;
-            u2 reference_index;
-        } * data;
-    } CONSTANT_MethodHandle_info;
-    
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 descriptor_index;
-        } * data;
-    } CONSTANT_MethodType_info;
-
-    typedef struct
-    {
-        u1 tag;
-        struct {
-            u2 bootstrap_method_attr_index;
-            u2 name_and_type_index;
-        } * data;
-    } CONSTANT_InvokeDynamic_info;
 
     typedef struct
     {
@@ -553,20 +532,20 @@ extern "C" {
     extern u4 getAttributeTag(size_t, char *);
 
     extern cp_info *getConstant(ClassFile *, u2);
-    extern CONSTANT_Class_info *getConstant_Class(ClassFile *, u2);
-    extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *, u2);
-    extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *, u2);
-    extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFile *, u2);
-    extern CONSTANT_String_info *getConstant_String(ClassFile *, u2);
-    extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *, u2);
-    extern CONSTANT_Float_info *getConstant_Float(ClassFile *, u2);
-    extern CONSTANT_Long_info *getConstant_Long(ClassFile *, u2);
-    extern CONSTANT_Double_info *getConstant_Double(ClassFile *, u2);
-    extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *, u2);
-    extern CONSTANT_Utf8_info *getConstant_Utf8(ClassFile *, u2);
-    extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *, u2);
-    extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *, u2);
-    extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *, u2);
+    extern cp_info *getConstant_Class(ClassFile *, u2);
+    extern cp_info *getConstant_Fieldref(ClassFile *, u2);
+    extern cp_info *getConstant_Methodref(ClassFile *, u2);
+    extern cp_info *getConstant_InterfaceMethodref(ClassFile *, u2);
+    extern cp_info *getConstant_String(ClassFile *, u2);
+    extern cp_info *getConstant_Integer(ClassFile *, u2);
+    extern cp_info *getConstant_Float(ClassFile *, u2);
+    extern cp_info *getConstant_Long(ClassFile *, u2);
+    extern cp_info *getConstant_Double(ClassFile *, u2);
+    extern cp_info *getConstant_NameAndType(ClassFile *, u2);
+    extern cp_info *getConstant_Utf8(ClassFile *, u2);
+    extern cp_info *getConstant_MethodHandle(ClassFile *, u2);
+    extern cp_info *getConstant_MethodType(ClassFile *, u2);
+    extern cp_info *getConstant_InvokeDynamic(ClassFile *, u2);
 
     extern u2 getConstant_Utf8Length(ClassFile *, u2);
     extern u1 *getConstant_Utf8String(ClassFile *, u2);
