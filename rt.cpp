@@ -212,7 +212,7 @@ rt_Class::getClassName()
     u2              name_index;
 
     info = getThisClass();
-    name_index = info->data->name_index;
+    name_index = info->name_index;
 
     return getConstant_Utf8(name_index);
 }
