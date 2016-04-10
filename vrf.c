@@ -517,7 +517,7 @@ validateMethods(ClassFile *cf)
         method = &(cf->methods[i]);
         cui = getConstant_Utf8(cf, method->name_index);
         if (!cui) return -1;
-        cui1 = getConstant_Utf8(cf, method_descriptor_index);
+        cui1 = getConstant_Utf8(cf, method->descriptor_index);
         if (!cui1) return -1;
         for (j = ++i; j < cf->methods_count; j++)
         {
