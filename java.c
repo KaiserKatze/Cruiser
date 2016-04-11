@@ -394,7 +394,7 @@ getConstant(ClassFile *cf, u2 index)
     return (cp_info *) 0;
 }
 
-extern CONSTANT_Utf8_info *
+extern cp_info *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     CONSTANT_Utf8_info *info;
@@ -483,7 +483,7 @@ getConstant_MethodNParameters(ClassFile *cf, u2 index)
     
 }
 
-extern CONSTANT_Class_info *
+extern cp_info *
 getConstant_Class(ClassFile *cf, u2 index)
 {
     CONSTANT_Class_info *info;
@@ -503,7 +503,8 @@ getConstant_Class(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Fieldref(ClassFile *cf, u2 index)
 {
     CONSTANT_Fieldref_info *info;
 
@@ -522,7 +523,8 @@ extern CONSTANT_Fieldref_info *getConstant_Fieldref(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Methodref(ClassFile *cf, u2 index)
 {
     CONSTANT_Methodref_info *info;
 
@@ -541,7 +543,8 @@ extern CONSTANT_Methodref_info *getConstant_Methodref(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_InterfaceMethodref(ClassFile *cf, u2 index)
 {
     CONSTANT_InterfaceMethodref_info *info;
 
@@ -560,7 +563,8 @@ extern CONSTANT_InterfaceMethodref_info *getConstant_InterfaceMethodref(ClassFil
     return info;
 }
 
-extern CONSTANT_String_info *getConstant_String(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_String(ClassFile *cf, u2 index)
 {
     CONSTANT_String_info *info;
 
@@ -579,7 +583,8 @@ extern CONSTANT_String_info *getConstant_String(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Integer(ClassFile *cf, u2 index)
 {
     CONSTANT_Integer_info *info;
 
@@ -598,7 +603,8 @@ extern CONSTANT_Integer_info *getConstant_Integer(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Float_info *getConstant_Float(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Float(ClassFile *cf, u2 index)
 {
     CONSTANT_Float_info *info;
 
@@ -617,7 +623,8 @@ extern CONSTANT_Float_info *getConstant_Float(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Long_info *getConstant_Long(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Long(ClassFile *cf, u2 index)
 {
     CONSTANT_Long_info *info;
 
@@ -636,7 +643,8 @@ extern CONSTANT_Long_info *getConstant_Long(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_Double_info *getConstant_Double(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_Double(ClassFile *cf, u2 index)
 {
     CONSTANT_Double_info *info;
 
@@ -655,7 +663,8 @@ extern CONSTANT_Double_info *getConstant_Double(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_NameAndType(ClassFile *cf, u2 index)
 {
     CONSTANT_NameAndType_info *info;
 
@@ -674,7 +683,8 @@ extern CONSTANT_NameAndType_info *getConstant_NameAndType(ClassFile *cf, u2 inde
     return info;
 }
 
-extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_MethodHandle(ClassFile *cf, u2 index)
 {
     CONSTANT_MethodHandle_info *info;
 
@@ -693,7 +703,8 @@ extern CONSTANT_MethodHandle_info *getConstant_MethodHandle(ClassFile *cf, u2 in
     return info;
 }
 
-extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_MethodType(ClassFile *cf, u2 index)
 {
     CONSTANT_MethodType_info *info;
 
@@ -712,7 +723,8 @@ extern CONSTANT_MethodType_info *getConstant_MethodType(ClassFile *cf, u2 index)
     return info;
 }
 
-extern CONSTANT_InvokeDynamic_info *getConstant_InvokeDynamic(ClassFile *cf, u2 index)
+extern cp_info *
+getConstant_InvokeDynamic(ClassFile *cf, u2 index)
 {
     CONSTANT_InvokeDynamic_info *info;
 
