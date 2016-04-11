@@ -802,16 +802,6 @@ loadConstantPool(struct BufferIO *input, ClassFile *cf)
 {
     u2 i;
     cp_info *                       info;
-    CONSTANT_Class_info *           cci;
-    CONSTANT_Fieldref_info *        cfi;
-    CONSTANT_Integer_info *         cii;
-    CONSTANT_Long_info *            cli;
-    CONSTANT_NameAndType_info *     cni;
-    CONSTANT_String_info *          csi;
-    CONSTANT_Utf8_info *            cui;
-    CONSTANT_MethodHandle_info *    cmhi;
-    CONSTANT_MethodType_info *      cmti;
-    CONSTANT_InvokeDynamic_info *   cidi;
     
     // retrieve constant pool size
     if (ru2(&(cf->constant_pool_count), input) < 0)
