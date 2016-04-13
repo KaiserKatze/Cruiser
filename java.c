@@ -951,17 +951,17 @@ writeClassName0(char *out,
 static int
 writeClassName(char *out,
         rt_Class *rtc,
-        rt_Class_info *class_info)
+        const_Class_data *class_info)
 {
-    rt_Utf8_info *class_name;
+    const_Utf8_data *class_name;
     u2 class_name_index;
 
-    class_name_index = class_info->data->name_index;
+    class_name_index = class_info->name_index;
     class_name = rtc->getConstant_Utf8(class_name_index);
 
     return writeClassName0(out,
-            class_name->data->length,
-            class_name->data->bytes);
+            class_name->length,
+            class_name->bytes);
 }
 
 static int
@@ -971,17 +971,17 @@ logClassHeader(rt_Class *rtc)
     char buf[1024], *ptr;
     size_t n, m;
     u2 access_flags;
-    rt_Class_info * this_class, * super_class;
+    const_Class_data * this_class, * super_class;
     u2 interfaces_count;
-    rt_Class_info ** interfaces;
-    rt_Utf8_info *cui;
+    const_Class_data ** interfaces;
+    const_Utf8_data *cui;
     u2 i;
 
     access_flags = rtc->getAccessFlags();
     this_class = rtc->getThisClass();
     super_class = rtc->getSuperClass();
     interfaces_count = rtc->getInterfacesCount();
-    interfaces = (rt_Class_info **) NULL;
+    interfaces = (const_Class_data **) NULL;
     if (!rtc->getInterfaces(interfaces))
         goto error;
 
@@ -1029,18 +1029,18 @@ logClassHeader(rt_Class *rtc)
     // super class
     if (super_class)
     {
-        cui = rtc->getConstant_Utf8(super_class->data->name_index);
+        cui = rtc->getConstant_Utf8(super_class->name_index);
         if (!cui) goto error;
         if (strncmp("java/lang/Object",
-                    (char *) cui->data->bytes,
-                    cui->data->length))
+                    (char *) cui->bytes,
+                    cui->length))
         {
             n = sprintf(ptr, "extends ");
             if (n < 0) goto error;
             ptr += n;
             n = writeClassName0(ptr,
-                    cui->data->length,
-                    cui->data->bytes);
+                    cui->length,
+                    cui->bytes);
             if (n < 0) goto error;
             ptr += n;
             *ptr++ = ' ';
@@ -1074,11 +1074,11 @@ logClassHeader(rt_Class *rtc)
     logInfo("%s\r\n{\r\n", buf);
 #endif
     freeMemory(interfaces);
-    interfaces = (rt_Class_info **) 0;
+    interfaces = (const_Class_data **) 0;
     return 0;
 error:
     freeMemory(interfaces);
-    interfaces = (rt_Class_info **) 0;
+    interfaces = (const_Class_data **) 0;
     return -1;
 }
 
@@ -1189,15 +1189,15 @@ logFields(rt_Class *rtc)
     attr_info *attributes;
     attr_info *attribute;
     size_t n;
-    CONSTANT_Utf8_info *name, *descriptor;
+    rt_Utf8_info *name, *descriptor;
     attr_ConstantValue_info *acv;
     u2 constantvalue_index;
-    rt_Long_info *cv_long;
-    rt_Float_info *cv_float;
-    rt_Double_info *cv_double;
-    rt_Integer_info *cv_integer;
-    rt_String_info *cv_string;
-    rt_Utf8_info *cui;
+    const_Long_data *cv_long;
+    const_Float_data *cv_float;
+    const_Double_data *cv_double;
+    const_Integer_data *cv_integer;
+    const_String_data *cv_string;
+    const_Utf8_data *cui;
 
     memset(buf, 0, sizeof (buf));
     ptr = (char *) buf;
@@ -1273,15 +1273,15 @@ logFields(rt_Class *rtc)
 
             // descriptor
             n = writeFieldDescriptor(ptr,
-                    descriptor->data->length,
-                    descriptor->data->bytes);
+                    descriptor->length,
+                    descriptor->bytes);
             if (n < 0) return -1;
             ptr += n;
         }
 
         n = sprintf(ptr, " %.*s",
-                name->data->length,
-                name->data->bytes);
+                name->length,
+                name->bytes);
         if (n < 0) return -1;
         ptr += n;
 
@@ -1300,13 +1300,13 @@ logFields(rt_Class *rtc)
 
                 acv = (attr_ConstantValue_info *) attribute->data;
                 constantvalue_index = acv->constantvalue_index;
-                switch (descriptor->data->bytes[0])
+                switch (descriptor->bytes[0])
                 {
                     case 'J':
                         cv_long = rtc->getConstant_Long(
                                 constantvalue_index);
                         n = sprintf(ptr, "%llil",
-                                cv_long->data->long_value);
+                                cv_long->long_value);
                         if (n < 0) return -1;
                         ptr += n;
                         break;
@@ -1314,7 +1314,7 @@ logFields(rt_Class *rtc)
                         cv_float = rtc->getConstant_Float(
                                 constantvalue_index);
                         n = sprintf(ptr, "%ff",
-                                cv_float->data->float_value);
+                                cv_float->float_value);
                         if (n < 0) return -1;
                         ptr += n;
                         break;
@@ -1322,7 +1322,7 @@ logFields(rt_Class *rtc)
                         cv_double = rtc->getConstant_Double(
                                 constantvalue_index);
                         n = sprintf(ptr, "%fd",
-                                cv_double->data->double_value);
+                                cv_double->double_value);
                         if (n < 0) return -1;
                         ptr += n;
                         break;
@@ -1330,10 +1330,10 @@ logFields(rt_Class *rtc)
                         cv_string = rtc->getConstant_String(
                                 constantvalue_index);
                         cui = rtc->getConstant_Utf8(
-                                cv_string->data->string_index);
+                                cv_string->string_index);
                         n = writeConstantString(ptr,
-                                cui->data->length,
-                                cui->data->bytes);
+                                cui->length,
+                                cui->bytes);
                         if (n < 0) return -1;
                         ptr += n;
                         break;
@@ -1341,7 +1341,7 @@ logFields(rt_Class *rtc)
                         cv_integer = rtc->getConstant_Integer(
                                 constantvalue_index);
                         n = sprintf(ptr, "%i",
-                                cv_integer->data->bytes);
+                                cv_integer->bytes);
                         if (n < 0) return -1;
                         ptr += n;
                         break;
@@ -1536,15 +1536,15 @@ logMethods(rt_Class *rtc)
     u2 access_flags, name_index, descriptor_index;
     u2 attributes_count;
     attr_info *attributes, *attribute;
-    rt_Utf8_info *class_name;
-    rt_Utf8_info *name, *descriptor;
+    const_Utf8_data *class_name;
+    const_Utf8_data *name, *descriptor;
     attr_Code_info *code;
     attr_Exceptions_info *exceptions;
     u2 number_of_exceptions;
     u2 *exception_index_table;
     int has_method_body;
-    rt_Class_info *cci;
-    rt_Utf8_info *cui;
+    const_Class_data *cci;
+    const_Utf8_data *cui;
 
     memset(buf, 0, sizeof (buf));
     methods_count = rtc->getMethodsCount();
@@ -1648,32 +1648,32 @@ logMethods(rt_Class *rtc)
         // write method name
         // static initializer has no name
         if (strncmp("<clinit>",
-                    (char *) name->data->bytes,
-                    name->data->length) != 0)
+                    (char *) name->bytes,
+                    name->length) != 0)
         {
-            if (strncmp("<init>", (char *) name->data->bytes,
-                        name->data->length) == 0)
+            if (strncmp("<init>", (char *) name->bytes,
+                        name->length) == 0)
             {
                 // class name
                 n = writeClassName0(ptr,
-                        class_name->data->length,
-                        class_name->data->bytes);
+                        class_name->length,
+                        class_name->bytes);
                 if (n < 0) return -1;
                 ptr += n;
             }
             else
             {
                 // return type
-                for (j = descriptor->data->length - 1;
+                for (j = descriptor->length - 1;
                         j > 0; j--)
                 {
-                    if (descriptor->data->bytes[j] != ')')
+                    if (descriptor->bytes[j] != ')')
                         continue;
 
                     ++j;
                     n = writeFieldDescriptor(ptr,
-                            descriptor->data->length - j,
-                            descriptor->data->bytes + j);
+                            descriptor->length - j,
+                            descriptor->bytes + j);
                     if (n < 0) return -1;
                     ptr += n;
                     n = sprintf(ptr, " ");
@@ -1685,8 +1685,8 @@ logMethods(rt_Class *rtc)
 
                 // method name
                 n = sprintf(ptr, "%.*s",
-                        name->data->length,
-                        name->data->bytes);
+                        name->length,
+                        name->bytes);
                 if (n < 0) return -1;
                 ptr += n;
             }
@@ -1694,8 +1694,8 @@ logMethods(rt_Class *rtc)
             // parameter table
             n = writeParameterTable(ptr,
                     method,
-                    descriptor->data->length,
-                    descriptor->data->bytes);
+                    descriptor->length,
+                    descriptor->bytes);
             if (n < 0) return -1;
             ptr += n;
         }
