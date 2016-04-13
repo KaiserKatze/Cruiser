@@ -73,7 +73,7 @@ parseClassfile(struct BufferIO * input,
     if (compareVersion(cf.major_version, cf.minor_version) > 0)
     {
         logError("Class file version is higher than this implementation!\r\n");
-        goto close;
+        return -1;
     }
 #endif
 
