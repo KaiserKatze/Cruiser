@@ -29,15 +29,15 @@ static int
 validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
 {
     cp_info *info;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Fieldref_info *cfi;
-    CONSTANT_Methodref_info *cmi;
-    CONSTANT_String_info *csi;
-    CONSTANT_NameAndType_info *cni;
-    CONSTANT_Utf8_info *cui;
-    CONSTANT_MethodHandle_info *cmhi;
-    CONSTANT_MethodType_info *cmti;
-    CONSTANT_InvokeDynamic_info *cidi;
+    const_Class_data *cci;
+    const_Fieldref_data *cfi;
+    const_Methodref_data *cmi;
+    const_String_data *csi;
+    const_NameAndType_data *cni;
+    const_Utf8_data *cui;
+    const_MethodHandle_data *cmhi;
+    const_MethodType_data *cmti;
+    const_InvokeDynamic_data *cidi;
     u2 j;
 #if VER_CMP(51, 0)
     struct attr_BootstrapMethods_info *dataBootstrapMethods;
@@ -57,69 +57,67 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     }
     if (bul[i])
         return 0;
-    if (!info->data)
-        return -1;
     switch (info->tag)
     {
         case CONSTANT_Class:
-            cci = (CONSTANT_Class_info *) info;
+            cci = (const_Class_data *) info;
             if (validateConstantPoolEntry(cf,
-                        cci->data->name_index,
+                        cci->name_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
             break;
         case CONSTANT_Fieldref:
         case CONSTANT_Methodref:
         case CONSTANT_InterfaceMethodref:
-            cfi = (CONSTANT_Fieldref_info *) info;
+            cfi = (const_Fieldref_data *) info;
             if (validateConstantPoolEntry(cf,
-                        cfi->data->class_index, bul, CONSTANT_Class) < 0)
+                        cfi->class_index, bul, CONSTANT_Class) < 0)
                 return -1;
             if (validateConstantPoolEntry(cf,
-                        cfi->data->name_and_type_index,
+                        cfi->name_and_type_index,
                         bul, CONSTANT_NameAndType) < 0)
                 return -1;
-            cni = (CONSTANT_NameAndType_info *)
-                getConstant(cf, cfi->data->name_and_type_index);
-            cui = (CONSTANT_Utf8_info *)
-                getConstant(cf, cni->data->descriptor_index);
+            cni = (const_NameAndType_data *)
+                getConstant(cf, cfi->name_and_type_index);
+            cui = (const_Utf8_data *)
+                getConstant(cf, cni->descriptor_index);
             if (info->tag == CONSTANT_Fieldref)
             {
-                if (validateFieldDescriptor(cui->data->length,
-                            cui->data->bytes) < 0)
+                if (validateFieldDescriptor(cui->length,
+                            cui->bytes) < 0)
                     return -1;
             }
             else
             {
                 if (info->tag == CONSTANT_Methodref
-                        && cui->data->bytes[0] == '<')
+                        && cui->bytes[0] == '<')
                 {
                     // return type must be void
-                    for (j = 0; j < cui->data->length;)
-                        if (cui->data->bytes[j++] == ')')
+                    for (j = 0; j < cui->length;)
+                        if (cui->bytes[j++] == ')')
                             break;
-                    if (cui->data->bytes[j++] != 'V'
-                            || cui->data->length != j)
+                    if (cui->bytes[j++] != 'V'
+                            || cui->length != j)
                         return -1;
                     // special method name for constructors
-                    cui = (CONSTANT_Utf8_info *)
-                        getConstant(cf, cni->data->name_index);
-                    if (strncmp((char *) cui->data->bytes,
-                                "<init>", cui->data->length)
-                            && strncmp((char *) cui->data->bytes,
-                                "<clinit>", cui->data->length))
+                    cui = (const_Utf8_data *)
+                        getConstant(cf, cni->name_index);
+                    if (strncmp((char *) cui->bytes,
+                                "<init>", cui->length)
+                            && strncmp((char *) cui->bytes,
+                                "<clinit>", cui->length))
                         return -1;
                     break;
                 }
-                if (validateMethodDescriptor(cui->data->length,
-                        cui->data->bytes) < 0)
+                if (validateMethodDescriptor(cui->length,
+                        cui->bytes) < 0)
                     return -1;
             }
             break;
         case CONSTANT_String:
-            csi = (CONSTANT_String_info *) info;
+            csi = (const_String_data *) info;
             if (validateConstantPoolEntry(cf,
-                        csi->data->string_index,
+                        csi->string_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
             break;
@@ -128,51 +126,51 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
             bul[i + 1] = 1;
             break;
         case CONSTANT_NameAndType:
-            cni = (CONSTANT_NameAndType_info *) info;
+            cni = (const_NameAndType_data *) info;
             if (validateConstantPoolEntry(cf,
-                        cni->data->name_index,
+                        cni->name_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
             if (validateConstantPoolEntry(cf,
-                        cni->data->descriptor_index,
+                        cni->descriptor_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
-            // `CONSTANT_NameAndType_info` is never used directly
+            // `const_NameAndType_data` is never used directly
             // which means Cruiser validates its items in:
-            //      `CONSTANT_Fieldref_info`,
-            //      `CONSTANT_Methodref_info`,
-            //      and `CONSTANT_InterfaceMethodref_info`
+            //      `const_Fieldref_data`,
+            //      `const_Methodref_data`,
+            //      and `const_InterfaceMethodref_data`
             break;
         case CONSTANT_Utf8:
-            cui = (CONSTANT_Utf8_info *) info;
-            if (!cui->data || !cui->data->bytes)
+            cui = (const_Utf8_data *) info;
+            if (!cui->bytes)
             {
-                logError("Invalid CONSTANT_Utf8_info!\r\n");
+                logError("Invalid const_Utf8_data!\r\n");
                 return -1;
             }
-            for (j = 0; j < cui->data->length; j++)
-                if (cui->data->bytes[j] == 0
-                        || cui->data->bytes[j] >= 0xf0
-                        && cui->data->bytes[j] <= 0xff)
+            for (j = 0; j < cui->length; j++)
+                if (cui->bytes[j] == 0
+                        || cui->bytes[j] >= 0xf0
+                        && cui->bytes[j] <= 0xff)
                     return -1;
             break;
         case CONSTANT_MethodHandle:
-            cmhi = (CONSTANT_MethodHandle_info *) info;
-            switch (cmhi->data->reference_kind)
+            cmhi = (const_MethodHandle_data *) info;
+            switch (cmhi->reference_kind)
             {
                 case REF_getField:
                 case REF_getStatic:
                 case REF_putField:
                 case REF_putStatic:
                     if (validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
+                                cmhi->reference_index,
                                 bul, CONSTANT_Fieldref) < 0)
                         return -1;
                     break;
                 case REF_invokeVirtual:
                 case REF_newInvokeSpecial:
                     if (validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
+                                cmhi->reference_index,
                                 bul, CONSTANT_Methodref) < 0)
                         return -1;
                 case REF_invokeStatic:
@@ -182,100 +180,100 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                                 52, 0) >= 0)
                     {
                         if (validateConstantPoolEntry(cf,
-                                    cmhi->data->reference_index,
+                                    cmhi->reference_index,
                                     bul, CONSTANT_Methodref) < 0
                                 && validateConstantPoolEntry(cf,
-                                    cmhi->data->reference_index,
+                                    cmhi->reference_index,
                                     bul, CONSTANT_InterfaceMethodref) < 0)
                         return -1;
                     }
                     else if (validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
+                                cmhi->reference_index,
                                 bul, CONSTANT_Methodref) < 0)
                         return -1;
                     break;
                 case REF_invokeInterface:
                     if (validateConstantPoolEntry(cf,
-                                cmhi->data->reference_index,
+                                cmhi->reference_index,
                                 bul, CONSTANT_InterfaceMethodref) < 0)
                         return -1;
                     break;
                 default:
-                    logError("Constant pool entry[%i] has invalid reference kind[%i] as CONSTANT_MethodHandle_info!\r\n",
-                            i, cmhi->data->reference_kind);
+                    logError("Constant pool entry[%i] has invalid reference kind[%i] as const_MethodHandle_data!\r\n",
+                            i, cmhi->reference_kind);
                     return -1;
             }
-            cfi = (CONSTANT_Fieldref_info *)
-                &(cf->constant_pool[cmhi->data->reference_index]);
-            cni = (CONSTANT_NameAndType_info *)
-                &(cf->constant_pool[cfi->data->name_and_type_index]);
-            cui = (CONSTANT_Utf8_info *)
-                &(cf->constant_pool[cni->data->name_index]);
-            switch (cmhi->data->reference_kind)
+            cfi = (const_Fieldref_data *)
+                &(cf->constant_pool[cmhi->reference_index]);
+            cni = (const_NameAndType_data *)
+                &(cf->constant_pool[cfi->name_and_type_index]);
+            cui = (const_Utf8_data *)
+                &(cf->constant_pool[cni->name_index]);
+            switch (cmhi->reference_kind)
             {
                 case REF_invokeVirtual:
                 case REF_invokeStatic:
                 case REF_invokeSpecial:
                 case REF_invokeInterface:
-                    if (!strncmp((char *) cui->data->bytes,
-                                "<init>", cui->data->length))
+                    if (!strncmp((char *) cui->bytes,
+                                "<init>", cui->length))
                     {
                         logError("Method name '<init>' is invalid "
                                 "because MethodHandle reference kind "
                                 "is %i!\r\n",
-                                cmhi->data->reference_kind);
+                                cmhi->reference_kind);
                         return -1;
                     }
-                    else if (!strncmp((char *) cui->data->bytes,
-                                "<clinit>", cui->data->length))
+                    else if (!strncmp((char *) cui->bytes,
+                                "<clinit>", cui->length))
                     {
                         logError("Method name '<clinit>' is invalid "
                                 "because MethodHandle reference kind "
                                 "is %i!\r\n",
-                                cmhi->data->reference_kind);
+                                cmhi->reference_kind);
                         return -1;
                     }
                     break;
                 case REF_newInvokeSpecial:
-                    if (strncmp((char *) cui->data->bytes,
-                                "<init>", cui->data->length))
+                    if (strncmp((char *) cui->bytes,
+                                "<init>", cui->length))
                     {
                         logError("Method name '%.*s' is invalid "
                                 "because MethodHandle reference kind "
                                 "is %i!\r\n",
-                                cui->data->length,
-                                (char *) cui->data->bytes,
-                                cmhi->data->reference_kind);
+                                cui->length,
+                                (char *) cui->bytes,
+                                cmhi->reference_kind);
                         return -1;
                     }
                     break;
             }
             break;
         case CONSTANT_MethodType:
-            cmti = (CONSTANT_MethodType_info *) info;
+            cmti = (const_MethodType_data *) info;
             if (validateConstantPoolEntry(cf,
-                        cmti->data->descriptor_index,
+                        cmti->descriptor_index,
                         bul, CONSTANT_Utf8) < 0)
                 return -1;
-            cui = (CONSTANT_Utf8_info *)
-                getConstant(cf, cmti->data->descriptor_index);
-            if (validateMethodDescriptor(cui->data->length,
-                        cui->data->bytes) < 0)
+            cui = (const_Utf8_data *)
+                getConstant(cf, cmti->descriptor_index);
+            if (validateMethodDescriptor(cui->length,
+                        cui->bytes) < 0)
                 return -1;
             break;
 #if VER_CMP(51, 0)
         case CONSTANT_InvokeDynamic:
-            cidi = (CONSTANT_InvokeDynamic_info *) info;
+            cidi = (const_InvokeDynamic_data *) info;
             if (validateConstantPoolEntry(cf,
-                        cidi->data->name_and_type_index,
+                        cidi->name_and_type_index,
                         bul, CONSTANT_NameAndType) < 0)
                 return -1;
-            cni = (CONSTANT_NameAndType_info *)
-                getConstant(cf, cidi->data->name_and_type_index);
-            cui = (CONSTANT_Utf8_info *)
-                getConstant(cf, cni->data->descriptor_index);
-            if (validateMethodDescriptor(cui->data->length,
-                        cui->data->bytes) < 0)
+            cni = (const_NameAndType_data *)
+                getConstant(cf, cidi->name_and_type_index);
+            cui = (const_Utf8_data *)
+                getConstant(cf, cni->descriptor_index);
+            if (validateMethodDescriptor(cui->length,
+                        cui->bytes) < 0)
                 return -1;
             if (!cf->attributes)
             {
@@ -300,36 +298,36 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 return -1;
             }
             bm = &(dataBootstrapMethods->bootstrap_methods[
-                    cidi->data->bootstrap_method_attr_index]);
-            cmhi = (CONSTANT_MethodHandle_info *)
+                    cidi->bootstrap_method_attr_index]);
+            cmhi = (const_MethodHandle_data *)
                     &(cf->constant_pool[bm->bootstrap_method_ref]);
-            switch (cmhi->data->reference_kind)
+            switch (cmhi->reference_kind)
             {
                 case REF_invokeStatic:      // 6
                 case REF_newInvokeSpecial:  // 8
                     break;
                 default:
                     logError("Invalid reference_kind [%i]!\r\n",
-                            cmhi->data->reference_kind);
+                            cmhi->reference_kind);
                     return -1;
             }
-            cmi = (CONSTANT_Methodref_info *)
+            cmi = (const_Methodref_data *)
                     &(cf->constant_pool[
-                            cmhi->data->reference_index]);
-            cni = (CONSTANT_NameAndType_info *)
+                            cmhi->reference_index]);
+            cni = (const_NameAndType_data *)
                     &(cf->constant_pool[
-                            cmi->data->name_and_type_index]);
-            cui = (CONSTANT_Utf8_info *)
+                            cmi->name_and_type_index]);
+            cui = (const_Utf8_data *)
                     &(cf->constant_pool[
-                            cni->data->descriptor_index]);
-            if (strncmp((char *) cui->data->bytes,
+                            cni->descriptor_index]);
+            if (strncmp((char *) cui->bytes,
                     "(Ljava/lang/invoke/MethodHandles$Lookup;"
                     "Ljava/lang/String;"
                     "Ljava/lang/invoke/MethodType;)",
                     88))
             {
                 logError("Invalid bootstrap method arguments [%.*s]!\r\n",
-                        cui->data->length, cui->data->bytes);
+                        cui->length, cui->bytes);
                 return -1;
             }
             for (j = 0; j < bm->num_bootstrap_arguments; j++)
@@ -398,7 +396,7 @@ validateFields(ClassFile *cf)
     u2 flags;
     u1 is_public, is_protected, is_private;
     u1 is_final, is_volatile;
-    CONSTANT_Utf8_info *cui, *cui1;
+    const_Utf8_data *cui, *cui1;
     
     fields_count = cf->fields_count;
     // No two fields in one `class` file may have
@@ -413,11 +411,11 @@ validateFields(ClassFile *cf)
             field1 = &(cf->fields[j]);
             cui1 = getConstant_Utf8(cf, field1->name_index);
             if (!cui1) return -1;
-            if (cui->data->length != cui1->data->length)
+            if (cui->length != cui1->length)
                 continue;
-            if (strncmp((char *) cui->data->bytes,
-                        (char *) cui1->data->bytes,
-                        cui->data->length) == 0)
+            if (strncmp((char *) cui->bytes,
+                        (char *) cui1->bytes,
+                        cui->length) == 0)
                 return -1;
         }
     }
@@ -490,12 +488,12 @@ validateFields(ClassFile *cf)
         cui = getConstant_Utf8(cf, field->descriptor_index);
         if (!cui)
             return -1;
-        if (validateFieldDescriptor(cui->data->length,
-                    cui->data->bytes) < 0)
+        if (validateFieldDescriptor(cui->length,
+                    cui->bytes) < 0)
         {
             logError("Invalid name \"%.*s\" detected @ "
                     "cf->fields[%i]!\r\n",
-                    cui->data->length, cui->data->bytes, i);
+                    cui->length, cui->bytes, i);
             return -1;
         }
     }
@@ -510,7 +508,7 @@ validateMethods(ClassFile *cf)
     method_info *method, *method1;
     u1 is_public, is_protected, is_private;
     u1 is_final, is_abstract;
-    CONSTANT_Utf8_info *cui, *cui1, *cui2, *cui3;
+    const_Utf8_data *cui, *cui1, *cui2, *cui3;
 
     for (i = 0; i < cf->methods_count;)
     {
@@ -528,13 +526,13 @@ validateMethods(ClassFile *cf)
             if (!cui3) return -1;
             if (cui != cui2)
                 continue;
-            if (strncmp((char *) cui->data->bytes,
-                        (char *) cui2->data->bytes,
-                        cui->data->length) != 0)
+            if (strncmp((char *) cui->bytes,
+                        (char *) cui2->bytes,
+                        cui->length) != 0)
                 continue;
-            if (strncmp((char *) cui1->data->bytes,
-                        (char *) cui3->data->bytes,
-                        cui1->data->length) == 0)
+            if (strncmp((char *) cui1->bytes,
+                        (char *) cui3->bytes,
+                        cui1->length) == 0)
                 return -1;
         }
     }
@@ -611,8 +609,8 @@ validateMethods(ClassFile *cf)
         cui = getConstant_Utf8(cf, method->name_index);
         if (!cui)
             return -1;
-        if (!strncmp((char *) cui->data->bytes,
-                    "<init>", cui->data->length))
+        if (!strncmp((char *) cui->bytes,
+                    "<init>", cui->length))
         {
             if (flags & ~(ACC_PUBLIC | ACC_PROTECTED
                         | ACC_PRIVATE | ACC_VARARGS
@@ -628,12 +626,12 @@ validateMethods(ClassFile *cf)
         cui = getConstant_Utf8(cf, method->descriptor_index);
         if (!cui)
             return -1;
-        if (validateMethodDescriptor(cui->data->length,
-                    cui->data->bytes) < 0)
+        if (validateMethodDescriptor(cui->length,
+                    cui->bytes) < 0)
         {
             logError("Invalid name \"%.*s\" detected @ "
                     "cf->methods[%i]!\r\n",
-                    cui->data->length, cui->data->bytes, i);
+                    cui->length, cui->bytes, i);
             return -1;
         }
     }
@@ -774,10 +772,10 @@ validateAttributes_class(ClassFile *cf, u2 len, attr_info *attributes)
     attr_RuntimeVisibleTypeAnnotations_info *arvta;
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
-    CONSTANT_Utf8_info *descriptor;
-    CONSTANT_Class_info *cci;
-    CONSTANT_Utf8_info *cui;
-    CONSTANT_NameAndType_info *cni;
+    const_Utf8_data *descriptor;
+    const_Class_data *cci;
+    const_Utf8_data *cui;
+    const_NameAndType_data *cni;
     struct classes_entry *ce;
     u2 flags;
 
@@ -922,8 +920,8 @@ validateAttributes_field(ClassFile *cf, field_info *field)
     attr_RuntimeVisibleTypeAnnotations_info *arvta;
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
-    CONSTANT_Utf8_info *descriptor;
-    CONSTANT_Utf8_info *cui;
+    const_Utf8_data *descriptor;
+    const_Utf8_data *cui;
 
     attributes = field->attributes;
     for (i = 0; i < field->attributes_count; i++)
@@ -940,7 +938,7 @@ validateAttributes_field(ClassFile *cf, field_info *field)
                 descriptor = getConstant_Utf8(cf, field->descriptor_index);
                 if (!descriptor)
                     return -1;
-                switch (descriptor->data->bytes[0])
+                switch (descriptor->bytes[0])
                 {
                     case 'J':
                         if (!getConstant_Long(cf, acv->constantvalue_index))
@@ -959,9 +957,9 @@ validateAttributes_field(ClassFile *cf, field_info *field)
                             return -1;
                         break;
                     case 'L':
-                        if (!strncmp((char *) descriptor->data->bytes,
+                        if (!strncmp((char *) descriptor->bytes,
                                     "Ljava/lang/String;",
-                                    descriptor->data->length))
+                                    descriptor->length))
                             if (!getConstant_String(cf, acv->constantvalue_index))
                                 return -1;
                         break;
@@ -1030,9 +1028,9 @@ validateAttributes_method(ClassFile *cf, method_info *method)
     attr_RuntimeVisibleTypeAnnotations_info *arvta;
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
-    CONSTANT_Utf8_info *descriptor;
-    CONSTANT_Utf8_info *cui;
-    CONSTANT_Class_info *cci;
+    const_Utf8_data *descriptor;
+    const_Utf8_data *cui;
+    const_Class_data *cci;
     struct exception_table_entry *ete;
 
     attributes = method->attributes;
@@ -1173,7 +1171,7 @@ validateAttributes_code(ClassFile *cf, attr_Code_info *code)
     attr_RuntimeVisibleTypeAnnotations_info *arvta;
     attr_RuntimeInvisibleTypeAnnotations_info *arita;
 #endif
-    CONSTANT_Utf8_info *descriptor;
+    const_Utf8_data *descriptor;
     union stack_map_frame *frame;
     u1 frame_type;
 
