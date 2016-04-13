@@ -140,6 +140,7 @@ extern "C" {
             u4  low_bytes;
         };
         double  double_value;
+        jlong   long_value;
     } const_Long_data,
         const_Double_data;
     // CONSTANT_NameAndType
