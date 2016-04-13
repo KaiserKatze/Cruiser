@@ -163,8 +163,8 @@ static int
 loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Exceptions_info *data;
-    CONSTANT_Class_info *cc;
-    CONSTANT_Utf8_info *utf8;
+    const_Class_data *cc;
+    const_Utf8_data *utf8;
     u2 i;
 
     info->tag = TAG_ATTR_EXCEPTIONS;
@@ -192,27 +192,8 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
         return -1;
     }
     for (i = 0u; i < data->number_of_exceptions; i++)
-    {
         if (ru2(&(data->exception_index_table[i]), input) < 0)
             return -1;
-        cc = getConstant_Class(cf, data->exception_index_table[i]);
-        if (!cc)
-        {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->exception_index_table[i]);
-            return -1;
-        }
-        if (!cc->data)
-        {
-            logError("Assertion error: constant_pool[%i] has no data!\r\n", data->exception_index_table[i]);
-            return -1;
-        }
-        utf8 = getConstant_Utf8(cf, cc->data->name_index);
-        if (!utf8->data)
-        {
-            logError("Assertion error: constant_pool[%i] has no data!\r\n", cc->data->name_index);
-            return -1;
-        }
-    }
 
     info->data = data;
     return 0;
@@ -234,7 +215,7 @@ freeAttribute_Exceptions(attr_info *info)
 }
 
 // If the constant pool of a class or interface C
-// contains a CONSTANT_Class_info entry which
+// contains a const_Class_data entry which
 // represents a class or interface that
 // is not a member of a package, then C 's ClassFile structure
 // must have exactly one InnerClasses attribute in its attributes table.
@@ -242,8 +223,8 @@ static int
 loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_InnerClasses_info *data;
-    CONSTANT_Class_info *cc;
-    CONSTANT_Utf8_info *cu;
+    const_Class_data *cc;
+    const_Utf8_data *cu;
     u2 i;
 
     info->tag = TAG_ATTR_INNERCLASSES;
@@ -264,7 +245,7 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
         cc = getConstant_Class(cf, data->classes[i].inner_class_info_index);
         if (!cc)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].inner_class_info_index);
+            logError("Assertion error: constant_pool[%i] is not const_Class_data instance!\r\n", data->classes[i].inner_class_info_index);
             return -1;
         }
         if (ru2(&(data->classes[i].outer_class_info_index), input) < 0)
@@ -276,7 +257,7 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
          * the value of the outer_class_info_index item must be zero.
          * Otherwise, the value of the outer_class_info_index item must be a
          * valid index into the constant_pool table, and the entry
-         * at that index must be a CONSTANT_Class_info (§4.4.1)
+         * at that index must be a const_Class_data (§4.4.1)
          * structure representing the class or interface of which C is a member.
          */
         if (data->classes[i].outer_class_info_index != 0)
@@ -284,7 +265,7 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
             cc = getConstant_Class(cf, data->classes[i].outer_class_info_index);
             if (!cc)
             {
-                logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].outer_class_info_index);
+                logError("Assertion error: constant_pool[%i] is not const_Class_data instance!\r\n", data->classes[i].outer_class_info_index);
                 return -1;
             }
         }
@@ -299,7 +280,7 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
             cu = getConstant_Utf8(cf, data->classes[i].inner_name_index);
             if (!cu)
             {
-                logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->classes[i].inner_name_index);
+                logError("Assertion error: constant_pool[%i] is not const_Class_data instance!\r\n", data->classes[i].inner_name_index);
                 return -1;
             }
         }
@@ -356,7 +337,7 @@ static int
 loadAttribute_SourceFile(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_SourceFile_info *data;
-    CONSTANT_Utf8_info *cu;
+    const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_SOURCEFILE;
     data = (struct attr_SourceFile_info *)
@@ -368,7 +349,7 @@ loadAttribute_SourceFile(ClassFile *cf, struct BufferIO *input, attr_info *info)
     cu = getConstant_Utf8(cf, data->sourcefile_index);
     if (!cu)
     {
-        logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n", data->sourcefile_index);
+        logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n", data->sourcefile_index);
         return -1;
     }
 
@@ -459,7 +440,7 @@ loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_inf
     struct attr_LocalVariableTable_info *data;
     u2 i, lvtl;
     int cap;
-    CONSTANT_Utf8_info *cu;
+    const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_LOCALVARIABLETABLE;
     if (ru2(&lvtl, input) < 0)
@@ -481,7 +462,7 @@ loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_inf
         cu = getConstant_Utf8(cf, data->local_variable_table[i].name_index);
         if (!cu)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n");
+            logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n");
             return -1;
         }
         if (ru2(&(data->local_variable_table[i].descriptor_index), input) < 0)
@@ -489,7 +470,7 @@ loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_inf
         cu = getConstant_Utf8(cf, data->local_variable_table[i].descriptor_index);
         if (!cu)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n");
+            logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n");
             return -1;
         }
         if (ru2(&(data->local_variable_table[i].index), input) < 0)
@@ -530,8 +511,8 @@ static int
 loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_EnclosingMethod_info *data;
-    CONSTANT_Class_info *cc;
-    CONSTANT_NameAndType_info *cn;
+    const_Class_data *cc;
+    const_NameAndType_data *cn;
 
     info->tag = TAG_ATTR_ENCLOSINGMETHOD;
     data = (struct attr_EnclosingMethod_info *)
@@ -543,7 +524,7 @@ loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferIO *input, attr_info *
     cc = getConstant_Class(cf, data->class_index);
     if (!cc)
     {
-        logError("Assertion error: constant_pool[%i] is not CONSTANT_Class_info instance!\r\n", data->class_index);
+        logError("Assertion error: constant_pool[%i] is not const_Class_data instance!\r\n", data->class_index);
         return -1;
     }
     if (ru2(&(data->method_index), input) < 0)
@@ -553,7 +534,7 @@ loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferIO *input, attr_info *
         cn = getConstant_NameAndType(cf, data->method_index);
         if (!cn)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_NameAndType_info!\r\n", data->method_index);
+            logError("Assertion error: constant_pool[%i] is not const_NameAndType_data!\r\n", data->method_index);
             return -1;
         }
     }
@@ -577,7 +558,7 @@ static int
 loadAttribute_Signature(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     struct attr_Signature_info *data;
-    CONSTANT_Utf8_info *cu;
+    const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_SIGNATURE;
     data = (struct attr_Signature_info *)
@@ -589,7 +570,7 @@ loadAttribute_Signature(ClassFile *cf, struct BufferIO *input, attr_info *info)
     cu = getConstant_Utf8(cf, data->signature_index);
     if (!cu)
     {
-        logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n", data->signature_index);
+        logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n", data->signature_index);
         return -1;
     }
 
@@ -614,7 +595,7 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr
     struct attr_LocalVariableTypeTable_info *data;
     u2 i, lvttl;
     int cap;
-    CONSTANT_Utf8_info *cu;
+    const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_LOCALVARIABLETYPETABLE;
     if (ru2(&lvttl, input) < 0)
@@ -636,7 +617,7 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr
         cu = getConstant_Utf8(cf, data->local_variable_type_table[i].name_index);
         if (!cu)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n");
+            logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n");
             return -1;
         }
         if (ru2(&(data->local_variable_type_table[i].signature_index), input) < 0)
@@ -644,7 +625,7 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr
         cu = getConstant_Utf8(cf, data->local_variable_type_table[i].signature_index);
         if (!cu)
         {
-            logError("Assertion error: constant_pool[%i] is not CONSTANT_Utf8_info instance!\r\n");
+            logError("Assertion error: constant_pool[%i] is not const_Utf8_data instance!\r\n");
             return -1;
         }
         if (ru2(&(data->local_variable_type_table[i].index), input) < 0)
@@ -675,7 +656,7 @@ static int
 loadAnnotation(ClassFile *cf, struct BufferIO *input,
         struct annotation *anno)
 {
-    CONSTANT_Utf8_info *utf8;
+    const_Utf8_data *utf8;
     u2 i;
     
     if (ru2(&(anno->type_index), input) < 0)
@@ -683,7 +664,7 @@ loadAnnotation(ClassFile *cf, struct BufferIO *input,
     utf8 = getConstant_Utf8(cf, anno->type_index);
     if (!utf8)
         return -1;
-    if (!isFieldDescriptor(utf8->data->length, utf8->data->bytes))
+    if (!isFieldDescriptor(utf8->length, utf8->bytes))
         return -1;
     if (ru2(&(anno->num_element_value_pairs), input) < 0)
         return -1;
@@ -705,7 +686,7 @@ loadAnnotation(ClassFile *cf, struct BufferIO *input,
         utf8 = getConstant_Utf8(cf, anno->element_value_pairs[i].element_name_index);
         if (!utf8)
             return -1;
-        if (!isFieldDescriptor(utf8->data->length, utf8->data->bytes))
+        if (!isFieldDescriptor(utf8->length, utf8->bytes))
             return -1;
         anno->element_value_pairs[i].value = (struct element_value *)
                 allocMemory(1, sizeof (struct element_value));
@@ -735,9 +716,9 @@ static int
 loadElementValue(ClassFile *cf, struct BufferIO *input,
         struct element_value *value)
 {
-    CONSTANT_Fieldref_info *cfi;
-    CONSTANT_NameAndType_info *cni;
-    CONSTANT_Utf8_info *cui;
+    const_Fieldref_data *cfi;
+    const_NameAndType_data *cni;
+    const_Utf8_data *cui;
     u2 i;
     
     if (ru1(&(value->tag), input) < 0)
@@ -758,21 +739,21 @@ loadElementValue(ClassFile *cf, struct BufferIO *input,
                 return -1;
             cfi = getConstant_Fieldref(cf, value->const_value_index);
             if (!cfi) return -1;
-            cni = getConstant_NameAndType(cf, cfi->data->name_and_type_index);
+            cni = getConstant_NameAndType(cf, cfi->name_and_type_index);
             if (!cni) return -1;
-            cui = getConstant_Utf8(cf, cni->data->descriptor_index);
+            cui = getConstant_Utf8(cf, cni->descriptor_index);
             if (!cui) return -1;
             if (value->tag == 's')
             {
-                if (strncmp((char *) cui->data->bytes,
+                if (strncmp((char *) cui->bytes,
                         "Ljava/lang/String;",
-                        cui->data->length))
+                        cui->length))
                     return -1;
             }
             else
             {
-                if (cui->data->length != 1
-                        || cui->data->bytes[0] != value->tag)
+                if (cui->length != 1
+                        || cui->bytes[0] != value->tag)
                     return -1;
             }
             break;
@@ -786,7 +767,7 @@ loadElementValue(ClassFile *cf, struct BufferIO *input,
             // that denotes the internal form of the binary
             // name (§4.2.1) of the type of the enum constant represented by this
             // element_value structure.
-            if (!isFieldDescriptor(cui->data->length, cui->data->bytes)) return -1;
+            if (!isFieldDescriptor(cui->length, cui->bytes)) return -1;
             if (ru2(&(value->enum_const_value.const_name_index), input) < 0)
                 return -1;
             cui = getConstant_Utf8(cf, value->enum_const_value.const_name_index);
@@ -1403,7 +1384,7 @@ extern int
 loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     u2 attribute_name_index;
-    CONSTANT_Utf8_info *utf8;
+    const_Utf8_data *utf8;
     int attribute_name_length;
     char *attribute_name;
     int res;
@@ -1414,8 +1395,8 @@ loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
         return -1;
     utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    attribute_name_length = (int) utf8->data->length;
-    attribute_name = (char *) utf8->data->bytes;
+    attribute_name_length = (int) utf8->length;
+    attribute_name = (char *) utf8->bytes;
 
 #if VER_CMP(45, 3)
     if (!strncmp(attribute_name, "SourceFile", 10))
@@ -1479,7 +1460,7 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
         field_info *field, attr_info *info)
 {
     u2 attribute_name_index;
-    CONSTANT_Utf8_info *utf8;
+    const_Utf8_data *utf8;
     int attribute_name_length;
     char *attribute_name;
     int res;
@@ -1490,8 +1471,8 @@ loadAttribute_field(ClassFile *cf, struct BufferIO *input,
         return -1;
     utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    attribute_name_length = (int) utf8->data->length;
-    attribute_name = (char *) utf8->data->bytes;
+    attribute_name_length = (int) utf8->length;
+    attribute_name = (char *) utf8->bytes;
 
 #if VER_CMP(45, 3)
     if (!strncmp(attribute_name, "ConstantValue", 13))
@@ -1539,7 +1520,7 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
         method_info *method, attr_info *info)
 {
     u2 attribute_name_index;
-    CONSTANT_Utf8_info *utf8;
+    const_Utf8_data *utf8;
     int attribute_name_length;
     char *attribute_name;
     int res;
@@ -1550,8 +1531,8 @@ loadAttribute_method(ClassFile *cf, struct BufferIO *input,
         return -1;
     utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    attribute_name_length = (int) utf8->data->length;
-    attribute_name = (char *) utf8->data->bytes;
+    attribute_name_length = (int) utf8->length;
+    attribute_name = (char *) utf8->bytes;
 
 #if VER_CMP(45, 3)
     if (!strncmp(attribute_name, "Code", 4))
@@ -1620,7 +1601,7 @@ extern int
 loadAttribute_code(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
     u2 attribute_name_index;
-    CONSTANT_Utf8_info *utf8;
+    const_Utf8_data *utf8;
     int attribute_name_length;
     char *attribute_name;
 
@@ -1630,8 +1611,8 @@ loadAttribute_code(ClassFile *cf, struct BufferIO *input, attr_info *info)
         return -1;
     utf8 = getConstant_Utf8(cf, attribute_name_index);
     if (!utf8) return -1;
-    attribute_name_length = (int) utf8->data->length;
-    attribute_name = (char *) utf8->data->bytes;
+    attribute_name_length = (int) utf8->length;
+    attribute_name = (char *) utf8->bytes;
 
 #if VER_CMP(45, 3)
     if (!strncmp(attribute_name, "LineNumberTable", 15))
