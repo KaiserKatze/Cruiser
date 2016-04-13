@@ -20,6 +20,7 @@ cruise: main.c java.c include/java.h attr.c
 		${DIR_BUILD}/log.so								\
 		${DIR_BUILD}/mem.so								\
 		${DIR_BUILD}/vrf.so								\
+		${DIR_BUILD}/rt.so								\
 		${INCLUDE} ${LIB_MAIN} ${MACRO};
 
 init:
@@ -28,6 +29,7 @@ init:
 	@make log
 	@make mem
 	@make vrf
+	@make rt
 
 # Modules
 input: include/input.h input.c
