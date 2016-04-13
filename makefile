@@ -44,7 +44,5 @@ test: test.c
 
 # Clean
 clean:
-	@clear
-	@if [ -d ${DIR_BUILD} ]; then rm -r ${DIR_BUILD}; fi
-	@find -type f -name "*.log" -delete
-	@find -maxdepth 1 -type f -executable -delete
+	@clear;clear
+	@find ${DIR_BUILD} -type f -executable -delete
