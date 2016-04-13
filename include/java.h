@@ -124,17 +124,22 @@ extern "C" {
     } const_String_data;
     // CONSTANT_Integer
     // CONSTANT_Float
-    typedef struct
+    typedef union
     {
         u4      bytes;
+        float   float_value;
     } const_Integer_data,
         const_Float_data;
     // CONSTANT_Long
     // CONSTANT_Double
-    typedef struct
+    typedef union
     {
-        u4      high_bytes;
-        u4      low_bytes;
+        struct
+        {
+            u4  high_bytes;
+            u4  low_bytes;
+        };
+        double  double_value;
     } const_Long_data,
         const_Double_data;
     // CONSTANT_NameAndType
@@ -531,21 +536,22 @@ extern "C" {
 
     extern u4 getAttributeTag(size_t, char *);
 
-    extern cp_info *getConstant(ClassFile *, u2);
-    extern cp_info *getConstant_Class(ClassFile *, u2);
-    extern cp_info *getConstant_Fieldref(ClassFile *, u2);
-    extern cp_info *getConstant_Methodref(ClassFile *, u2);
-    extern cp_info *getConstant_InterfaceMethodref(ClassFile *, u2);
-    extern cp_info *getConstant_String(ClassFile *, u2);
-    extern cp_info *getConstant_Integer(ClassFile *, u2);
-    extern cp_info *getConstant_Float(ClassFile *, u2);
-    extern cp_info *getConstant_Long(ClassFile *, u2);
-    extern cp_info *getConstant_Double(ClassFile *, u2);
-    extern cp_info *getConstant_NameAndType(ClassFile *, u2);
-    extern cp_info *getConstant_Utf8(ClassFile *, u2);
-    extern cp_info *getConstant_MethodHandle(ClassFile *, u2);
-    extern cp_info *getConstant_MethodType(ClassFile *, u2);
-    extern cp_info *getConstant_InvokeDynamic(ClassFile *, u2);
+    extern cp_info *                        getConstant(ClassFile *, u2);
+
+    extern const_Class_data *               getConstant_Class(ClassFile *, u2);
+    extern const_Fieldref_data *            getConstant_Fieldref(ClassFile *, u2);
+    extern const_Methodref_data *           getConstant_Methodref(ClassFile *, u2);
+    extern const_InterfaceMethodref_data *  getConstant_InterfaceMethodref(ClassFile *, u2);
+    extern const_String_data *              getConstant_String(ClassFile *, u2);
+    extern const_Integer_data *             getConstant_Integer(ClassFile *, u2);
+    extern const_Float_data *               getConstant_Float(ClassFile *, u2);
+    extern const_Long_data *                getConstant_Long(ClassFile *, u2);
+    extern const_Double_data *              getConstant_Double(ClassFile *, u2);
+    extern const_NameAndType_data *         getConstant_NameAndType(ClassFile *, u2);
+    extern const_Utf8_data *                getConstant_Utf8(ClassFile *, u2);
+    extern const_MethodHandle_data *        getConstant_MethodHandle(ClassFile *, u2);
+    extern const_MethodType_data *          getConstant_MethodType(ClassFile *, u2);
+    extern const_InvokeDynamic_data *       getConstant_InvokeDynamic(ClassFile *, u2);
 
     extern int loadAttributes_class(ClassFile *, struct BufferIO *, u2 *, attr_info **);
     extern int loadAttributes_field(ClassFile *, struct BufferIO *, field_info *, u2 *, attr_info **);

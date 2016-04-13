@@ -394,7 +394,7 @@ getConstant(ClassFile *cf, u2 index)
     return (cp_info *) 0;
 }
 
-extern cp_info *
+extern const_Utf8_data *
 getConstant_Utf8(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -403,18 +403,18 @@ getConstant_Utf8(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Utf8)
     {
         logError("Constant pool entry #%i is not CONSTANT_Utf8_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cud);
 }
 
-extern cp_info *
+extern const_Class_data *
 getConstant_Class(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -423,18 +423,18 @@ getConstant_Class(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Class)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Class_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.ccd);
 }
 
-extern cp_info *
+extern const_Fieldref_data *
 getConstant_Fieldref(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -443,18 +443,18 @@ getConstant_Fieldref(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Fieldref)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Fieldref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cfd);
 }
 
-extern cp_info *
+extern const_Methodref_data *
 getConstant_Methodref(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -463,18 +463,18 @@ getConstant_Methodref(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Methodref)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Methodref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cfd);
 }
 
-extern cp_info *
+extern const_InterfaceMethodref_data *
 getConstant_InterfaceMethodref(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -483,18 +483,18 @@ getConstant_InterfaceMethodref(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_InterfaceMethodref)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_InterfaceMethodref_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cfd);
 }
 
-extern cp_info *
+extern const_String_data *
 getConstant_String(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -503,18 +503,18 @@ getConstant_String(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_String)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_String_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.csd);
 }
 
-extern cp_info *
+extern const_Integer_data *
 getConstant_Integer(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -523,18 +523,18 @@ getConstant_Integer(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Integer)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Integer_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cid);
 }
 
-extern cp_info *
+extern const_Float_data *
 getConstant_Float(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -543,18 +543,18 @@ getConstant_Float(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Float)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Float_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cid);
 }
 
-extern cp_info *
+extern const_Long_data *
 getConstant_Long(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -563,18 +563,18 @@ getConstant_Long(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Long)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Long_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cld);
 }
 
-extern cp_info *
+extern const_Double_data *
 getConstant_Double(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -583,18 +583,18 @@ getConstant_Double(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_Double)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_Double_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cld);
 }
 
-extern cp_info *
+extern const_NameAndType_data *
 getConstant_NameAndType(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -603,18 +603,18 @@ getConstant_NameAndType(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_NameAndType)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_NameAndType_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cnd);
 }
 
-extern cp_info *
+extern const_MethodHandle_data *
 getConstant_MethodHandle(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -623,18 +623,18 @@ getConstant_MethodHandle(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_MethodHandle)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_MethodHandle_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cmhd);
 }
 
-extern cp_info *
+extern const_MethodType_data *
 getConstant_MethodType(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -643,18 +643,18 @@ getConstant_MethodType(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_MethodType)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_MethodType_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cmtd);
 }
 
-extern cp_info *
+extern const_InvokeDynamic_data *
 getConstant_InvokeDynamic(ClassFile *cf, u2 index)
 {
     cp_info *info;
@@ -663,15 +663,15 @@ getConstant_InvokeDynamic(ClassFile *cf, u2 index)
     if (!info)
     {
         logError("Constant pool entry #%i is NULL!\r\n", index);
-        return (cp_info *) 0;
+        return NULL;
     }
     if (info->tag != CONSTANT_InvokeDynamic)
     {
         logInfo("Constant pool entry #%i is not CONSTANT_InvokeDynamic_info entry, but CONSTANT_%s_info entry!\r\n", index, get_cp_name(info->tag));
-        return (cp_info *) 0;
+        return NULL;
     }
 
-    return info;
+    return &(info->info.cidd);
 }
 
 /*
@@ -789,7 +789,7 @@ loadConstant(struct BufferIO *input, cp_info *info)
     else
     {
         length = getConstantLength(tag);
-        if (rbs(&(info->info), input, length) < 0)  return -1;
+        if (rbs((u1 *) &(info->info), input, length) < 0)  return -1;
     }
 
     info->tag = tag;
