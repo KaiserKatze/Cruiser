@@ -301,3 +301,8 @@ rt_Method::getAttribute_Code(u2 index)
         return (attr_Code_info *) 0;
     return (attr_Code_info *) info->data;
 }
+
+rt_Member::rt_Member(rt_Class *rtc)
+{
+    this->def_class = rtc;
+}
