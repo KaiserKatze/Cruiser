@@ -86,6 +86,8 @@ public:
     u2              getAccessFlags();
     rt_Attributes * getAttributes();
 protected:
+                    rt_Accessible(ClassFile *);
+                    rt_Accessible(field_info *);
     attr_info *     getAttribute(u2);
     attr_info *     getAttribute(u2, u4);
 private:
@@ -100,6 +102,7 @@ class rt_Class :
     public rt_Accessible
 {
 public:
+                    rt_Class(ClassFile *);
     u2              getFieldsCount();
     rt_Field *      getFields();
     u2              getMethodsCount();

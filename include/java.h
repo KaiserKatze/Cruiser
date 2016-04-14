@@ -492,29 +492,30 @@ extern "C" {
 #endif /* VERSION 52.0 */
 
     typedef struct {
-        u2 access_flags;
-        u2 name_index;
-        u2 descriptor_index;
-        u2 attributes_count;
-        attr_info *attributes;
+        u2              access_flags;
+        u2              name_index;
+        u2              descriptor_index;
+        u2              attributes_count;
+        attr_info *     attributes;
     } field_info, method_info;
 
     typedef struct
     {
-        u2 minor_version, major_version;
-        u2 constant_pool_count;
-        cp_info * constant_pool;
-        u2 access_flags;
-        u2 this_class;
-        u2 super_class;
-        u2 interfaces_count;
-        u2 * interfaces;
-        u2 fields_count;
-        field_info * fields;
-        u2 methods_count;
-        method_info * methods;
-        u2 attributes_count;
-        attr_info * attributes;
+        u2              minor_version;
+        u2              major_version;
+        u2              constant_pool_count;
+        cp_info *       constant_pool;
+        u2              access_flags;
+        u2              this_class;
+        u2              super_class;
+        u2              interfaces_count;
+        u2 *            interfaces;
+        u2              fields_count;
+        field_info *    fields;
+        u2              methods_count;
+        method_info *   methods;
+        u2              attributes_count;
+        attr_info *     attributes;
     } ClassFile;
 
     struct AttributeFilter
