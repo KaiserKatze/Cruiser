@@ -145,18 +145,24 @@ public:
     bool            isInterface();
     bool            isAnnotation();
     bool            isSynthetic();
-    const_Class_data * getThisClass();
-    const_Class_data * getSuperClass();
-    const_Utf8_data *  getClassName();
+    const_Class_data *
+                    getThisClass();
+    const_Class_data *
+                    getSuperClass();
+    const_Utf8_data *
+                    getClassName();
     u2              getInterfacesCount();
-    const_Class_data **getInterfaces(const_Class_data **);
+    const_Class_data **
+                    getInterfaces(const_Class_data **);
 }; // rt_Class
 
 class rt_Member
 {
 public:
-    const_Utf8_data *  getName();
-    const_Utf8_data *  getDescriptor();
+    const_Utf8_data *
+                    getName();
+    const_Utf8_data *
+                    getDescriptor();
     rt_Class *      getDefClass();
 private:
     rt_Class *      def_class;
