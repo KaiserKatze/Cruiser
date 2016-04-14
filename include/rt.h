@@ -183,10 +183,12 @@ public:
     const_Utf8_data *
                     getDescriptor();
     rt_Class *      getDefClass();
-private:
-    rt_Class *      def_class;
+protected:
+                    rt_Member(rt_Class *);
     u2              name_index;
     u2              descriptor_index;
+private:
+    rt_Class *      def_class;
 };
 
 class rt_Field :
@@ -213,7 +215,7 @@ class rt_Method :
 private:
     attr_Code_info *getAttribute_Code(u2);
 public:
-                    rt_Method(method_info *);
+                    rt_Method(rt_Class *, method_info *);
     void            initFrame(rt_Frame *);
 private:
     rt_Descriptor   descriptor;
