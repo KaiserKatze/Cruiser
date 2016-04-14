@@ -497,15 +497,7 @@ extern "C" {
         u2 descriptor_index;
         u2 attributes_count;
         attr_info *attributes;
-    } field_info;
-
-    typedef struct {
-        u2 access_flags;
-        u2 name_index;
-        u2 descriptor_index;
-        u2 attributes_count;
-        attr_info *attributes;
-    } method_info;
+    } field_info, method_info;
 
     typedef struct
     {
