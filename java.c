@@ -45,7 +45,7 @@ parseClassfile(struct BufferIO * input,
 {
     u4 magic;
     ClassFile cf;
-    rt_Class rtc;
+    rt_Class *rtc;
 
     if (!input)
     {
@@ -104,11 +104,13 @@ parseClassfile(struct BufferIO * input,
     if (validateMethods(&cf) < 0)
         return -1;
 
-    //if (linkClass(&cf, &rtc) < 0)                   return -1;
-    //if (logClassHeader(&rtc) < 0)                   return -1;
-    //if (logFields(&rtc) < 0)                        return -1;
-    //if (logMethods(&rtc) < 0)                       return -1;
+    rtc = new rt_Class(&cf);
+    //if (linkClass(&cf, rtc) < 0)                   return -1;
+    //if (logClassHeader(rtc) < 0)                   return -1;
+    //if (logFields(rtc) < 0)                        return -1;
+    //if (logMethods(rtc) < 0)                       return -1;
     //if (freeClassfile(&cf) < 0)                     return -1;
+    delete rtc;
 
     return 0;
 }
