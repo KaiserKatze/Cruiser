@@ -52,55 +52,6 @@ typedef struct
     u1              parameters_length;
     rt_Parameter *  parameters;
 }                                   rt_Descriptor;
-
-typedef const_Class_data            rt_Class_info;
-
-typedef struct
-{
-    u2              class_name_index;
-    u2              name_index;
-    u2              descriptor_index;
-    rt_Descriptor   descriptor;
-}                                   rt_Fieldref_data,
-                                    rt_Methodref_data,
-                                    rt_InterfaceMethodref_data;
-
-typedef const_Fieldref_data         rt_Fieldref_info;
-typedef const_Methodref_data        rt_Methodref_info;
-typedef const_InterfaceMethodref_data
-                                    rt_InterfaceMethodref_info;
-typedef const_String_data           rt_String_info;
-typedef const_Integer_data          rt_Integer_info;
-typedef const_Float_data            rt_Float_info;
-typedef const_Long_data             rt_Long_info;
-typedef const_Double_data           rt_Double_info;
-// I don't think NameAndType need to be resolved
-// because it's a middle info
-typedef const_Utf8_data             rt_Utf8_info;
-typedef struct
-{
-    u1              reference_kind;
-    union
-    {
-        u2          off_Fieldref;
-        u2          off_Methodref;
-        u2          off_InterfaceMethodref;
-    };
-}                                   rt_MethodHandle_data;
-typedef const_MethodHandle_data     rt_MethodHandle_info;
-typedef struct
-{
-    u2              descriptor_index;
-}                                   rt_MethodType_data;
-typedef const_MethodType_data       rt_MethodType_info;
-typedef struct
-{
-    u2              bootstrap_method_attr_index;
-    u2              name_index;
-    u2              descriptor_index;
-}                                   rt_InvokeDynamic_data;
-typedef const_InvokeDynamic_data    rt_InvokeDynamic_info;
-
 typedef struct
 {
     u2              attributes_count;
@@ -135,31 +86,31 @@ public:
     rt_Method *     getMethods();
 
     u1              getConstantTag(u2);
-    rt_Class_info *
+    const_Class_data *
                     getConstant_Class(u2);
-    rt_Fieldref_info *
+    const_Fieldref_data *
                     getConstant_Fieldref(u2);
-    rt_Methodref_info *
+    const_Methodref_data *
                     getConstant_Methodref(u2);
-    rt_InterfaceMethodref_info *
+    const_InterfaceMethodref_data *
                     getConstant_InterfaceMethodref(u2);
-    rt_String_info *
+    const_String_data *
                     getConstant_String(u2);
-    rt_Integer_info *
+    const_Integer_data *
                     getConstant_Integer(u2);
-    rt_Float_info *
+    const_Float_data *
                     getConstant_Float(u2);
-    rt_Long_info *
+    const_Long_data *
                     getConstant_Long(u2);
-    rt_Double_info *
+    const_Double_data *
                     getConstant_Double(u2);
-    rt_Utf8_info *
+    const_Utf8_data *
                     getConstant_Utf8(u2);
-    rt_MethodHandle_info *
+    const_MethodHandle_data *
                     getConstant_MethodHandle(u2);
-    rt_MethodType_info *
+    const_MethodType_data *
                     getConstant_MethodType(u2);
-    rt_InvokeDynamic_info *
+    const_InvokeDynamic_data *
                     getConstant_InvokeDynamic(u2);
 private:
     int             hash;
@@ -193,18 +144,18 @@ public:
     bool            isInterface();
     bool            isAnnotation();
     bool            isSynthetic();
-    rt_Class_info * getThisClass();
-    rt_Class_info * getSuperClass();
-    rt_Utf8_info *  getClassName();
+    const_Class_data * getThisClass();
+    const_Class_data * getSuperClass();
+    const_Utf8_data *  getClassName();
     u2              getInterfacesCount();
-    rt_Class_info **getInterfaces(rt_Class_info **);
+    const_Class_data **getInterfaces(const_Class_data **);
 }; // rt_Class
 
 class rt_Member
 {
 public:
-    rt_Utf8_info *  getName();
-    rt_Utf8_info *  getDescriptor();
+    const_Utf8_data *  getName();
+    const_Utf8_data *  getDescriptor();
     rt_Class *      getDefClass();
 private:
     rt_Class *      def_class;

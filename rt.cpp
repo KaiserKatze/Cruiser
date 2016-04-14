@@ -62,114 +62,114 @@ rt_getConstant(u2 index, u2 cp_count, cp_info *cp)
     return (rt_info *) info;
 }
 
-rt_Class_info *
+const_Class_data *
 rt_Class::getConstant_Class(u2 index)
 {
-    return rt_getConstant<rt_Class_info, CONSTANT_Class>(index,
+    return rt_getConstant<const_Class_data, CONSTANT_Class>(index,
             constant_pool_count, constant_pool);
 }
 
-rt_Fieldref_info *
+const_Fieldref_data *
 rt_Class::getConstant_Fieldref(u2 index)
 {
-    return rt_getConstant<rt_Fieldref_info, CONSTANT_Fieldref>(index,
+    return rt_getConstant<const_Fieldref_data, CONSTANT_Fieldref>(index,
             constant_pool_count, constant_pool);
 }
 
-rt_Methodref_info *
+const_Methodref_data *
 rt_Class::getConstant_Methodref(u2 index)
 {
-    return rt_getConstant<rt_Methodref_info,
+    return rt_getConstant<const_Methodref_data,
            CONSTANT_Methodref>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_InterfaceMethodref_info *
+const_InterfaceMethodref_data *
 rt_Class::getConstant_InterfaceMethodref(u2 index)
 {
-    return rt_getConstant<rt_InterfaceMethodref_info,
+    return rt_getConstant<const_InterfaceMethodref_data,
            CONSTANT_InterfaceMethodref>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_String_info *
+const_String_data *
 rt_Class::getConstant_String(u2 index)
 {
-    return rt_getConstant<rt_String_info,
+    return rt_getConstant<const_String_data,
            CONSTANT_String>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_Integer_info *
+const_Integer_data *
 rt_Class::getConstant_Integer(u2 index)
 {
-    return rt_getConstant<rt_Integer_info,
+    return rt_getConstant<const_Integer_data,
            CONSTANT_Integer>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_Float_info *
+const_Float_data *
 rt_Class::getConstant_Float(u2 index)
 {
-    return rt_getConstant<rt_Float_info,
+    return rt_getConstant<const_Float_data,
            CONSTANT_Float>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_Long_info *
+const_Long_data *
 rt_Class::getConstant_Long(u2 index)
 {
-    return rt_getConstant<rt_Long_info,
+    return rt_getConstant<const_Long_data,
            CONSTANT_Long>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_Double_info *
+const_Double_data *
 rt_Class::getConstant_Double(u2 index)
 {
-    return rt_getConstant<rt_Double_info,
+    return rt_getConstant<const_Double_data,
            CONSTANT_Double>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_Utf8_info *
+const_Utf8_data *
 rt_Class::getConstant_Utf8(u2 index)
 {
-    return rt_getConstant<rt_Utf8_info,
+    return rt_getConstant<const_Utf8_data,
            CONSTANT_Utf8>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_MethodHandle_info *
+const_MethodHandle_data *
 rt_Class::getConstant_MethodHandle(u2 index)
 {
-    return rt_getConstant<rt_MethodHandle_info,
+    return rt_getConstant<const_MethodHandle_data,
            CONSTANT_MethodHandle>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_MethodType_info *
+const_MethodType_data *
 rt_Class::getConstant_MethodType(u2 index)
 {
-    return rt_getConstant<rt_MethodType_info,
+    return rt_getConstant<const_MethodType_data,
            CONSTANT_MethodType>(index,
                    constant_pool_count,
                    constant_pool);
 }
 
-rt_InvokeDynamic_info *
+const_InvokeDynamic_data *
 rt_Class::getConstant_InvokeDynamic(u2 index)
 {
-    return rt_getConstant<rt_InvokeDynamic_info,
+    return rt_getConstant<const_InvokeDynamic_data,
            CONSTANT_InvokeDynamic>(index,
                    constant_pool_count,
                    constant_pool);
@@ -193,22 +193,22 @@ rt_Class::isSynthetic()
     return getAccessFlags() & ACC_SYNTHETIC;
 }
 
-rt_Class_info *
+const_Class_data *
 rt_Class::getThisClass()
 {
     return getConstant_Class(this_class);
 }
 
-rt_Class_info *
+const_Class_data *
 rt_Class::getSuperClass()
 {
     return getConstant_Class(super_class);
 }
 
-rt_Utf8_info *
+const_Utf8_data *
 rt_Class::getClassName()
 {
-    rt_Class_info * info;
+    const_Class_data * info;
     u2              name_index;
 
     info = getThisClass();
@@ -223,19 +223,19 @@ rt_Class::getInterfacesCount()
     return interfaces_count;
 }
 
-rt_Class_info **
-rt_Class::getInterfaces(rt_Class_info ** out)
+const_Class_data **
+rt_Class::getInterfaces(const_Class_data ** out)
 {
     u2 count;
     u2 i;
 
     count = getInterfacesCount();
     if (count == 0)
-        return (rt_Class_info **) NULL;
+        return (const_Class_data **) NULL;
     if (!out)
     {
-        out = (rt_Class_info **)
-            allocMemory(count, sizeof (rt_Class_info *));
+        out = (const_Class_data **)
+            allocMemory(count, sizeof (const_Class_data *));
         if (!out)
             return out;
     }
@@ -252,7 +252,7 @@ rt_Member::getDefClass()
     return def_class;
 }
 
-rt_Utf8_info *
+const_Utf8_data *
 rt_Member::getName()
 {
     rt_Class *cls;
@@ -261,7 +261,7 @@ rt_Member::getName()
     return cls->getConstant_Utf8(name_index);
 }
 
-rt_Utf8_info *
+const_Utf8_data *
 rt_Member::getDescriptor()
 {
     rt_Class *cls;

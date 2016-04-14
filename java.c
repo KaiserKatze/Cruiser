@@ -1189,7 +1189,7 @@ logFields(rt_Class *rtc)
     attr_info *attributes;
     attr_info *attribute;
     size_t n;
-    rt_Utf8_info *name, *descriptor;
+    const_Utf8_data *name, *descriptor;
     attr_ConstantValue_info *acv;
     u2 constantvalue_index;
     const_Long_data *cv_long;
