@@ -63,12 +63,31 @@ typedef struct
     u4              attributes_mark;
 }                                   rt_Attributes;
 
+typedef struct
+{
+    // NULL placeholder
+    rt_Method *     caller;
+    // the method which this frame belongs to
+    rt_Method *     callee;
+    // when a local variable or
+    // a parameter is referenced,
+    // `locals_offset` is used to retrieve
+    // its offset in `locals`
+    u2 *            locals_offset;
+    rt_Local *      locals;
+    u2 *            stack_offset;
+    rt_Value *      stack;
+}                                   rt_Frame;
+
 
 class rt_Accessible
 {
 public:
     u2              getAccessFlags();
     rt_Attributes * getAttributes();
+protected:
+    attr_info *     getAttribute(u2);
+    attr_info *     getAttribute(u2, u4);
 private:
     u2              access_flags;
     rt_Attributes   attributes;
@@ -192,6 +211,11 @@ class rt_Method :
     public rt_Member
 {
 private:
+    attr_Code_info *getAttribute_Code(u2);
+public:
+                    rt_Method(method_info *);
+    void            initFrame(rt_Frame *);
+private:
     rt_Descriptor   descriptor;
 
 #if VER_CMP(45, 3)
@@ -210,22 +234,6 @@ private:
     u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
 }; // rt_Method
-
-typedef struct
-{
-    // NULL placeholder
-    rt_Method *     caller;
-    // the method which this frame belongs to
-    rt_Method *     callee;
-    // when a local variable or
-    // a parameter is referenced,
-    // `locals_offset` is used to retrieve
-    // its offset in `locals`
-    u2 *            locals_offset;
-    rt_Local *      locals;
-    u2 *            stack_offset;
-    rt_Value *      stack;
-}                                   rt_Frame;
 
 #endif	/* RT_H */
 

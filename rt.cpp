@@ -14,6 +14,27 @@ rt_Accessible::getAttributes()
     return &attributes;
 }
 
+attr_info *
+rt_Accessible::getAttribute(u2 index)
+{
+    return getAttribute(index, 0);
+}
+
+attr_info *
+rt_Accessible::getAttribute(u2 index, u4 tag)
+{
+    attr_info *info;
+
+    if (index < 0 || index > attributes.attributes_count)
+        return (attr_info *) 0;
+    info = &(attributes.attributes[index]);
+    if (tag == 0)
+        return info;
+    if (info->tag == tag)
+        return info;
+    return (attr_info *) 0;
+}
+
 u2
 rt_Class::getFieldsCount()
 {
@@ -268,4 +289,15 @@ rt_Member::getDescriptor()
 
     cls = getDefClass();
     return cls->getConstant_Utf8(descriptor_index);
+}
+
+attr_Code_info *
+rt_Method::getAttribute_Code(u2 index)
+{
+    attr_info *info;
+
+    info = getAttribute(index, TAG_ATTR_CODE);
+    if (!info)
+        return (attr_Code_info *) 0;
+    return (attr_Code_info *) info->data;
 }
