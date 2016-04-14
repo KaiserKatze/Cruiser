@@ -7,6 +7,10 @@
 #error C++ TOOLCHAIN IS NEEDED TO COMPILE CRUISER!
 #endif
 
+class rt_Class;
+class rt_Field;
+class rt_Method;
+
 typedef struct
 {
     u2              off_parameter_descriptor;
@@ -69,9 +73,6 @@ private:
     u2              access_flags;
     rt_Attributes   attributes;
 };
-
-class rt_Field;
-class rt_Method;
 
 /*
  * Run-time structures and functions
