@@ -306,3 +306,25 @@ rt_Member::rt_Member(rt_Class *rtc)
 {
     this->def_class = rtc;
 }
+
+rt_Accessible::rt_Accessible(ClassFile *classfile)
+{
+    rt_Attributes *attrsp;
+
+    access_flags = classfile->access_flags;
+    attrsp->attributes_count = classfile->attributes_count;
+    attrsp->attributes = classfile->attributes;
+    attrsp->attributes_mark = 0;
+}
+
+rt_Accessible::rt_Accessible(field_info *info)
+{
+    rt_Attributes *attrsp;
+
+    access_flags = info->access_flags;
+
+    attrsp = &attributes;
+    attrsp->attributes_count = info->attributes_count;
+    attrsp->attributes = info->attributes;
+    attrsp->attributes_mark = 0;
+}
