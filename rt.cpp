@@ -41,7 +41,7 @@ rt_Class::getFieldsCount()
     return fields_count;
 }
 
-rt_Field *
+rt_Field **
 rt_Class::getFields()
 {
     return fields;
@@ -53,7 +53,7 @@ rt_Class::getMethodsCount()
     return methods_count;
 }
 
-rt_Method *
+rt_Method **
 rt_Class::getMethods()
 {
     return methods;
@@ -498,8 +498,6 @@ rt_Class::rt_Class(ClassFile *cf)
     : rt_Accessible(cf)
 {
     u2          i;
-    rt_Field *  field;
-    rt_Method * method;
 
     constant_pool_count = cf->constant_pool_count;
     constant_pool = cf->constant_pool;
@@ -508,9 +506,9 @@ rt_Class::rt_Class(ClassFile *cf)
     interfaces_count = cf->interfaces_count;
     interfaces = cf->interfaces;
     fields_count = cf->fields_count;
-    fields = (rt_Field *)
-        allocMemory(fields_count, sizeof (rt_Field));
+    fields = (rt_Field **)
+        allocMemory(fields_count, sizeof (rt_Field *));
     methods_count = cf->methods_count;
-    methods = (rt_Method *)
-        allocMemory(methods_count, sizeof (rt_Method));
+    methods = (rt_Method **)
+        allocMemory(methods_count, sizeof (rt_Method *));
 }
