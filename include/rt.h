@@ -7,7 +7,9 @@
 #error C++ TOOLCHAIN IS NEEDED TO COMPILE CRUISER!
 #endif
 
+#define MAX_STACK_DEPTH                 1024
 #define MAX_PARAMETERS_COUNT            128
+#define MAX_LOCALS_COUNT                128
 
 class rt_Class;
 class rt_Field;
