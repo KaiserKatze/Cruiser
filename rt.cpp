@@ -558,3 +558,43 @@ rt_Class::rt_Class(ClassFile *cf)
         }
     }
 }
+
+rt_Field::rt_Field(rt_Class *rtc, field_info *finfo)
+    : rt_Member(rtc), rt_Accessible(finfo)
+{
+    u2          i;
+    u2          attributes_count;
+    attr_info * attributes;
+    attr_info * attribute;
+
+    attributes_count = finfo->attributes_count;
+    attributes = finfo->attributes;
+    for (i = 0; i < attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_CONSTANTVALUE:
+                off_ConstantValue = i;
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                off_RuntimeVisibleAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                off_RuntimeInvisibleAnnotations = i;
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                off_RuntimeVisibleTypeAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                off_RuntimeInvisibleTypeAnnotations = i;
+                break;
+#endif
+        }
+    }
+}
