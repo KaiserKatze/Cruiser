@@ -328,3 +328,161 @@ rt_Accessible::rt_Accessible(field_info *info)
     attrsp->attributes = info->attributes;
     attrsp->attributes_mark = 0;
 }
+
+rt_Method::rt_Method(rt_Class *rtc, method_info *minfo)
+    : rt_Member(rtc), rt_Accessible(minfo)
+{
+    attr_info *         attributes;
+    u2                  attributes_count;
+    u2                  i;
+    attr_info *         attribute;
+    const_Utf8_data *   descriptor;
+    u1                  state;
+    u2                  len_descriptor;
+    u1 *                str_descriptor, end_descriptor;
+    u2                  len;
+    u1 *                str;
+    u1                  plen;
+    rt_Descriptor *     md;
+    rt_Parameter *      parameter;
+
+    // analyze method attributes
+    attributes = minfo->attributes;
+    attributes_count = minfo->attributes_count;
+    for (i = 0; i < attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+            case TAG_ATTR_CODE:
+                off_Code = i;
+                break;
+            case TAG_ATTR_EXCEPTIONS:
+                off_Exceptions = i;
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS:
+                off_RuntimeVisibleParameterAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS:
+                off_RuntimeInvisibleParameterAnnotations = i;
+                break;
+            case TAG_ATTR_ANNOTATIONDEFAULT:
+                off_AnnotationDefault = i;
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                off_RuntimeVisibleAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                off_RuntimeInvisibleAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                off_RuntimeVisibleTypeAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                off_RuntimeInvisibleTypeAnnotations = i;
+                break;
+        }
+    }
+
+    name_index = minfo->name_index;
+    descriptor_index = minfo->descriptor_index;
+    // analyze method descriptor
+    descriptor = rtc->getConstant_Utf8(descriptor_index);
+    len_descriptor = descriptor->length;
+    str_descriptor = descriptor->bytes;
+    end_descriptor = str_descriptor + len_descriptor;
+    state = 0;
+    md = &(this->descriptor);
+    md->parameters_count = 0;
+    md->parameters_length = 0;
+    if (!md->parameters)
+        throw -1;
+    /*
+     * | State | Description             |
+     * |-------|-------------------------|
+     * |     0 | '(' is not detected     |
+     * |     1 | '(' is detected         |
+     * |     2 | ')' is detected         |
+     * |     4 | descriptor ends         |
+     * |     8 | '[' is detected         |
+     */
+    str = str_descriptor;
+    while (str < end_descriptor)
+    {
+        if (state & 8)
+            state &= 7;
+        else
+            len = 0;
+        switch (*str)
+        {
+            case '(':
+                state = 1;
+                ++str;
+                continue;
+            case ')':
+                state |= 2;
+                ++str;
+                continue;
+            case 'L':
+                while (str < end_descriptor
+                        && str[++len] != ';');
+                if (state & 2)
+                    state |= 4;
+                plen = 1;
+                break;
+            case '[':
+                state |= 8;
+                while (str < end_descriptor
+                        && str[len++] == '[');
+                plen = 1;
+                break;
+            case 'B':
+            case 'C':
+            case 'D':
+            case 'F':
+            case 'I':
+            case 'J':
+            case 'S':
+            case 'Z':
+                ++len;
+                if (state & 2)
+                    state |= 4;
+                if (*str == 'J'
+                        || *str == 'D')
+                    plen = 2;
+                else
+                    plen = 1;
+                break;
+            case 'V':
+                state |= 4;
+                len = 1;
+                break;
+        }
+        // return type
+        if (state & 4)
+        {
+            md->off_return_descriptor = str - str_descriptor;
+            break;
+        }
+        // array type needs second parsing
+        if (state & 8)
+            continue;
+        // intact parameter descriptor
+        else
+        {
+            str += len;
+            md->off_parameters[md->parameters_length]
+                = md->parameters_count;
+            parameter = &(md->parameters[md->parameters_count]);
+            parameter->off_parameter_descriptor = str - str_descriptor;
+#if VER_CMP(52, 0)
+            // TODO JVM 52.0 is not implemented
+#else
+            parameter->access_flags = 0;
+            parameter->name_index = 0;
+#endif
+            md->parameters_count++;
+            md->parameters_length += plen;
+        }
+    }
+}
