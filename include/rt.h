@@ -7,27 +7,26 @@
 #error C++ TOOLCHAIN IS NEEDED TO COMPILE CRUISER!
 #endif
 
+#define MAX_PARAMETERS_COUNT            128
+
 class rt_Class;
 class rt_Field;
 class rt_Method;
 
 typedef struct
 {
+    // The value of the access_flags item is as follows:
+    // 0x0010 (ACC_FINAL)
+    // 0x1000 (ACC_SYNTHETIC)
+    // 0x8000 (ACC_MANDATED)
+    u2              access_flags;
     u2              off_parameter_descriptor;
-    u2              len_parameter_descirptor;
     // TODO
     // If the value of the name_index item is zero,
     // then this parameters element
     // indicates a formal parameter with no name.
     // WTF???
     u2              name_index;
-    u2              name_length;
-    u1 *            name_bytes;
-    // The value of the access_flags item is as follows:
-    // 0x0010 (ACC_FINAL)
-    // 0x1000 (ACC_SYNTHETIC)
-    // 0x8000 (ACC_MANDATED)
-    u2              access_flags;
 }                                   rt_Parameter;
 
 typedef struct
@@ -51,10 +50,10 @@ typedef struct
 typedef struct
 {
     u2              off_return_descriptor;
-    u2              len_return_descriptor;
     u1              parameters_count;
     u1              parameters_length;
-    rt_Parameter *  parameters;
+    u1              off_parameters  [MAX_PARAMETERS_COUNT];
+    rt_Parameter    parameters      [MAX_PARAMETERS_COUNT];
 }                                   rt_Descriptor;
 typedef struct
 {
