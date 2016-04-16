@@ -339,7 +339,8 @@ rt_Method::rt_Method(rt_Class *rtc, method_info *minfo)
     const_Utf8_data *   descriptor;
     u1                  state;
     u2                  len_descriptor;
-    u1 *                str_descriptor, end_descriptor;
+    u1 *                str_descriptor;
+    u1 *                end_descriptor;
     u2                  len;
     u1 *                str;
     u1                  plen;
@@ -354,12 +355,15 @@ rt_Method::rt_Method(rt_Class *rtc, method_info *minfo)
         attribute = &(attributes[i]);
         switch (attribute->tag)
         {
+#if VER_CMP(45, 3)
             case TAG_ATTR_CODE:
                 off_Code = i;
                 break;
             case TAG_ATTR_EXCEPTIONS:
                 off_Exceptions = i;
                 break;
+#endif
+#if VER_CMP(49, 0)
             case TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS:
                 off_RuntimeVisibleParameterAnnotations = i;
                 break;
@@ -375,12 +379,15 @@ rt_Method::rt_Method(rt_Class *rtc, method_info *minfo)
             case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
                 off_RuntimeInvisibleAnnotations = i;
                 break;
+#endif
+#if VER_CMP(52, 0)
             case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
                 off_RuntimeVisibleTypeAnnotations = i;
                 break;
             case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
                 off_RuntimeInvisibleTypeAnnotations = i;
                 break;
+#endif
         }
     }
 
