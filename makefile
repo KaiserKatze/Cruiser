@@ -53,6 +53,10 @@ vrf: include/vrf.h vrf.c
 	@${TOOL} -g -shared -o ${DIR_BUILD}/vrf.so vrf.c 	\
 		${INCLUDE} ${MACRO}
 
+dc: dc.c
+	@${TOOL} -g -shared -o ${DIR_BUILD}/dc.so dc.c		\
+		${INCLUDE} ${MACRO}
+
 # Test
 test: test.c
 	@clear
