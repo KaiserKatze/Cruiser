@@ -1,9 +1,0 @@
-Create output directories and error log files
-@see 'man 2 mkdir'
-
-
-@see jvms7.pdf:Page39
-@see jvms7.pdf:Page363
-Parse code
-
-decrease memory usage in jar.c
