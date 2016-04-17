@@ -9,7 +9,7 @@ EXEC=cruise
 LOG="Tool   : "${TOOL}"\r\nMacros : "${MACRO}"\r\nTarget : "${DIR_BUILD}/${EXEC}"\r\n"
 
 cruise: main.c java.c include/java.h attr.c
-	@make init
+	@make init		> /dev/null
 	@clear;clear
 	@echo ${LOG}
 	@${TOOL} -g -o ${DIR_BUILD}/${EXEC} 				\
@@ -30,6 +30,7 @@ init:
 	@make mem
 	@make vrf
 	@make rt
+	@make dc
 
 # Modules
 input: include/input.h input.c
@@ -53,8 +54,8 @@ vrf: include/vrf.h vrf.c
 	@${TOOL} -g -shared -o ${DIR_BUILD}/vrf.so vrf.c 	\
 		${INCLUDE} ${MACRO}
 
-dc: dc.c
-	@${TOOL} -g -shared -o ${DIR_BUILD}/dc.so dc.c		\
+dc: dc.cpp
+	@${TOOL} -g -shared -o ${DIR_BUILD}/dc.so dc.cpp	\
 		${INCLUDE} ${MACRO}
 
 # Test
