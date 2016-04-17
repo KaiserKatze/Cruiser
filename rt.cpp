@@ -41,7 +41,7 @@ rt_Class::getFieldsCount()
     return fields_count;
 }
 
-rt_Field *
+rt_Field **
 rt_Class::getFields()
 {
     return fields;
@@ -53,7 +53,7 @@ rt_Class::getMethodsCount()
     return methods_count;
 }
 
-rt_Method *
+rt_Method **
 rt_Class::getMethods()
 {
     return methods;
@@ -490,6 +490,111 @@ rt_Method::rt_Method(rt_Class *rtc, method_info *minfo)
 #endif
             md->parameters_count++;
             md->parameters_length += plen;
+        }
+    }
+}
+
+rt_Class::rt_Class(ClassFile *cf)
+    : rt_Accessible(cf)
+{
+    u2          i;
+    u2          attributes_count;
+    attr_info * attributes;
+    attr_info * attribute;
+
+    constant_pool_count = cf->constant_pool_count;
+    constant_pool = cf->constant_pool;
+    this_class = cf->this_class;
+    super_class = cf->super_class;
+    interfaces_count = cf->interfaces_count;
+    interfaces = cf->interfaces;
+    fields_count = cf->fields_count;
+    fields = (rt_Field **)
+        allocMemory(fields_count, sizeof (rt_Field *));
+    for (i = 0; i < fields_count; i++)
+        fields[i] = new rt_Field(this, &(cf->fields[i]));
+    methods_count = cf->methods_count;
+    methods = (rt_Method **)
+        allocMemory(methods_count, sizeof (rt_Method *));
+    for (i = 0; i < methods_count; i++)
+        methods[i] = new rt_Method(this, &(cf->methods[i]));
+    // resolve attributes
+    attributes_count = cf->attributes_count;
+    attributes = cf->attributes;
+    for (i = 0; i < attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_INNERCLASSES:
+                off_InnerClasses = i;
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_ENCLOSINGMETHOD:
+                off_EnclosingMethod = i;
+                break;
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                off_RuntimeVisibleAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                off_RuntimeInvisibleAnnotations = i;
+                break;
+#endif
+#if VER_CMP(51, 0)
+            case TAG_ATTR_BOOTSTRAPMETHODS:
+                off_BootstrapMethods = i;
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                off_RuntimeVisibleTypeAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                off_RuntimeInvisibleTypeAnnotations = i;
+                break;
+#endif
+        }
+    }
+}
+
+rt_Field::rt_Field(rt_Class *rtc, field_info *finfo)
+    : rt_Member(rtc), rt_Accessible(finfo)
+{
+    u2          i;
+    u2          attributes_count;
+    attr_info * attributes;
+    attr_info * attribute;
+
+    attributes_count = finfo->attributes_count;
+    attributes = finfo->attributes;
+    for (i = 0; i < attributes_count; i++)
+    {
+        attribute = &(attributes[i]);
+        switch (attribute->tag)
+        {
+#if VER_CMP(45, 3)
+            case TAG_ATTR_CONSTANTVALUE:
+                off_ConstantValue = i;
+                break;
+#endif
+#if VER_CMP(49, 0)
+            case TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS:
+                off_RuntimeVisibleAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS:
+                off_RuntimeInvisibleAnnotations = i;
+                break;
+#endif
+#if VER_CMP(52, 0)
+            case TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS:
+                off_RuntimeVisibleTypeAnnotations = i;
+                break;
+            case TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS:
+                off_RuntimeInvisibleTypeAnnotations = i;
+                break;
+#endif
         }
     }
 }

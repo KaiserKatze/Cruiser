@@ -105,9 +105,9 @@ class rt_Class :
 public:
                     rt_Class(ClassFile *);
     u2              getFieldsCount();
-    rt_Field *      getFields();
+    rt_Field **     getFields();
     u2              getMethodsCount();
-    rt_Method *     getMethods();
+    rt_Method **    getMethods();
 
     u1              getConstantTag(u2);
     const_Class_data *
@@ -145,9 +145,9 @@ private:
     u2              interfaces_count;
     u2 *            interfaces;
     u2              fields_count;
-    rt_Field *      fields;
+    rt_Field **     fields;
     u2              methods_count;
-    rt_Method *     methods;
+    rt_Method **    methods;
 
 #if VER_CMP(45, 3)
     u2 off_InnerClasses;
@@ -199,6 +199,8 @@ class rt_Field :
     public rt_Accessible,
     public rt_Member
 {
+public:
+                    rt_Field(rt_Class *, field_info *);
 #if VER_CMP(45, 3)
     u2              off_ConstantValue;
 #endif

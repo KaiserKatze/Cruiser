@@ -1183,7 +1183,7 @@ logFields(rt_Class *rtc)
     char buf[1024], *ptr;
     u2 i, j;
     u2 fields_count;
-    rt_Field * fields, * field;
+    rt_Field **fields, *field;
     u2 access_flags;
     u2 name_index;
     u2 descriptor_index;
@@ -1208,7 +1208,7 @@ logFields(rt_Class *rtc)
 
     for (i = 0; i < fields_count; i++)
     {
-        field = &(fields[i]);
+        field = fields[i];
 
         access_flags = field->getAccessFlags();
         name = field->getName();
@@ -1534,7 +1534,7 @@ logMethods(rt_Class *rtc)
     size_t n;
     u2 i, j;
     u2 methods_count;
-    rt_Method *methods, *method;
+    rt_Method **methods, *method;
     u2 access_flags, name_index, descriptor_index;
     u2 attributes_count;
     attr_info *attributes, *attribute;
@@ -1557,7 +1557,7 @@ logMethods(rt_Class *rtc)
 
     for (i = 0; i < methods_count; i++)
     {
-        method = &(methods[i]);
+        method = methods[i];
 
         access_flags = method->getAccessFlags();
         name = method->getName();
