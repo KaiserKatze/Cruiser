@@ -25,6 +25,7 @@ typedef struct
 static dc_stack_entry *     push_entry(dc_stack *);
 static dc_stack_entry *     pop_entry(dc_stack *);
 static int                  dc_printf(dc_stack_entry *, const char *, ...);
+static int                  dc_printf(dc_stack_entry *, rt_Class *, u2);
 
 int decompile(
         rt_Class *  rtc,
@@ -38,11 +39,6 @@ int decompile(
     u1 *                    end_code;
     u1                      opcode;
     u2                      index;
-    u1                      cp_tag;
-    const_Integer_data *    cid;
-    const_Long_data *       cld;
-    const_String_data *     csd;
-    const_Utf8_data *       cud;
     // TODO
 
     stack.depth = 1024;
@@ -78,26 +74,7 @@ int decompile(
             index = *++str_code;
             if (opcode != OPCODE_ldc)
                 index = (index << 8) | *++str_code;
-            cp_tag = rtc->getConstantTag(index);
-            switch (cp_tag)
-            {
-                case CONSTANT_Integer:
-                    cid = rtc->getConstant_Integer(index);
-                    dc_printf(entry, "%i", cid->bytes);
-                    break;
-                case CONSTANT_Float:
-                    cid = rtc->getConstant_Float(index);
-                    dc_printf(entry, "%ff", cid->float_value);
-                    break;
-                case CONSTANT_String:
-                    csd = rtc->getConstant_String(index);
-                    cud = rtc->getConstant_Utf8(csd->string_index);
-                    dc_printf(entry, "%.*s", cud->length, cud->bytes);
-                    break;
-                case CONSTANT_Class:
-                    ccd = rtc->getConstant_Class(index);
-                    cud = rtc->getConstant_Utf8(ccd->name_index);
-            }
+
             // TODO
         }
     }
@@ -126,4 +103,51 @@ static int dc_printf(dc_stack_entry *entry, const char *format, ...)
     entry->len = (u1) (res & 0xff);
 
     return res;
+}
+
+static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
+{
+    int                     i, len;
+    u1                      cp_tag;
+    const_Integer_data *    cid;
+    const_Long_data *       cld;
+    const_String_data *     csd;
+    const_Utf8_data *       cud;
+    const_Class_data *      ccd;
+
+    cp_tag = rtc->getConstantTag(index);
+    switch (cp_tag)
+    {
+        case CONSTANT_Utf8:
+            cud = rtc->getConstant_Utf8(index);
+            return dc_printf(entry, "%.*s", cud->length, cud->bytes);
+        case CONSTANT_Integer:
+            cid = rtc->getConstant_Integer(index);
+            return dc_printf(entry, "%i", cid->bytes);
+        case CONSTANT_Float:
+            cid = rtc->getConstant_Float(index);
+            return dc_printf(entry, "%ff", cid->float_value);
+        case CONSTANT_String:
+            csd = rtc->getConstant_String(index);
+            return dc_printf(entry, rtc, csd->string_index);
+        case CONSTANT_Class:
+            ccd = rtc->getConstant_Class(index);
+            len = dc_printf(entry, rtc, ccd->name_index);
+            if (len < 0)
+                return -1;
+            for (i = 0; i < len; i++)
+                if (entry->str[i] == '/')
+                    entry->str[i] = '.';
+            return len;
+        case CONSTANT_Long:
+            cld = rtc->getConstant_Long(index);
+            return dc_printf(entry, "%llil", cld->long_value);
+        case CONSTANT_Double:
+            cld = rtc->getConstant_Double(index);
+            return dc_printf(entry, "%fd", cld->double_value);
+        case CONSTANT_MethodType:
+        case CONSTANT_MethodHandle:
+            // TODO unsupported yet
+            return -1;
+    }
 }
