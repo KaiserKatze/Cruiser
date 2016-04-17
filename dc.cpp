@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "java.h"
 #include "opcode.h"
@@ -96,7 +98,7 @@ static int dc_printf(dc_stack_entry *entry, const char *format, ...)
     size_t res;
 
     va_start(vl, format);
-    res = vspirntf((char *) entry->str, format, vl);
+    res = vsprintf((char *) entry->str, format, vl);
     va_end(vl);
     // overflow
     if (res & 0xffffff00) return -1;
