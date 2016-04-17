@@ -33,11 +33,17 @@ int decompile(
         u1 *        str_code
 )
 {
-    dc_stack        stack;
-    dc_stack_entry *entry;
-    u1 *            end_code;
-    u1              opcode;
-    u2              index;
+    dc_stack                stack;
+    dc_stack_entry *        entry;
+    u1 *                    end_code;
+    u1                      opcode;
+    u2                      index;
+    u1                      cp_tag;
+    const_Integer_data *    cid;
+    const_Long_data *       cld;
+    const_String_data *     csd;
+    const_Utf8_data *       cud;
+    // TODO
 
     stack.depth = 1024;
     memset(&stack.entries, 0, sizeof (dc_stack));
@@ -72,6 +78,27 @@ int decompile(
             index = *++str_code;
             if (opcode != OPCODE_ldc)
                 index = (index << 8) | *++str_code;
+            cp_tag = rtc->getConstantTag(index);
+            switch (cp_tag)
+            {
+                case CONSTANT_Integer:
+                    cid = rtc->getConstant_Integer(index);
+                    dc_printf(entry, "%i", cid->bytes);
+                    break;
+                case CONSTANT_Float:
+                    cid = rtc->getConstant_Float(index);
+                    dc_printf(entry, "%ff", cid->float_value);
+                    break;
+                case CONSTANT_String:
+                    csd = rtc->getConstant_String(index);
+                    cud = rtc->getConstant_Utf8(csd->string_index);
+                    dc_printf(entry, "%.*s", cud->length, cud->bytes);
+                    break;
+                case CONSTANT_Class:
+                    ccd = rtc->getConstant_Class(index);
+                    cud = rtc->getConstant_Utf8(ccd->name_index);
+            }
+            // TODO
         }
     }
 }
