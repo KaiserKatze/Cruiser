@@ -27,6 +27,8 @@ static dc_stack_entry *     pop_entry(dc_stack *);
 static int                  dc_printf(dc_stack_entry *, const char *, ...);
 
 int decompile(
+        rt_Class *  rtc,
+        rt_Method * method,
         u4          len_code,
         u1 *        str_code
 )
