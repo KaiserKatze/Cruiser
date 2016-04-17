@@ -53,32 +53,55 @@ int decompile(
             continue;
         entry = push_entry(&stack);
         if (opcode == OPCODE_aconst_null)
-            dc_printf(entry, "null");
+        {
+            if (dc_printf(entry, "null") < 0)
+                return -1;
+        }
         else if (opcode >= OPCODE_iconst_m1
                 && opcode <= OPCODE_iconst_5)
-            dc_printf(entry, "%i", opcode - OPCODE_iconst_0);
+        {
+            if (dc_printf(entry, "%i", opcode - OPCODE_iconst_0) < 0)
+                return -1;
+        }
         else if (opcode == OPCODE_lconst_0
                 && opcode == OPCODE_lconst_1)
-            dc_printf(entry, "%llil", opcode - OPCODE_lconst_0);
+        {
+            if (dc_printf(entry, "%llil", opcode - OPCODE_lconst_0) < 0)
+                return -1;
+        }
         else if (opcode >= OPCODE_fconst_0
                 && opcode <= OPCODE_fconst_2)
-            dc_printf(entry, "%ff", opcode - OPCODE_fconst_0);
+        {
+            if (dc_printf(entry, "%ff", opcode - OPCODE_fconst_0) < 0)
+                return -1;
+        }
         else if (opcode == OPCODE_dconst_0
                 && opcode == OPCODE_dconst_1)
-            dc_printf(entry, "%fd", opcode - OPCODE_dconst_0);
+        {
+            if (dc_printf(entry, "%fd", opcode - OPCODE_dconst_0) < 0)
+                return -1;
+        }
         else if (opcode == OPCODE_bipush)
-            dc_printf(entry, "%i", *++str_code);
+        {
+            if (dc_printf(entry, "%i", *++str_code) < 0)
+                return -1;
+        }
         else if (opcode == OPCODE_sipush)
-            dc_printf(entry, "%i", (*++str_code << 8) | *++str_code);
+        {
+            if (dc_printf(entry, "%i",
+                        (*++str_code << 8) | *++str_code) < 0)
+                return -1;
+        }
         else if (opcode >= OPCODE_ldc
                 && opcode <= OPCODE_ldc2_w)
         {
             index = *++str_code;
             if (opcode != OPCODE_ldc)
                 index = (index << 8) | *++str_code;
-
-            // TODO
+            if (dc_printf(entry, rtc, index) < 0)
+                return -1;
         }
+            // TODO
     }
 }
 
