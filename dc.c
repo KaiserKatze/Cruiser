@@ -35,6 +35,7 @@ int decompile(
     dc_stack_entry *entry;
     u1 *            end_code;
     u1              opcode;
+    u2              index;
 
     stack.depth = 1024;
     memset(&stack.entries, 0, sizeof (dc_stack));
@@ -63,6 +64,13 @@ int decompile(
             dc_printf(entry, "%i", *++str_code);
         else if (opcode == OPCODE_sipush)
             dc_printf(entry, "%i", (*++str_code << 8) | *++str_code);
+        else if (opcode >= OPCODE_ldc
+                && opcode <= OPCODE_ldc2_w)
+        {
+            index = *++str_code;
+            if (opcode != OPCODE_ldc)
+                index = (index << 8) | *++str_code;
+        }
     }
 }
 
