@@ -221,7 +221,7 @@ private:
 public:
                     rt_Method(rt_Class *, method_info *);
     void            initFrame(rt_Frame *);
-    rt_Descriptor * getDescriptor();
+    rt_Descriptor * getRuntimeDescriptor();
 private:
     rt_Descriptor   descriptor;
 
