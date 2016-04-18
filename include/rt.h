@@ -217,7 +217,7 @@ class rt_Method :
     public rt_Member
 {
 private:
-    attr_Code_info *getAttribute_Code(u2);
+    attr_Code_info *getAttribute_Code();
 public:
                     rt_Method(rt_Class *, method_info *);
     void            initFrame(rt_Frame *);
