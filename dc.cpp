@@ -183,6 +183,22 @@ static int dc_initFrame(dc_frame *frame,
         rt_Class *rtc, rt_Method *rm)
 {
     rt_Descriptor *         md;
+    u2                      i;
+    u1                      off;
+    rt_Parameter *          parameter;
+
+    md = rm->getRuntimeDescriptor();
+    frame->len_p = md->parameters_length;
+    for (i = 0; i < frame->len_p; i++)
+    {
+        off = md->off_parameters[i];
+        // 0xff is null value by design
+        // TODO re-initialize `rt_Descriptor::off_parameters`
+        // by `memset(~, 0xff, MAX_PARAMETERS_COUNT)`
+        if (off == 0xff)
+            continue;
+        parameter = &(md->parameters[off]);
+    }
 }
 
 
