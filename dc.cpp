@@ -20,14 +20,16 @@ typedef struct
 
 typedef struct
 {
-    u2              off_p   [MAX_PARAMETERS_COUNT];
-    u2              off_l   [MAX_LOCALS_COUNT];
+    u1              len_p;
+    u1              off_p   [MAX_PARAMETERS_COUNT]  [MAX_NAME_LENGTH];
+    u1              off_l   [MAX_LOCALS_COUNT]      [MAX_NAME_LENGTH];
 } dc_frame;
 
 static dc_stack_entry *     push_entry(dc_stack *);
 static dc_stack_entry *     pop_entry(dc_stack *);
 static int                  dc_printf(dc_stack_entry *, const char *, ...);
 static int                  dc_printf(dc_stack_entry *, rt_Class *, u2);
+static int                  dc_initFrame(dc_frame *, rt_Class *, rt_Method *);
 
 int decompile(
         rt_Class *  rtc,
@@ -176,3 +178,12 @@ static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
             return -1;
     }
 }
+
+static int dc_initFrame(dc_frame *frame,
+        rt_Class *rtc, rt_Method *rm)
+{
+    rt_Descriptor *         md;
+}
+
+
+
