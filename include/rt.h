@@ -10,6 +10,7 @@
 #define MAX_STACK_DEPTH                 1024
 #define MAX_PARAMETERS_COUNT            256
 #define MAX_LOCALS_COUNT                256
+#define MAX_NAME_LENGTH                 256
 
 class rt_Class;
 class rt_Field;
