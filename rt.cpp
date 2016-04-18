@@ -292,11 +292,12 @@ rt_Member::getDescriptor()
 }
 
 attr_Code_info *
-rt_Method::getAttribute_Code(u2 index)
+rt_Method::getAttribute_Code()
 {
     attr_info *info;
+    u2 index;
 
-    info = getAttribute(index, TAG_ATTR_CODE);
+    info = getAttribute(off_Code, TAG_ATTR_CODE);
     if (!info)
         return (attr_Code_info *) 0;
     return (attr_Code_info *) info->data;
@@ -600,7 +601,7 @@ rt_Field::rt_Field(rt_Class *rtc, field_info *finfo)
 }
 
 rt_Descriptor *
-rt_Method::getDescriptor()
+rt_Method::getRuntimeDescriptor()
 {
     return &descriptor;
 }
