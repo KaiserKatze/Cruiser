@@ -598,3 +598,9 @@ rt_Field::rt_Field(rt_Class *rtc, field_info *finfo)
         }
     }
 }
+
+rt_Descriptor *
+rt_Method::getDescriptor()
+{
+    return &descriptor;
+}
