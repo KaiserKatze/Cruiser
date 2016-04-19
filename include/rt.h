@@ -180,6 +180,7 @@ private:
     u2 off_BootstrapMethods;
 #endif
 #if VER_CMP(52, 0)
+    u2 off_MethodParameters;
     u2 off_RuntimeVisibleTypeAnnotations;
     u2 off_RuntimeInvisibleTypeAnnotations;
 #endif
