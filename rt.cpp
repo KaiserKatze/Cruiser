@@ -605,3 +605,111 @@ rt_Method::getRuntimeDescriptor()
 {
     return &descriptor;
 }
+
+bool
+rt_Accessible::isPublic()
+{
+    return ACC_PUBLIC & access_flags;
+}
+
+bool
+rt_Accessible::isFinal()
+{
+    return ACC_FINAL & access_flags;
+}
+
+bool
+rt_Accessible::isSuper()
+{
+    return ACC_SUPER & access_flags;
+}
+
+bool
+rt_Accessible::isInterface()
+{
+    return ACC_INTERFACE & access_flags;
+}
+
+bool
+rt_Accessible::isAbstract()
+{
+    return ACC_ABSTRACT & access_flags;
+}
+
+bool
+rt_Accessible::isSynthetic()
+{
+    return ACC_SYNTHETIC & access_flags;
+}
+
+bool
+rt_Accessible::isAnnotation()
+{
+    return ACC_ANNOTATION & access_flags;
+}
+
+bool
+rt_Accessible::isEnum()
+{
+    return ACC_ENUM & access_flags;
+}
+
+bool
+rt_Accessible::isPrivate()
+{
+    return ACC_PRIVATE & access_flags;
+}
+
+bool
+rt_Accessible::isProtected()
+{
+    return ACC_PROTECTED & access_flags;
+}
+
+bool
+rt_Accessible::isStatic()
+{
+    return ACC_STATIC & access_flags;
+}
+
+bool
+rt_Accessible::isVolatile()
+{
+    return ACC_VOLATILE & access_flags;
+}
+
+bool
+rt_Accessible::isTransient()
+{
+    return ACC_TRANSIENT & access_flags;
+}
+
+bool
+rt_Accessible::isSynchronized()
+{
+    return ACC_SYNCHRONIZED & access_flags;
+}
+
+bool
+rt_Accessible::isBridge()
+{
+    return ACC_BRIDGE & access_flags;
+}
+
+bool
+rt_Accessible::isVarargs()
+{
+    return ACC_VARARGS & access_flags;
+}
+
+bool
+rt_Accessible::isNative()
+{
+    return ACC_NATIVE & access_flags;
+}
+
+bool
+rt_Accessible::isStrict()
+{
+    return ACC_STRICT & access_flags;
+}

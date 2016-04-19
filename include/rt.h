@@ -87,6 +87,24 @@ class rt_Accessible
 public:
     u2              getAccessFlags();
     rt_Attributes * getAttributes();
+    bool            isPublic();
+    bool            isFinal();
+    bool            isSuper();
+    bool            isInterface();
+    bool            isAbstract();
+    bool            isSynthetic();
+    bool            isAnnotation();
+    bool            isEnum();
+    bool            isPrivate();
+    bool            isProtected();
+    bool            isStatic();
+    bool            isVolatile();
+    bool            isTransient();
+    bool            isSynchronized();
+    bool            isBridge();
+    bool            isVarargs();
+    bool            isNative();
+    bool            isStrict();
 protected:
                     rt_Accessible(ClassFile *);
                     rt_Accessible(field_info *);
