@@ -20,9 +20,10 @@ typedef struct
 
 typedef struct
 {
-    u1              len_p;
-    u1              off_p   [MAX_PARAMETERS_COUNT]  [MAX_NAME_LENGTH];
-    u1              off_l   [MAX_LOCALS_COUNT]      [MAX_NAME_LENGTH];
+    // map local index with its name
+    // trade off time with space
+    u2              locals  [MAX_LOCALS_COUNT]
+                            [MAX_NAME_LENGTH];
 } dc_frame;
 
 static dc_stack_entry *     push_entry(dc_stack *);
@@ -182,23 +183,57 @@ static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
 static int dc_initFrame(dc_frame *frame,
         rt_Class *rtc, rt_Method *rm)
 {
-    rt_Descriptor *         md;
-    u2                      i;
-    u1                      off;
-    rt_Parameter *          parameter;
+    bool                    is_static;
+    u2                      i, j;
+    u2                      len;
+    u1 *                    str;
+    const_Utf8_data *       cud;
+    attr_info *             attribute;
+#if VER_CMP(52, 0)
+    attr_MethodParameters_info *
+                            ampi;
+#endif
+#if VER_CMP(45, 3)
+    attr_LocalVariableTable_info *
+                            alvti;
+#endif
+#if VER_CMP(49, 0)
+    attr_LocalVariableTypeTable_info *
+                            alvtti;
+#endif
 
-    md = rm->getRuntimeDescriptor();
-    frame->len_p = md->parameters_length;
-    for (i = 0; i < frame->len_p; i++)
+    cud = rm->getDescriptor();
+    len = cud->length;
+    str = cud->bytes;
+    if (!cud)
+        return -1;
+    is_static = rm->isStatic();
+    j = 0;
+    if (!is_static)
     {
-        off = md->off_parameters[i];
-        // 0xff is null value by design
-        // TODO re-initialize `rt_Descriptor::off_parameters`
-        // by `memset(~, 0xff, MAX_PARAMETERS_COUNT)`
-        if (off == 0xff)
-            continue;
-        parameter = &(md->parameters[off]);
+        memset(frame->locals[0], 0, MAX_NAME_LENGTH);
+        if (sprintf((char *) frame->locals[0], "this") < 0)
+            return -1;
+        j = 1;
     }
+#if VER_CMP(52, 0)
+    // retrieve MethodParameters attribute
+    // retrieve parameter names
+    attribute = rm->getAttribute(off_MethodParameters,
+            TAG_ATTR_METHODPARAMETERS);
+    if (attribute)
+    {
+        // TODO
+        goto mpi;
+    }
+#endif
+    // if MethodParameters is not provided
+    for (i = 0; i < len; i++)
+    {
+    }
+mpi:        // MethodParameters is detected
+
+    return 0;
 }
 
 
