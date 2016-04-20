@@ -486,8 +486,48 @@ extern "C" {
     };
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
-    struct attr_MethodParameters_info;
-    struct attr_RuntimeVisibleTypeAnnotations_info;
+    struct parameter_entry
+    {
+        u2 name_index;
+        u2 access_flags;
+    };
+    struct attr_MethodParameters_info
+    {
+        u1 parameters_count;
+        struct parameter_entry parameters[];
+    };
+    struct type_annotation
+    {
+        u1                      target_type;
+        union
+        {
+            // type_parameter_target
+            struct
+            {
+                u1 type_parameter_index;
+            };
+            // supertype_target
+            // TODO
+            // type_parameter_bound_target
+            // empty_target
+            // method_formal_parameter_target
+            // throws_target
+            // localvar_target
+            // catch_target
+            // offset_target
+            // type_argument_target
+        }                       target_info;
+        struct type_path        target_path;
+        u2                      type_index;
+        u2                      num_element_value_pairs;
+        struct element_value_pair *
+                                element_value_pairs;
+    };
+    struct attr_RuntimeVisibleTypeAnnotations_info
+    {
+        u2 num_annotations;
+        struct type_annotation annoatations[];
+    };
     struct attr_RuntimeInvisibleTypeAnnotations_info;
 #endif /* VERSION 52.0 */
 

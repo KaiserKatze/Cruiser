@@ -1379,6 +1379,48 @@ freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
     return 0;
 }
 #endif /* VERSION 51.0 */
+#if VER_CMP(52, 0)
+static int
+loadAttribute_MethodParameters(ClassFile *cf, struct BufferIO *input,
+        attr_info *info)
+{
+    struct attr_MethodParameters_info *data;
+    u1 parameters_count;
+    u1 i;
+    struct parameter_entry *parameter;
+
+    info->tag = TAG_ATTR_METHODPARAMETERS;
+    if (ru1(&parameters_count, input) < 0)
+        return -1;
+    data = (struct attr_MethodParameters_info *)
+        allocMemory(1, sizeof (u1)
+                + sizeof (struct parameter_entry)
+                * parameters_count);
+    data->parameters_count = parameters_count;
+    for (i = 0; i < parameters_count; i++)
+    {
+        parameter = &(data->parameters[i]);
+        if (ru2(&(parameter->name_index), input) < 0)
+            return -1;
+        if (ru2(&(parameter->access_flags), input) < 0)
+            return -1;
+    }
+    info->data = data;
+
+    return 0;
+}
+
+static int
+freeAttribute_MethodParameters(ClassFile *cf, attr_info *info)
+{
+    if (info->tag != TAG_ATTR_METHODPARAMETERS)
+        return -1;
+    free(info->data);
+    info->data = (void *) 0;
+
+    return 0;
+}
+#endif /* VERSION 52.0 */
 
 extern int
 loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
