@@ -1420,6 +1420,78 @@ freeAttribute_MethodParameters(ClassFile *cf, attr_info *info)
 
     return 0;
 }
+
+static int
+loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    u2 num_annotations;
+    struct attr_RuntimeVisibleTypeAnnotations_info *data;
+    u2 i;
+    struct type_annotation *annotation;
+    u1 target_type;
+
+    info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
+    if (ru2(&num_annotations, input) < 0)
+        return -1;
+    data = (struct attr_RuntimeVisibleTypeAnnotations_info *)
+        allocMemory(1, sizeof (u2)
+                + sizeof (struct type_annotation) * num_annotations);
+    data->num_annotations = num_annotations;
+    for (i = 0; i < num_annotations; i++)
+    {
+        annotation = &(data->annotations[i]);
+
+        if (ru1(&target_type, input) < 0)
+            return -1;
+        annotation->target_type = target_type;
+
+        switch (target_type)
+        {
+            case 0x00:case 0x01:
+                // type_parameter_target
+                // TODO
+                break;
+            case 0x10:
+                // supertype_target
+                break;
+            case 0x11:case 0x12:
+                // type_parameter_bound_target
+                break;
+            case 0x13:case 0x14:case 0x15:
+                // empty_target
+                break;
+            case 0x16:
+                // formal_parameter_target
+                break;
+            case 0x17:
+                // throws_target
+                break;
+            case 0x40:case 0x41:
+                // localvar_target
+                break;
+            case 0x42:
+                // catch_target
+                break;
+            case 0x43:case 0x44:case 0x45:case 0x46:
+                // offset_target
+                break;
+            case 0x47:case 0x48:case 0x49:case 0x4a:case 0x4b:
+                // type_argument_target
+                break;
+        } /* switch target_type */
+    }
+
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+        attr_info *info)
+{
+    // TODO
+    return 0;
+}
 #endif /* VERSION 52.0 */
 
 extern int
@@ -1721,9 +1793,9 @@ freeAttribute_class(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1760,9 +1832,9 @@ freeAttribute_field(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1829,11 +1901,11 @@ freeAttribute_method(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_MethodParameters(info))
+    if (!freeAttribute_MethodParameters(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1892,9 +1964,9 @@ freeAttribute_code(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
