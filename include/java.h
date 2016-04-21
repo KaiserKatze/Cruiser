@@ -11,7 +11,7 @@ extern "C" {
 
 #define MAGIC_ORACLE                    0xCAFEBABE
 #define MINOR_VERSION                   0
-#define MAJOR_VERSION                   51
+#define MAJOR_VERSION                   52
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
@@ -496,26 +496,54 @@ extern "C" {
         u1 parameters_count;
         struct parameter_entry parameters[];
     };
+    struct type_path
+    {
+    };
     struct type_annotation
     {
+        // @see JLS §4.11
+        // 0x10-0x17 and 0x40-0x42 -> type context 1-10
+        // 0x43-0x4b               -> type context 11-16
         u1                      target_type;
         union
         {
             // type_parameter_target
+            // |-> duplicate in `type_parameter_bound_target`
+            // supertype_target
+            u2 supertype_index;
+            // type_parameter_bound_target
             struct
             {
                 u1 type_parameter_index;
+                u1 bound_index;
             };
-            // supertype_target
-            // TODO
-            // type_parameter_bound_target
             // empty_target
+
             // method_formal_parameter_target
+            u1 formal_parameter_index;
             // throws_target
+            u2 throws_type_index;
             // localvar_target
+            struct
+            {
+                u2 table_length;
+                struct
+                {
+                    u2 start_pc;
+                    u2 length;
+                    u2 index;
+                } * table;
+            };
             // catch_target
+            u2 exception_table_index;
             // offset_target
+            // |-> duplicate in `type_argument_target`
             // type_argument_target
+            struct
+            {
+                u2 offset;
+                u1 type_argument_index;
+            };
         }                       target_info;
         struct type_path        target_path;
         u2                      type_index;
@@ -526,7 +554,7 @@ extern "C" {
     struct attr_RuntimeVisibleTypeAnnotations_info
     {
         u2 num_annotations;
-        struct type_annotation annoatations[];
+        struct type_annotation annotations[];
     };
     struct attr_RuntimeInvisibleTypeAnnotations_info;
 #endif /* VERSION 52.0 */
