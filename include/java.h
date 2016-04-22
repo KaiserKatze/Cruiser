@@ -203,6 +203,7 @@ extern "C" {
     {
         u2 sourcefile_index;
     } attr_SourceFile_info;
+
     struct classes_entry
     {
         u2 inner_class_info_index;
@@ -215,8 +216,11 @@ extern "C" {
         u2 number_of_classes;
         struct classes_entry *classes;
     } attr_InnerClasses_info;
+
     typedef struct {} attr_Synthetic_info;
+
     typedef struct {} attr_Deprecated_info;
+
     struct line_number_table_entry
     {
         u2 start_pc;
@@ -227,6 +231,7 @@ extern "C" {
         u2 line_number_table_length;
         struct line_number_table_entry line_number_table[];
     } attr_LineNumberTable_info;
+
     struct local_variable_table_entry
     {
         u2 start_pc;
@@ -270,13 +275,16 @@ extern "C" {
         u2 number_of_exceptions;
         u2 *exception_index_table;
     } attr_Exceptions_info;
+
 #endif /* VERSION 45.3 */
 #if VER_CMP(49, 0)
+
     typedef struct
     {
         u2 class_index;
         u2 method_index;
     } attr_EnclosingMethod_info;
+
     struct element_value;
     struct element_value_pair
     {
@@ -322,30 +330,26 @@ extern "C" {
     {
         u1 num_parameters;
         struct parameter_annotation parameter_annotations[];
-    } attr_RuntimeVisibleParameterAnnotations_info;
-    typedef struct
-    {
-        u1 num_parameters;
-        struct parameter_annotation parameter_annotations[];
-    } attr_RuntimeInvisibleParameterAnnotations_info;
+    } attr_RuntimeVisibleParameterAnnotations_info,
+        attr_RuntimeInvisibleParameterAnnotations_info;
+
     typedef struct
     {
         struct element_value default_value;
     } attr_AnnotationDefault_info;
+
     typedef struct
     {
         u2 signature_index;
     } attr_Signature_info;
+
     typedef struct
     {
         u2 num_annotations;
         struct annotation annotations[];
-    } attr_RuntimeVisibleAnnotations_info;
-    typedef struct
-    {
-        u2 num_annotations;
-        struct annotation annotations[];
-    } attr_RuntimeInvisibleAnnotations_info;
+    } attr_RuntimeVisibleAnnotations_info,
+        attr_RuntimeInvisibleAnnotations_info;
+
     struct local_variable_type_table_entry
     {
         u2 start_pc;
@@ -359,19 +363,21 @@ extern "C" {
         u2 local_variable_type_table_length;
         struct local_variable_type_table_entry local_variable_type_table[];
     } attr_LocalVariableTypeTable_info;
+
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
-#define SMF_SAME_MIN        0
-#define SMF_SAME_MAX        63
-#define SMF_SL1SI_MIN       64
-#define SMF_SL1SI_MAX       127
-#define SMF_SL1SIE          247
-#define SMF_CHOP_MIN        248
-#define SMF_CHOP_MAX        250
-#define SMF_SAMEE           251
-#define SMF_APPEND_MIN      252
-#define SMF_APPEND_MAX      254
-#define SMF_FULL            255
+
+#define SMF_SAME_MIN            0
+#define SMF_SAME_MAX            63
+#define SMF_SL1SI_MIN           64
+#define SMF_SL1SI_MAX           127
+#define SMF_SL1SIE              247
+#define SMF_CHOP_MIN            248
+#define SMF_CHOP_MAX            250
+#define SMF_SAMEE               251
+#define SMF_APPEND_MIN          252
+#define SMF_APPEND_MAX          254
+#define SMF_FULL                255
     
 #define ITEM_Top                0
 #define ITEM_Integer            1
@@ -382,6 +388,7 @@ extern "C" {
 #define ITEM_UninitializedThis  6
 #define ITEM_Object             7
 #define ITEM_Uninitialized      8
+
     union verification_type_info
     {
         struct
@@ -471,8 +478,10 @@ extern "C" {
         u2 number_of_entries;
         union stack_map_frame entries[];
     };
+
 #endif /* VERSION 50.0 */
 #if VER_CMP(51, 0)
+
     struct bootstrap_method
     {
         u2 bootstrap_method_ref;
@@ -484,8 +493,10 @@ extern "C" {
         u2 num_bootstrap_methods;
         struct bootstrap_method bootstrap_methods[];
     } attr_BootstrapMethods_info;
+
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
+
     struct parameter_entry
     {
         u2 name_index;
@@ -555,8 +566,9 @@ extern "C" {
     {
         u2 num_annotations;
         struct type_annotation annotations[];
-    } attr_RuntimeVisibleTypeAnnotations_info;
-    struct attr_RuntimeInvisibleTypeAnnotations_info;
+    } attr_RuntimeVisibleTypeAnnotations_info,
+        attr_RuntimeInvisibleTypeAnnotations_info;
+
 #endif /* VERSION 52.0 */
 
     typedef struct {
