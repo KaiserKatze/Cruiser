@@ -103,7 +103,8 @@ extern "C" {
 #define TAG_ATTR_METHODPARAMETERS                       0x400000
 
 // Acceptable attribute tags for each kind of attribute owner
-#define TAG_ATTR_CLASSFILE  (TAG_ATTR_SOURCEFILE\
+#define TAG_ATTR_CLASSFILE  (\
+        | TAG_ATTR_SOURCEFILE\
         | TAG_ATTR_INNERCLASSES\
         | TAG_ATTR_ENCLOSINGMETHOD\
         | TAG_ATTR_SOURCEDEBUGEXTENSION\
