@@ -199,10 +199,10 @@ extern "C" {
     } attr_info;
 
 #if VER_CMP(45, 3)
-    struct attr_SourceFile_info
+    typedef struct
     {
         u2 sourcefile_index;
-    };
+    } attr_SourceFile_info;
     struct classes_entry
     {
         u2 inner_class_info_index;
@@ -210,23 +210,23 @@ extern "C" {
         u2 inner_name_index;
         u2 inner_class_access_flags;
     };
-    struct attr_InnerClasses_info
+    typedef struct
     {
         u2 number_of_classes;
         struct classes_entry *classes;
-    };
-    struct attr_Synthetic_info {};
-    struct attr_Deprecated_info {};
+    } attr_InnerClasses_info;
+    typedef struct {} attr_Synthetic_info;
+    typedef struct {} attr_Deprecated_info;
     struct line_number_table_entry
     {
         u2 start_pc;
         u2 line_number;
     };
-    struct attr_LineNumberTable_info
+    typedef struct
     {
         u2 line_number_table_length;
         struct line_number_table_entry line_number_table[];
-    };
+    } attr_LineNumberTable_info;
     struct local_variable_table_entry
     {
         u2 start_pc;
@@ -235,16 +235,16 @@ extern "C" {
         u2 descriptor_index;
         u2 index;
     };
-    struct attr_LocalVariableTable_info
+    typedef struct
     {
         u2 local_variable_table_length;
         struct local_variable_table_entry local_variable_table[];
-    };
+    } attr_LocalVariableTable_info;
 
-    struct attr_ConstantValue_info
+    typedef struct
     {
         u2 constantvalue_index;
-    };
+    } attr_ConstantValue_info;
 
     struct exception_table_entry
     {
@@ -253,7 +253,7 @@ extern "C" {
         u2 handler_pc;
         u2 catch_type;
     };
-    struct attr_Code_info
+    typedef struct
     {
         u2 max_stack;
         u2 max_locals;
@@ -263,20 +263,20 @@ extern "C" {
         struct exception_table_entry *exception_table;
         u2 attributes_count;
         attr_info *attributes;
-    };
+    } attr_Code_info;
 
-    struct attr_Exceptions_info
+    typedef struct
     {
         u2 number_of_exceptions;
         u2 *exception_index_table;
-    };
+    } attr_Exceptions_info;
 #endif /* VERSION 45.3 */
 #if VER_CMP(49, 0)
-    struct attr_EnclosingMethod_info
+    typedef struct
     {
         u2 class_index;
         u2 method_index;
-    };
+    } attr_EnclosingMethod_info;
     struct element_value;
     struct element_value_pair
     {
@@ -318,34 +318,34 @@ extern "C" {
         u2 num_annotations;
         struct annotation *annotations;
     };
-    struct attr_RuntimeVisibleParameterAnnotations_info
+    typedef struct
     {
         u1 num_parameters;
         struct parameter_annotation parameter_annotations[];
-    };
-    struct attr_RuntimeInvisibleParameterAnnotations_info
+    } attr_RuntimeVisibleParameterAnnotations_info;
+    typedef struct
     {
         u1 num_parameters;
         struct parameter_annotation parameter_annotations[];
-    };
-    struct attr_AnnotationDefault_info
+    } attr_RuntimeInvisibleParameterAnnotations_info;
+    typedef struct
     {
         struct element_value default_value;
-    };
-    struct attr_Signature_info
+    } attr_AnnotationDefault_info;
+    typedef struct
     {
         u2 signature_index;
-    };
-    struct attr_RuntimeVisibleAnnotations_info
+    } attr_Signature_info;
+    typedef struct
     {
         u2 num_annotations;
         struct annotation annotations[];
-    };
-    struct attr_RuntimeInvisibleAnnotations_info
+    } attr_RuntimeVisibleAnnotations_info;
+    typedef struct
     {
         u2 num_annotations;
         struct annotation annotations[];
-    };
+    } attr_RuntimeInvisibleAnnotations_info;
     struct local_variable_type_table_entry
     {
         u2 start_pc;
@@ -354,11 +354,11 @@ extern "C" {
         u2 signature_index;
         u2 index;
     };
-    struct attr_LocalVariableTypeTable_info
+    typedef struct
     {
         u2 local_variable_type_table_length;
         struct local_variable_type_table_entry local_variable_type_table[];
-    };
+    } attr_LocalVariableTypeTable_info;
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
 #define SMF_SAME_MIN        0
@@ -479,11 +479,11 @@ extern "C" {
         u2 num_bootstrap_arguments;
         u2 *bootstrap_arguments;
     };
-    struct attr_BootstrapMethods_info
+    typedef struct
     {
         u2 num_bootstrap_methods;
         struct bootstrap_method bootstrap_methods[];
-    };
+    } attr_BootstrapMethods_info;
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
     struct parameter_entry
@@ -491,11 +491,11 @@ extern "C" {
         u2 name_index;
         u2 access_flags;
     };
-    struct attr_MethodParameters_info
+    typedef struct
     {
         u1 parameters_count;
         struct parameter_entry parameters[];
-    };
+    } attr_MethodParameters_info;
     struct type_path
     {
     };
@@ -551,11 +551,11 @@ extern "C" {
         struct element_value_pair *
                                 element_value_pairs;
     };
-    struct attr_RuntimeVisibleTypeAnnotations_info
+    typedef struct
     {
         u2 num_annotations;
         struct type_annotation annotations[];
-    };
+    } attr_RuntimeVisibleTypeAnnotations_info;
     struct attr_RuntimeInvisibleTypeAnnotations_info;
 #endif /* VERSION 52.0 */
 
