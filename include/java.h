@@ -559,6 +559,12 @@ extern "C" {
     struct type_path
     {
     };
+    struct localvar_table_entry
+    {
+        u2 start_pc;
+        u2 length;
+        u2 index;
+    };
     struct type_annotation
     {
         // @see JLS §4.11
@@ -587,12 +593,7 @@ extern "C" {
             struct
             {
                 u2 table_length;
-                struct
-                {
-                    u2 start_pc;
-                    u2 length;
-                    u2 index;
-                } * table;
+                struct localvar_table_entry * table;
             };
             // catch_target
             u2 exception_table_index;
