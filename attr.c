@@ -1427,11 +1427,14 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
 {
     u2 num_annotations;
     attr_RuntimeVisibleTypeAnnotations_info *data;
-    u2 i;
+    u2 i, j;
     struct type_annotation *annotation;
     u1 target_type;
     u2 table_length;
-    struct localvar_table_entry *entry;
+    u2 nevp;
+    u1 path_length;
+    struct localvar_table_entry * entry;
+    struct element_value_pair * pair;
 
     info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
     if (ru2(&num_annotations, input) < 0)
@@ -1443,7 +1446,6 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
     for (i = 0; i < num_annotations; i++)
     {
         annotation = &(data->annotations[i]);
-
         if (ru1(&target_type, input) < 0)
             return -1;
         annotation->target_type = target_type;
@@ -1496,9 +1498,9 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
                     (struct localvar_table_entry *)
                     allocMemory(table_length,
                             sizeof (struct localvar_table_entry));
-                for (i = 0; i < table_length; i++)
+                for (j = 0; j < table_length; j++)
                 {
-                    entry = &(annotation->target_info.table[i]);
+                    entry = &(annotation->target_info.table[j]);
                     if (ru2(&(entry->start_pc), input) < 0)
                         return -1;
                     if (ru2(&(entry->length), input) < 0)
@@ -1527,6 +1529,35 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
                     return -1;
                 break;
         } /* switch target_type */
+
+        // retrieve target_path
+        if (ru1(&path_length, input) < 0)
+            return -1;
+        annotation->target_path.path_length = path_length;
+        annotation->target_path.path = (struct type_path_entry *)
+            allocMemory(path_length,
+                    sizeof (struct type_path_entry));
+        if (rbs((u1 *) annotation->target_path.path, input,
+                    sizeof (struct type_path_entry) *
+                    path_length) < 0)
+            return -1;
+
+        // retrieve type_index
+        if (ru2(&(annotation->type_index), input) < 0)
+            return -1;
+
+        // retrieve num_element_value_pairs
+        if (ru2(&nevp, input) < 0)
+            return -1;
+        annotation->num_element_value_pairs = nevp;
+        annotation->element_value_pairs = (struct element_value_pair *)
+            allocMemory(nevp, sizeof (struct element_value_pair));
+        for (j = 0; j < nevp; j++)
+        {
+            pair = &(annotation->element_value_pairs[j]);
+            // TODO need to extract code for element_value_pair retrieval
+        }
+
     }
 
     return 0;
