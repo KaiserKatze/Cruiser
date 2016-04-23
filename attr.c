@@ -1430,6 +1430,8 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
     u2 i;
     struct type_annotation *annotation;
     u1 target_type;
+    u2 table_length;
+    struct localvar_table_entry *entry;
 
     info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
     if (ru2(&num_annotations, input) < 0)
@@ -1446,38 +1448,83 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
             return -1;
         annotation->target_type = target_type;
 
+        // retrieve target_info
         switch (target_type)
         {
             case 0x00:case 0x01:
                 // type_parameter_target
-                // TODO
+                if (ru1(&(annotation->target_info.type_parameter_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x10:
                 // supertype_target
+                if (ru2(&(annotation->target_info.supertype_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x11:case 0x12:
                 // type_parameter_bound_target
+                if (ru1(&(annotation->target_info.type_parameter_index),
+                            input) < 0)
+                    return -1;
+                if (ru1(&(annotation->target_info.bound_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x13:case 0x14:case 0x15:
                 // empty_target
                 break;
             case 0x16:
                 // formal_parameter_target
+                if (ru1(&(annotation->target_info.formal_parameter_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x17:
                 // throws_target
+                if (ru2(&(annotation->target_info.throws_type_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x40:case 0x41:
                 // localvar_target
+                if (ru2(&table_length, input) < 0)
+                    return -1;
+                annotation->target_info.table_length = table_length;
+                annotation->target_info.table =
+                    (struct localvar_table_entry *)
+                    allocMemory(table_length,
+                            sizeof (struct localvar_table_entry));
+                for (i = 0; i < table_length; i++)
+                {
+                    entry = &(annotation->target_info.table[i]);
+                    if (ru2(&(entry->start_pc), input) < 0)
+                        return -1;
+                    if (ru2(&(entry->length), input) < 0)
+                        return -1;
+                    if (ru2(&(entry->index), input) < 0)
+                        return -1;
+                }
                 break;
             case 0x42:
                 // catch_target
+                if (ru2(&(annotation->target_info.exception_table_index),
+                            input) < 0)
+                    return -1;
                 break;
             case 0x43:case 0x44:case 0x45:case 0x46:
                 // offset_target
+                if (ru2(&(annotation->target_info.offset), input) < 0)
+                    return -1;
                 break;
             case 0x47:case 0x48:case 0x49:case 0x4a:case 0x4b:
                 // type_argument_target
+                if (ru2(&(annotation->target_info.offset), input) < 0)
+                    return -1;
+                if (ru1(&(annotation->target_info.type_argument_index),
+                            input) < 0)
+                    return -1;
                 break;
         } /* switch target_type */
     }
