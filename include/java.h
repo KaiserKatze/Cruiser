@@ -558,6 +558,12 @@ extern "C" {
     } attr_MethodParameters_info;
     struct type_path
     {
+        u1 path_length;
+        struct
+        {
+            u1 type_path_kind;
+            u1 type_argument_index;
+        } * path;
     };
     struct localvar_table_entry
     {
