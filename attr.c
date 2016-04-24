@@ -1582,7 +1582,8 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
         for (j = 0; j < nevp; j++)
         {
             pair = &(annotation->element_value_pairs[j]);
-            // TODO need to extract code for element_value_pair retrieval
+            if (loadElementValuePair(cf, input, pair) < 0)
+                return -1;
         }
 
     }
