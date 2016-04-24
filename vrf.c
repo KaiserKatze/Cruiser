@@ -40,7 +40,7 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
     const_InvokeDynamic_data *cidi;
     u2 j;
 #if VER_CMP(51, 0)
-    struct attr_BootstrapMethods_info *dataBootstrapMethods;
+    attr_BootstrapMethods_info *dataBootstrapMethods;
     struct bootstrap_method *bm;
 #endif
 
@@ -281,14 +281,14 @@ validateConstantPoolEntry(ClassFile *cf, u2 i, u1 *bul, u1 tag)
                 return -1;
             }
             dataBootstrapMethods =
-                (struct attr_BootstrapMethods_info *) 0;
+                (attr_BootstrapMethods_info *) 0;
             for (j = 0; j < cf->attributes_count; j++)
             {
                 if (cf->attributes[j].tag !=
                         TAG_ATTR_BOOTSTRAPMETHODS)
                     continue;
                 dataBootstrapMethods =
-                    (struct attr_BootstrapMethods_info *)
+                    (attr_BootstrapMethods_info *)
                         cf->attributes[j].data;
                 break;
             }

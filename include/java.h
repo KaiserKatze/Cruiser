@@ -11,7 +11,7 @@ extern "C" {
 
 #define MAGIC_ORACLE                    0xCAFEBABE
 #define MINOR_VERSION                   0
-#define MAJOR_VERSION                   51
+#define MAJOR_VERSION                   52
     
 #if (defined MAJOR_VERSION && defined MINOR_VERSION)
 #define VER_CMP(major, minor)  (MAJOR_VERSION > major || MAJOR_VERSION == major && MINOR_VERSION >= minor)
@@ -101,6 +101,55 @@ extern "C" {
 #define TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS          0x100000
 #define TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS        0x200000
 #define TAG_ATTR_METHODPARAMETERS                       0x400000
+
+// Acceptable attribute tags for each kind of attribute owner
+#define TAG_ATTRTARGET_CLASSFILE  (\
+        | TAG_ATTR_SOURCEFILE\
+        | TAG_ATTR_INNERCLASSES\
+        | TAG_ATTR_ENCLOSINGMETHOD\
+        | TAG_ATTR_SOURCEDEBUGEXTENSION\
+        | TAG_ATTR_BOOTSTRAPMETHODS\
+        | TAG_ATTR_SYNTHETIC\
+        | TAG_ATTR_DEPRECATED\
+        | TAG_ATTR_SIGNATURE\
+        | TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS\
+        )
+#define TAG_ATTRTARGET_FIELD (\
+        | TAG_ATTR_CONSTANTVALUE\
+        | TAG_ATTR_SYNTHETIC\
+        | TAG_ATTR_DEPRECATED\
+        | TAG_ATTR_SIGNATURE\
+        | TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS\
+        )
+#define TAG_ATTRTARGET_METHOD (\
+        | TAG_ATTR_CODE\
+        | TAG_ATTR_EXCEPTIONS\
+        | TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS\
+        | TAG_ATTR_ANNOTATIONDEFAULT\
+        | TAG_ATTR_METHODPARAMETERS\
+        | TAG_ATTR_SYNTHETIC\
+        | TAG_ATTR_DEPRECATED\
+        | TAG_ATTR_SIGNATURE\
+        | TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS\
+        )
+#define TAG_ATTRTARGET_CODE (\
+        | TAG_ATTR_LINENUMBERTABLE\
+        | TAG_ATTR_LOCALVARIABLETABLE\
+        | TAG_ATTR_LOCALVARIABLETYPETABLE\
+        | TAG_ATTR_STACKMAPTABLE\
+        | TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS\
+        | TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS\
+        )
 
     // CONSTANT_Class
     typedef struct
@@ -199,10 +248,11 @@ extern "C" {
     } attr_info;
 
 #if VER_CMP(45, 3)
-    struct attr_SourceFile_info
+    typedef struct
     {
         u2 sourcefile_index;
-    };
+    } attr_SourceFile_info;
+
     struct classes_entry
     {
         u2 inner_class_info_index;
@@ -210,23 +260,27 @@ extern "C" {
         u2 inner_name_index;
         u2 inner_class_access_flags;
     };
-    struct attr_InnerClasses_info
+    typedef struct
     {
         u2 number_of_classes;
         struct classes_entry *classes;
-    };
-    struct attr_Synthetic_info {};
-    struct attr_Deprecated_info {};
+    } attr_InnerClasses_info;
+
+    typedef struct {} attr_Synthetic_info;
+
+    typedef struct {} attr_Deprecated_info;
+
     struct line_number_table_entry
     {
         u2 start_pc;
         u2 line_number;
     };
-    struct attr_LineNumberTable_info
+    typedef struct
     {
         u2 line_number_table_length;
         struct line_number_table_entry line_number_table[];
-    };
+    } attr_LineNumberTable_info;
+
     struct local_variable_table_entry
     {
         u2 start_pc;
@@ -235,16 +289,16 @@ extern "C" {
         u2 descriptor_index;
         u2 index;
     };
-    struct attr_LocalVariableTable_info
+    typedef struct
     {
         u2 local_variable_table_length;
         struct local_variable_table_entry local_variable_table[];
-    };
+    } attr_LocalVariableTable_info;
 
-    struct attr_ConstantValue_info
+    typedef struct
     {
         u2 constantvalue_index;
-    };
+    } attr_ConstantValue_info;
 
     struct exception_table_entry
     {
@@ -253,7 +307,7 @@ extern "C" {
         u2 handler_pc;
         u2 catch_type;
     };
-    struct attr_Code_info
+    typedef struct
     {
         u2 max_stack;
         u2 max_locals;
@@ -263,20 +317,23 @@ extern "C" {
         struct exception_table_entry *exception_table;
         u2 attributes_count;
         attr_info *attributes;
-    };
+    } attr_Code_info;
 
-    struct attr_Exceptions_info
+    typedef struct
     {
         u2 number_of_exceptions;
         u2 *exception_index_table;
-    };
+    } attr_Exceptions_info;
+
 #endif /* VERSION 45.3 */
 #if VER_CMP(49, 0)
-    struct attr_EnclosingMethod_info
+
+    typedef struct
     {
         u2 class_index;
         u2 method_index;
-    };
+    } attr_EnclosingMethod_info;
+
     struct element_value;
     struct element_value_pair
     {
@@ -318,34 +375,30 @@ extern "C" {
         u2 num_annotations;
         struct annotation *annotations;
     };
-    struct attr_RuntimeVisibleParameterAnnotations_info
+    typedef struct
     {
         u1 num_parameters;
         struct parameter_annotation parameter_annotations[];
-    };
-    struct attr_RuntimeInvisibleParameterAnnotations_info
-    {
-        u1 num_parameters;
-        struct parameter_annotation parameter_annotations[];
-    };
-    struct attr_AnnotationDefault_info
+    } attr_RuntimeVisibleParameterAnnotations_info,
+        attr_RuntimeInvisibleParameterAnnotations_info;
+
+    typedef struct
     {
         struct element_value default_value;
-    };
-    struct attr_Signature_info
+    } attr_AnnotationDefault_info;
+
+    typedef struct
     {
         u2 signature_index;
-    };
-    struct attr_RuntimeVisibleAnnotations_info
+    } attr_Signature_info;
+
+    typedef struct
     {
         u2 num_annotations;
         struct annotation annotations[];
-    };
-    struct attr_RuntimeInvisibleAnnotations_info
-    {
-        u2 num_annotations;
-        struct annotation annotations[];
-    };
+    } attr_RuntimeVisibleAnnotations_info,
+        attr_RuntimeInvisibleAnnotations_info;
+
     struct local_variable_type_table_entry
     {
         u2 start_pc;
@@ -354,24 +407,26 @@ extern "C" {
         u2 signature_index;
         u2 index;
     };
-    struct attr_LocalVariableTypeTable_info
+    typedef struct
     {
         u2 local_variable_type_table_length;
         struct local_variable_type_table_entry local_variable_type_table[];
-    };
+    } attr_LocalVariableTypeTable_info;
+
 #endif /* VERSION 49.0 */
 #if VER_CMP(50, 0)
-#define SMF_SAME_MIN        0
-#define SMF_SAME_MAX        63
-#define SMF_SL1SI_MIN       64
-#define SMF_SL1SI_MAX       127
-#define SMF_SL1SIE          247
-#define SMF_CHOP_MIN        248
-#define SMF_CHOP_MAX        250
-#define SMF_SAMEE           251
-#define SMF_APPEND_MIN      252
-#define SMF_APPEND_MAX      254
-#define SMF_FULL            255
+
+#define SMF_SAME_MIN            0
+#define SMF_SAME_MAX            63
+#define SMF_SL1SI_MIN           64
+#define SMF_SL1SI_MAX           127
+#define SMF_SL1SIE              247
+#define SMF_CHOP_MIN            248
+#define SMF_CHOP_MAX            250
+#define SMF_SAMEE               251
+#define SMF_APPEND_MIN          252
+#define SMF_APPEND_MAX          254
+#define SMF_FULL                255
     
 #define ITEM_Top                0
 #define ITEM_Integer            1
@@ -382,6 +437,7 @@ extern "C" {
 #define ITEM_UninitializedThis  6
 #define ITEM_Object             7
 #define ITEM_Uninitialized      8
+
     union verification_type_info
     {
         struct
@@ -471,24 +527,105 @@ extern "C" {
         u2 number_of_entries;
         union stack_map_frame entries[];
     };
+
 #endif /* VERSION 50.0 */
 #if VER_CMP(51, 0)
+
     struct bootstrap_method
     {
         u2 bootstrap_method_ref;
         u2 num_bootstrap_arguments;
         u2 *bootstrap_arguments;
     };
-    struct attr_BootstrapMethods_info
+    typedef struct
     {
         u2 num_bootstrap_methods;
         struct bootstrap_method bootstrap_methods[];
-    };
+    } attr_BootstrapMethods_info;
+
 #endif /* VERSION 51.0 */
 #if VER_CMP(52, 0)
-    struct attr_MethodParameters_info;
-    struct attr_RuntimeVisibleTypeAnnotations_info;
-    struct attr_RuntimeInvisibleTypeAnnotations_info;
+
+    struct parameter_entry
+    {
+        u2 name_index;
+        u2 access_flags;
+    };
+    typedef struct
+    {
+        u1 parameters_count;
+        struct parameter_entry parameters[];
+    } attr_MethodParameters_info;
+    struct type_path_entry
+    {
+        u1 type_path_kind;
+        u1 type_argument_index;
+    };
+    struct type_path
+    {
+        u1 path_length;
+        struct type_path_entry * path;
+    };
+    struct localvar_table_entry
+    {
+        u2 start_pc;
+        u2 length;
+        u2 index;
+    };
+    struct type_annotation
+    {
+        // @see JLS §4.11
+        // 0x10-0x17 and 0x40-0x42 -> type context 1-10
+        // 0x43-0x4b               -> type context 11-16
+        u1                      target_type;
+        union
+        {
+            // type_parameter_target
+            // |-> duplicate in `type_parameter_bound_target`
+            // supertype_target
+            u2 supertype_index;
+            // type_parameter_bound_target
+            struct
+            {
+                u1 type_parameter_index;
+                u1 bound_index;
+            };
+            // empty_target
+
+            // method_formal_parameter_target
+            u1 formal_parameter_index;
+            // throws_target
+            u2 throws_type_index;
+            // localvar_target
+            struct
+            {
+                u2 table_length;
+                struct localvar_table_entry * table;
+            };
+            // catch_target
+            u2 exception_table_index;
+            // offset_target
+            // |-> duplicate in `type_argument_target`
+            // type_argument_target
+            struct
+            {
+                u2 offset;
+                u1 type_argument_index;
+            };
+        }                       target_info;
+        struct type_path        target_path;
+        u2                      type_index;
+        u2                      num_element_value_pairs;
+        struct element_value_pair *
+                                element_value_pairs;
+    };
+    typedef struct
+    {
+        u2 num_annotations;
+        struct type_annotation annotations[];
+    } attr_RuntimeVisibleTypeAnnotations_info,
+        attr_RuntimeInvisibleTypeAnnotations_info;
+
 #endif /* VERSION 52.0 */
 
     typedef struct {

@@ -34,11 +34,11 @@ skipAttribute(struct BufferIO *input,
 static int
 loadAttribute_ConstantValue(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_ConstantValue_info *data;
+    attr_ConstantValue_info *data;
 
     info->tag = TAG_ATTR_CONSTANTVALUE;
-    data = (struct attr_ConstantValue_info *)
-            malloc(sizeof (struct attr_ConstantValue_info));
+    data = (attr_ConstantValue_info *)
+            malloc(sizeof (attr_ConstantValue_info));
     if (!data)
         return -1;
     if (ru2(&(data->constantvalue_index), input) < 0)
@@ -65,12 +65,12 @@ loadAttribute_Code(ClassFile *cf,
         method_info *method,
         attr_info *info)
 {
-    struct attr_Code_info *data;
+    attr_Code_info *data;
     u2 i;
 
     info->tag = TAG_ATTR_CODE;
-    data = (struct attr_Code_info *)
-            malloc(sizeof (struct attr_Code_info));
+    data = (attr_Code_info *)
+            malloc(sizeof (attr_Code_info));
     if (!data)
         return -1;
     if (ru2(&(data->max_stack), input) < 0)
@@ -141,11 +141,11 @@ loadAttribute_Code(ClassFile *cf,
 static int
 freeAttribute_Code(ClassFile * cf, attr_info *info)
 {
-    struct attr_Code_info *data;
+    attr_Code_info *data;
 
     if (info->tag != TAG_ATTR_CODE)
         return -1;
-    data = (struct attr_Code_info *) info->data;
+    data = (attr_Code_info *) info->data;
     free(data->code);
     data->code = (u1 *) 0;
     free(data->exception_table);
@@ -162,20 +162,20 @@ freeAttribute_Code(ClassFile * cf, attr_info *info)
 static int
 loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_Exceptions_info *data;
+    attr_Exceptions_info *data;
     const_Class_data *cc;
     const_Utf8_data *utf8;
     u2 i;
 
     info->tag = TAG_ATTR_EXCEPTIONS;
-    data = (struct attr_Exceptions_info *)
-            malloc(sizeof (struct attr_Exceptions_info));
+    data = (attr_Exceptions_info *)
+            malloc(sizeof (attr_Exceptions_info));
     if (!data)
     {
         logError("Fail to allocate memory!\r\n");
         return -1;
     }
-    bzero(data, sizeof (struct attr_Exceptions_info));
+    bzero(data, sizeof (attr_Exceptions_info));
     if (ru2(&(data->number_of_exceptions), input) < 0)
         return -1;
     // Validate Exception attribute
@@ -202,11 +202,11 @@ loadAttribute_Exceptions(ClassFile *cf, struct BufferIO *input, attr_info *info)
 static int
 freeAttribute_Exceptions(attr_info *info)
 {
-    struct attr_Exceptions_info *data;
+    attr_Exceptions_info *data;
 
     if (info->tag != TAG_ATTR_EXCEPTIONS)
         return -1;
-    data = (struct attr_Exceptions_info *) info->data;
+    data = (attr_Exceptions_info *) info->data;
     free(data->exception_index_table);
     free(data);
     info->data = (void *) 0;
@@ -222,14 +222,14 @@ freeAttribute_Exceptions(attr_info *info)
 static int
 loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_InnerClasses_info *data;
+    attr_InnerClasses_info *data;
     const_Class_data *cc;
     const_Utf8_data *cu;
     u2 i;
 
     info->tag = TAG_ATTR_INNERCLASSES;
-    data = (struct attr_InnerClasses_info *)
-            malloc(sizeof (struct attr_InnerClasses_info));
+    data = (attr_InnerClasses_info *)
+            malloc(sizeof (attr_InnerClasses_info));
     if (!data)
         return -1;
     if (ru2(&(data->number_of_classes), input) < 0)
@@ -306,11 +306,11 @@ loadAttribute_InnerClasses(ClassFile *cf, struct BufferIO *input, attr_info *inf
 static int
 freeAttribute_InnerClasses(attr_info *info)
 {
-    struct attr_InnerClasses_info *data;
+    attr_InnerClasses_info *data;
 
     if (info->tag != TAG_ATTR_INNERCLASSES)
         return -1;
-    data = (struct attr_InnerClasses_info *) info->data;
+    data = (attr_InnerClasses_info *) info->data;
     free(data->classes);
     data->classes = 0;
     free(data);
@@ -336,12 +336,12 @@ loadAttribute_Synthetic(ClassFile *cf, struct BufferIO *input, attr_info *info)
 static int
 loadAttribute_SourceFile(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_SourceFile_info *data;
+    attr_SourceFile_info *data;
     const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_SOURCEFILE;
-    data = (struct attr_SourceFile_info *)
-            malloc(sizeof (struct attr_SourceFile_info));
+    data = (attr_SourceFile_info *)
+            malloc(sizeof (attr_SourceFile_info));
     if (!data)
         return -1;
     if (ru2(&(data->sourcefile_index), input) < 0)
@@ -398,16 +398,16 @@ freeAttribute_SourceDebugExtension(attr_info *info)
 static int
 loadAttribute_LineNumberTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_LineNumberTable_info *data;
+    attr_LineNumberTable_info *data;
     u2 i, lntl;
     int cap;
 
     info->tag = TAG_ATTR_LINENUMBERTABLE;
     if (ru2(&lntl, input) < 0)
         return -1;
-    cap = sizeof (struct attr_LineNumberTable_info)
+    cap = sizeof (attr_LineNumberTable_info)
         + sizeof (struct line_number_table_entry) * lntl;
-    data = (struct attr_LineNumberTable_info *) malloc(cap);
+    data = (attr_LineNumberTable_info *) malloc(cap);
     if (!data)
         return -1;
     data->line_number_table_length = lntl;
@@ -437,7 +437,7 @@ freeAttribute_LineNumberTable(attr_info *info)
 static int
 loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_LocalVariableTable_info *data;
+    attr_LocalVariableTable_info *data;
     u2 i, lvtl;
     int cap;
     const_Utf8_data *cu;
@@ -445,9 +445,9 @@ loadAttribute_LocalVariableTable(ClassFile *cf, struct BufferIO *input, attr_inf
     info->tag = TAG_ATTR_LOCALVARIABLETABLE;
     if (ru2(&lvtl, input) < 0)
         return -1;
-    cap = sizeof (struct attr_LocalVariableTable_info)
+    cap = sizeof (attr_LocalVariableTable_info)
         + sizeof (struct local_variable_table_entry) * lvtl;
-    data = (struct attr_LocalVariableTable_info *) malloc(cap);
+    data = (attr_LocalVariableTable_info *) malloc(cap);
     if (!data)
         return -1;
     data->local_variable_table_length = lvtl;
@@ -510,13 +510,13 @@ loadAttribute_Deprecated(ClassFile *cf, struct BufferIO *input, attr_info *info)
 static int
 loadAttribute_EnclosingMethod(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_EnclosingMethod_info *data;
+    attr_EnclosingMethod_info *data;
     const_Class_data *cc;
     const_NameAndType_data *cn;
 
     info->tag = TAG_ATTR_ENCLOSINGMETHOD;
-    data = (struct attr_EnclosingMethod_info *)
-            malloc(sizeof (struct attr_EnclosingMethod_info));
+    data = (attr_EnclosingMethod_info *)
+            malloc(sizeof (attr_EnclosingMethod_info));
     if (!data)
         return -1;
     if (ru2(&(data->class_index), input) < 0)
@@ -557,12 +557,12 @@ freeAttribute_EnclosingMethod(attr_info *info)
 static int
 loadAttribute_Signature(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_Signature_info *data;
+    attr_Signature_info *data;
     const_Utf8_data *cu;
 
     info->tag = TAG_ATTR_SIGNATURE;
-    data = (struct attr_Signature_info *)
-            malloc(sizeof (struct attr_Signature_info));
+    data = (attr_Signature_info *)
+            malloc(sizeof (attr_Signature_info));
     if (!data)
         return -1;
     if (ru2(&(data->signature_index), input) < 0)
@@ -592,7 +592,7 @@ freeAttribute_Signature(attr_info *info)
 static int
 loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_LocalVariableTypeTable_info *data;
+    attr_LocalVariableTypeTable_info *data;
     u2 i, lvttl;
     int cap;
     const_Utf8_data *cu;
@@ -600,9 +600,9 @@ loadAttribute_LocalVariableTypeTable(ClassFile *cf, struct BufferIO *input, attr
     info->tag = TAG_ATTR_LOCALVARIABLETYPETABLE;
     if (ru2(&lvttl, input) < 0)
         return -1;
-    cap = sizeof (struct attr_LocalVariableTypeTable_info)
+    cap = sizeof (attr_LocalVariableTypeTable_info)
         + sizeof (struct local_variable_type_table_entry) * lvttl;
-    data = (struct attr_LocalVariableTypeTable_info *) malloc(cap);
+    data = (attr_LocalVariableTypeTable_info *) malloc(cap);
     data->local_variable_type_table_length = lvttl;
     if (!data)
         return -1;
@@ -651,12 +651,17 @@ static int
 loadElementValue(ClassFile *, struct BufferIO *, struct element_value *);
 static int
 freeElementValue(ClassFile *, struct element_value *);
+static int
+loadElementValuePair(ClassFile *, struct BufferIO *, struct element_value_pair *);
+static int
+freeElementValuePair(ClassFile *, struct element_value_pair *);
 
 static int
 loadAnnotation(ClassFile *cf, struct BufferIO *input,
         struct annotation *anno)
 {
     const_Utf8_data *utf8;
+    struct element_value_pair *pair;
     u2 i;
     
     if (ru2(&(anno->type_index), input) < 0)
@@ -681,18 +686,11 @@ loadAnnotation(ClassFile *cf, struct BufferIO *input,
             sizeof (struct element_value_pair));
     for (i = 0; i < anno->num_element_value_pairs; i++)
     {
-        if (ru2(&(anno->element_value_pairs[i].element_name_index), input) < 0)
-            return -1;
-        utf8 = getConstant_Utf8(cf, anno->element_value_pairs[i].element_name_index);
-        if (!utf8)
-            return -1;
-        if (!isFieldDescriptor(utf8->length, utf8->bytes))
-            return -1;
-        anno->element_value_pairs[i].value = (struct element_value *)
-                allocMemory(1, sizeof (struct element_value));
-        if (loadElementValue(cf, input, anno->element_value_pairs[i].value) < 0)
+        pair = &(anno->element_value_pairs[i]);
+        if (loadElementValuePair(cf, input, pair) < 0)
             return -1;
     }
+
     return 0;
 }
 
@@ -700,15 +698,16 @@ static int
 freeAnnotation(ClassFile *cf, struct annotation *anno)
 {
     u2 i;
+    struct element_value_pair *pair;
     
     for (i = 0; i < anno->num_element_value_pairs; i++)
     {
-        freeElementValue(cf, anno->element_value_pairs[i].value);
-        free(anno->element_value_pairs[i].value);
-        anno->element_value_pairs[i].value = (struct element_value *) 0;
+        pair = &(anno->element_value_pairs[i]);
+        freeElementValuePair(cf, pair);
     }
-    free(anno->element_value_pairs);
+    freeMemory(anno->element_value_pairs);
     anno->element_value_pairs = (struct element_value_pair *) 0;
+
     return 0;
 }
 
@@ -825,16 +824,44 @@ freeElementValue(ClassFile *cf, struct element_value *value)
 }
 
 static int
+loadElementValuePair(ClassFile *cf, struct BufferIO *input,
+        struct element_value_pair *pair)
+{
+    u2 index;
+    const_Utf8_data *utf8;
+
+    if (ru2(&index, input) < 0)
+        return -1;
+    utf8 = getConstant_Utf8(cf, index);
+    if (!utf8 || !isFieldDescriptor(utf8->length, utf8->bytes))
+        return -1;
+    pair->element_name_index = index;
+    pair->value = (struct element_value *)
+        allocMemory(1, sizeof (struct element_value));
+    return loadElementValue(cf, input, pair->value);
+}
+
+static inline int
+freeElementValuePair(ClassFile *cf, struct element_value_pair *pair)
+{
+    freeElementValue(cf, pair->value);
+    freeMemory(pair->value);
+    pair->value = (struct element_value *) 0;
+
+    return 0;
+}
+
+static int
 loadAttribute_RuntimeVisibleAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_RuntimeVisibleAnnotations_info *data;
+    attr_RuntimeVisibleAnnotations_info *data;
     u2 num_annotations, i;
     
     info->tag = TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS;
     if (ru2(&num_annotations, input) < 0)
         return -1;
-    data = (struct attr_RuntimeVisibleAnnotations_info *)
-            allocMemory(1, sizeof (struct attr_RuntimeVisibleAnnotations_info)
+    data = (attr_RuntimeVisibleAnnotations_info *)
+            allocMemory(1, sizeof (attr_RuntimeVisibleAnnotations_info)
                 + sizeof (struct annotation) * num_annotations);
     if (!data)
         return -1;
@@ -850,32 +877,32 @@ loadAttribute_RuntimeVisibleAnnotations(ClassFile *cf, struct BufferIO *input, a
 static int
 freeAttribute_RuntimeVisibleAnnotations(ClassFile *cf, attr_info *info)
 {
-    struct attr_RuntimeVisibleAnnotations_info *data;
+    attr_RuntimeVisibleAnnotations_info *data;
     u2 i;
     
     if (info->tag != TAG_ATTR_RUNTIMEVISIBLEANNOTATIONS)
         return -1;
-    data = (struct attr_RuntimeVisibleAnnotations_info *) info->data;
+    data = (attr_RuntimeVisibleAnnotations_info *) info->data;
     for (i = 0; i < data->num_annotations; i++)
         freeAnnotation(cf, &(data->annotations[i]));
     
     free(info->data);
-    info->data = (struct attr_RuntimeVisibleAnnotations_info *) 0;
+    info->data = (attr_RuntimeVisibleAnnotations_info *) 0;
     return 0;
 }
 
 static int
 loadAttribute_RuntimeInvisibleAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_RuntimeInvisibleAnnotations_info *data;
+    attr_RuntimeInvisibleAnnotations_info *data;
     u2 num_annotations, i;
     struct annotation *anno;
     
     info->tag = TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS;
     if (ru2(&num_annotations, input) < 0)
         return -1;
-    data = (struct attr_RuntimeInvisibleAnnotations_info *)
-            allocMemory(1, sizeof (struct attr_RuntimeInvisibleAnnotations_info)
+    data = (attr_RuntimeInvisibleAnnotations_info *)
+            allocMemory(1, sizeof (attr_RuntimeInvisibleAnnotations_info)
                 + sizeof (struct annotation) * num_annotations);
     if (!data)
         return -1;
@@ -891,32 +918,32 @@ loadAttribute_RuntimeInvisibleAnnotations(ClassFile *cf, struct BufferIO *input,
 static int
 freeAttribute_RuntimeInvisibleAnnotations(ClassFile *cf, attr_info *info)
 {
-    struct attr_RuntimeInvisibleAnnotations_info *data;
+    attr_RuntimeInvisibleAnnotations_info *data;
     u2 i;
     
     if (info->tag != TAG_ATTR_RUNTIMEINVISIBLEANNOTATIONS)
         return -1;
-    data = (struct attr_RuntimeInvisibleAnnotations_info *) info->data;
+    data = (attr_RuntimeInvisibleAnnotations_info *) info->data;
     for (i = 0; i < data->num_annotations; i++)
         freeAnnotation(cf, &(data->annotations[i]));
     
     free(info->data);
-    info->data = (struct attr_RuntimeInvisibleAnnotations_info *) 0;
+    info->data = (attr_RuntimeInvisibleAnnotations_info *) 0;
     return 0;
 }
 
 static int
 loadAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_RuntimeVisibleParameterAnnotations_info *data;
+    attr_RuntimeVisibleParameterAnnotations_info *data;
     u1 num_parameters, i;
     u2 j;
     
     info->tag = TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS;
     if (ru1(&num_parameters, input) < 0)
         return -1;
-    data = (struct attr_RuntimeVisibleParameterAnnotations_info *)
-            allocMemory(1, sizeof (struct attr_RuntimeVisibleParameterAnnotations_info)
+    data = (attr_RuntimeVisibleParameterAnnotations_info *)
+            allocMemory(1, sizeof (attr_RuntimeVisibleParameterAnnotations_info)
             + num_parameters * sizeof (struct parameter_annotation));
     if (!data)
         return -1;
@@ -943,13 +970,13 @@ loadAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, struct BufferIO 
 static int
 freeAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, attr_info *info)
 {
-    struct attr_RuntimeVisibleParameterAnnotations_info *data;
+    attr_RuntimeVisibleParameterAnnotations_info *data;
     u1 i;
     u2 j;
     
     if (info->tag != TAG_ATTR_RUNTIMEVISIBLEPARAMETERANNOTATIONS)
         return -1;
-    data = (struct attr_RuntimeVisibleParameterAnnotations_info *) info->data;
+    data = (attr_RuntimeVisibleParameterAnnotations_info *) info->data;
     for (i = 0; i < data->num_parameters; i++)
     {
         for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
@@ -957,7 +984,7 @@ freeAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, attr_info *info)
         free(data->parameter_annotations[i].annotations);
     }
     free(info->data);
-    info->data = (struct attr_RuntimeVisibleParameterAnnotations_info *) 0;
+    info->data = (attr_RuntimeVisibleParameterAnnotations_info *) 0;
     
     return 0;
 }
@@ -965,15 +992,15 @@ freeAttribute_RuntimeVisibleParameterAnnotations(ClassFile *cf, attr_info *info)
 static int
 loadAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_RuntimeInvisibleParameterAnnotations_info *data;
+    attr_RuntimeInvisibleParameterAnnotations_info *data;
     u1 num_parameters, i;
     u2 j;
     
     info->tag = TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS;
     if (ru1(&num_parameters, input) < 0)
         return -1;
-    data = (struct attr_RuntimeInvisibleParameterAnnotations_info *)
-            allocMemory(1, sizeof (struct attr_RuntimeInvisibleParameterAnnotations_info)
+    data = (attr_RuntimeInvisibleParameterAnnotations_info *)
+            allocMemory(1, sizeof (attr_RuntimeInvisibleParameterAnnotations_info)
             + num_parameters * sizeof (struct parameter_annotation));
     if (!data)
         return -1;
@@ -1000,13 +1027,13 @@ loadAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, struct BufferI
 static int
 freeAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, attr_info *info)
 {
-    struct attr_RuntimeInvisibleParameterAnnotations_info *data;
+    attr_RuntimeInvisibleParameterAnnotations_info *data;
     u1 i;
     u2 j;
     
     if (info->tag != TAG_ATTR_RUNTIMEINVISIBLEPARAMETERANNOTATIONS)
         return -1;
-    data = (struct attr_RuntimeInvisibleParameterAnnotations_info *) info->data;
+    data = (attr_RuntimeInvisibleParameterAnnotations_info *) info->data;
     for (i = 0; i < data->num_parameters; i++)
     {
         for (j = 0; j < data->parameter_annotations[i].num_annotations; j++)
@@ -1014,7 +1041,7 @@ freeAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, attr_info *inf
         free(data->parameter_annotations[i].annotations);
     }
     free(info->data);
-    info->data = (struct attr_RuntimeInvisibleParameterAnnotations_info *) 0;
+    info->data = (attr_RuntimeInvisibleParameterAnnotations_info *) 0;
     
     return 0;
 }
@@ -1022,11 +1049,11 @@ freeAttribute_RuntimeInvisibleParameterAnnotations(ClassFile *cf, attr_info *inf
 static int
 loadAttribute_AnnotationDefault(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_AnnotationDefault_info *data;
+    attr_AnnotationDefault_info *data;
     
     info->tag = TAG_ATTR_ANNOTATIONDEFAULT;
-    data = (struct attr_AnnotationDefault_info *)
-            allocMemory(1, sizeof (struct attr_AnnotationDefault_info));
+    data = (attr_AnnotationDefault_info *)
+            allocMemory(1, sizeof (attr_AnnotationDefault_info));
     if (!data)
         return -1;
     if (loadElementValue(cf, input, &(data->default_value)) < 0)
@@ -1039,14 +1066,14 @@ loadAttribute_AnnotationDefault(ClassFile *cf, struct BufferIO *input, attr_info
 static int
 freeAttribute_AnnotationDefault(ClassFile *cf, attr_info *info)
 {
-    struct attr_AnnotationDefault_info *data;
+    attr_AnnotationDefault_info *data;
     
     if (info->tag != TAG_ATTR_ANNOTATIONDEFAULT)
         return -1;
-    data = (struct attr_AnnotationDefault_info *) info->data;
+    data = (attr_AnnotationDefault_info *) info->data;
     freeElementValue(cf, &(data->default_value));
     free(info->data);
-    info->data = (struct attr_AnnotationDefault_info *) 0;
+    info->data = (attr_AnnotationDefault_info *) 0;
     
     return 0;
 }
@@ -1111,7 +1138,7 @@ freeVerificationTypeInfo(ClassFile *cf,
 static int
 loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *info)
 {
-    struct attr_StackMapTable_info *data;
+    attr_StackMapTable_info *data;
     union stack_map_frame *entry;
     u2 i, number_of_entries;
     u1 frame_type, cap, j;
@@ -1119,8 +1146,8 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *in
     info->tag = TAG_ATTR_STACKMAPTABLE;
     if (ru2(&number_of_entries, input) < 0)
         return -1;
-    data = (struct attr_StackMapTable_info *)
-            allocMemory(1, sizeof (struct attr_StackMapTable_info)
+    data = (attr_StackMapTable_info *)
+            allocMemory(1, sizeof (attr_StackMapTable_info)
                 + number_of_entries * sizeof (union stack_map_frame));
     if (!data)
         return -1;
@@ -1246,14 +1273,14 @@ loadAttribute_StackMapTable(ClassFile *cf, struct BufferIO *input, attr_info *in
 static int
 freeAttribute_StackMapTable(ClassFile *cf, attr_info *info)
 {
-    struct attr_StackMapTable_info *data;
+    attr_StackMapTable_info *data;
     union stack_map_frame *entry;
     u2 i;
     u1 frame_type, j;
     
     if (info->tag != TAG_ATTR_STACKMAPTABLE)
         return -1;
-    data = (struct attr_StackMapTable_info *) info->data;
+    data = (attr_StackMapTable_info *) info->data;
     for (i = 0; i < data->number_of_entries; i++)
     {
         entry = &(data->entries[i]);
@@ -1315,15 +1342,15 @@ static int
 loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
         attr_info *info)
 {
-    struct attr_BootstrapMethods_info *data;
+    attr_BootstrapMethods_info *data;
     u2 num_bootstrap_methods, i, j;
     struct bootstrap_method *m;
     
     info->tag = TAG_ATTR_BOOTSTRAPMETHODS;
     if (ru2(&num_bootstrap_methods, input) < 0)
         return -1;
-    data = (struct attr_BootstrapMethods_info *) allocMemory(1,
-            sizeof (struct attr_BootstrapMethods_info)
+    data = (attr_BootstrapMethods_info *) allocMemory(1,
+            sizeof (attr_BootstrapMethods_info)
             + sizeof (struct bootstrap_method) * num_bootstrap_methods);
     if (!data)
         return -1;
@@ -1362,12 +1389,12 @@ loadAttribute_BootstrapMethods(ClassFile *cf, struct BufferIO *input,
 static int
 freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
 {
-    struct attr_BootstrapMethods_info *data;
+    attr_BootstrapMethods_info *data;
     u2 i;
     
     if (info->tag != TAG_ATTR_BOOTSTRAPMETHODS)
         return -1;
-    data = (struct attr_BootstrapMethods_info *) info->data;
+    data = (attr_BootstrapMethods_info *) info->data;
     for (i = 0; i < data->num_bootstrap_methods; i++)
     {
         free(data->bootstrap_methods[i].bootstrap_arguments);
@@ -1379,6 +1406,248 @@ freeAttribute_BootstrapMethods(ClassFile *cf, attr_info *info)
     return 0;
 }
 #endif /* VERSION 51.0 */
+#if VER_CMP(52, 0)
+static int
+loadAttribute_MethodParameters(ClassFile *cf, struct BufferIO *input,
+        attr_info *info)
+{
+    attr_MethodParameters_info *data;
+    u1 parameters_count;
+    u1 i;
+    struct parameter_entry *parameter;
+
+    info->tag = TAG_ATTR_METHODPARAMETERS;
+    if (ru1(&parameters_count, input) < 0)
+        return -1;
+    data = (attr_MethodParameters_info *)
+        allocMemory(1, sizeof (u1)
+                + sizeof (struct parameter_entry)
+                * parameters_count);
+    data->parameters_count = parameters_count;
+    for (i = 0; i < parameters_count; i++)
+    {
+        parameter = &(data->parameters[i]);
+        if (ru2(&(parameter->name_index), input) < 0)
+            return -1;
+        if (ru2(&(parameter->access_flags), input) < 0)
+            return -1;
+    }
+    info->data = data;
+
+    return 0;
+}
+
+static int
+freeAttribute_MethodParameters(ClassFile *cf, attr_info *info)
+{
+    if (info->tag != TAG_ATTR_METHODPARAMETERS)
+        return -1;
+    free(info->data);
+    info->data = (void *) 0;
+
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    u2 num_annotations;
+    attr_RuntimeVisibleTypeAnnotations_info *data;
+    u2 i, j;
+    struct type_annotation *annotation;
+    u1 target_type;
+    u2 table_length;
+    u2 nevp;
+    u1 path_length;
+    struct localvar_table_entry * entry;
+    struct element_value_pair * pair;
+
+    if (ru2(&num_annotations, input) < 0)
+        return -1;
+    data = (attr_RuntimeVisibleTypeAnnotations_info *)
+        allocMemory(1, sizeof (u2)
+                + sizeof (struct type_annotation) * num_annotations);
+    data->num_annotations = num_annotations;
+    for (i = 0; i < num_annotations; i++)
+    {
+        annotation = &(data->annotations[i]);
+        if (ru1(&target_type, input) < 0)
+            return -1;
+        annotation->target_type = target_type;
+
+        // retrieve target_info
+        switch (target_type)
+        {
+            case 0x00:case 0x01:
+                // type_parameter_target
+                if (ru1(&(annotation->target_info.type_parameter_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x10:
+                // supertype_target
+                if (ru2(&(annotation->target_info.supertype_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x11:case 0x12:
+                // type_parameter_bound_target
+                if (ru1(&(annotation->target_info.type_parameter_index),
+                            input) < 0)
+                    return -1;
+                if (ru1(&(annotation->target_info.bound_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x13:case 0x14:case 0x15:
+                // empty_target
+                break;
+            case 0x16:
+                // formal_parameter_target
+                if (ru1(&(annotation->target_info.formal_parameter_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x17:
+                // throws_target
+                if (ru2(&(annotation->target_info.throws_type_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x40:case 0x41:
+                // localvar_target
+                if (ru2(&table_length, input) < 0)
+                    return -1;
+                annotation->target_info.table_length = table_length;
+                annotation->target_info.table =
+                    (struct localvar_table_entry *)
+                    allocMemory(table_length,
+                            sizeof (struct localvar_table_entry));
+                for (j = 0; j < table_length; j++)
+                {
+                    entry = &(annotation->target_info.table[j]);
+                    if (ru2(&(entry->start_pc), input) < 0)
+                        return -1;
+                    if (ru2(&(entry->length), input) < 0)
+                        return -1;
+                    if (ru2(&(entry->index), input) < 0)
+                        return -1;
+                }
+                break;
+            case 0x42:
+                // catch_target
+                if (ru2(&(annotation->target_info.exception_table_index),
+                            input) < 0)
+                    return -1;
+                break;
+            case 0x43:case 0x44:case 0x45:case 0x46:
+                // offset_target
+                if (ru2(&(annotation->target_info.offset), input) < 0)
+                    return -1;
+                break;
+            case 0x47:case 0x48:case 0x49:case 0x4a:case 0x4b:
+                // type_argument_target
+                if (ru2(&(annotation->target_info.offset), input) < 0)
+                    return -1;
+                if (ru1(&(annotation->target_info.type_argument_index),
+                            input) < 0)
+                    return -1;
+                break;
+        } /* switch target_type */
+
+        // retrieve target_path
+        if (ru1(&path_length, input) < 0)
+            return -1;
+        annotation->target_path.path_length = path_length;
+        annotation->target_path.path = (struct type_path_entry *)
+            allocMemory(path_length,
+                    sizeof (struct type_path_entry));
+        if (rbs((u1 *) annotation->target_path.path, input,
+                    sizeof (struct type_path_entry) *
+                    path_length) < 0)
+            return -1;
+
+        // retrieve type_index
+        if (ru2(&(annotation->type_index), input) < 0)
+            return -1;
+
+        // retrieve num_element_value_pairs
+        if (ru2(&nevp, input) < 0)
+            return -1;
+        annotation->num_element_value_pairs = nevp;
+        annotation->element_value_pairs = (struct element_value_pair *)
+            allocMemory(nevp, sizeof (struct element_value_pair));
+        for (j = 0; j < nevp; j++)
+        {
+            pair = &(annotation->element_value_pairs[j]);
+            if (loadElementValuePair(cf, input, pair) < 0)
+                return -1;
+        }
+
+    }
+
+    return 0;
+}
+
+static int
+freeAttribute_RuntimeTypeAnnotations(ClassFile *cf, attr_info *info)
+{
+    u2 i, j, num, nevp;
+    attr_RuntimeVisibleTypeAnnotations_info *data;
+    struct type_annotation *anno;
+    struct element_value_pair *pair;
+
+    data = (attr_RuntimeVisibleTypeAnnotations_info *) info->data;
+    num = data->num_annotations;
+    for (i = 0; i < num; i++)
+    {
+        anno = &(data->annotations[i]);
+        nevp = anno->num_element_value_pairs;
+        for (j = 0; j < nevp; j++)
+        {
+            pair = &(anno->element_value_pairs[j]);
+            freeElementValuePair(cf, pair);
+        }
+    }
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
+    return loadAttribute_RuntimeTypeAnnotations(cf, input, info);
+}
+
+static int
+loadAttribute_RuntimeInvisibleTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    info->tag = TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS;
+    return loadAttribute_RuntimeTypeAnnotations(cf, input, info);
+}
+
+static int
+freeAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+        attr_info *info)
+{
+    if (info->tag != TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS)
+        return -1;
+    return freeAttribute_RuntimeTypeAnnotations(cf, info);
+}
+
+static int
+freeAttribute_RuntimeInvisibleTypeAnnotations(ClassFile *cf,
+        attr_info *info)
+{
+    if (info->tag != TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS)
+        return -1;
+    return freeAttribute_RuntimeTypeAnnotations(cf, info);
+}
+
+#endif /* VERSION 52.0 */
 
 extern int
 loadAttribute_class(ClassFile *cf, struct BufferIO *input, attr_info *info)
@@ -1679,9 +1948,9 @@ freeAttribute_class(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1718,9 +1987,9 @@ freeAttribute_field(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1787,11 +2056,11 @@ freeAttribute_method(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_MethodParameters(info))
+    if (!freeAttribute_MethodParameters(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
@@ -1850,9 +2119,9 @@ freeAttribute_code(ClassFile * cf, attr_info *info)
         return 0;
 #endif
 #if VER_CMP(52, 0)
-    if (!freeAttribute_RuntimeVisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeVisibleTypeAnnotations(cf, info))
         return 0;
-    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(info))
+    if (!freeAttribute_RuntimeInvisibleTypeAnnotations(cf, info))
         return 0;
 #endif
     logError("Fail to free incompatible attribute[%i].\r\n", info->tag);
