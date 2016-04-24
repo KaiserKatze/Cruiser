@@ -1449,7 +1449,7 @@ freeAttribute_MethodParameters(ClassFile *cf, attr_info *info)
 }
 
 static int
-loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+loadAttribute_RuntimeTypeAnnotations(ClassFile *cf,
         struct BufferIO *input, attr_info *info)
 {
     u2 num_annotations;
@@ -1463,7 +1463,6 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
     struct localvar_table_entry * entry;
     struct element_value_pair * pair;
 
-    info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
     if (ru2(&num_annotations, input) < 0)
         return -1;
     data = (attr_RuntimeVisibleTypeAnnotations_info *)
@@ -1592,12 +1591,62 @@ loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
 }
 
 static int
+freeAttribute_RuntimeTypeAnnotations(ClassFile *cf, attr_info *info)
+{
+    u2 i, j, num, nevp;
+    attr_RuntimeVisibleTypeAnnotations_info *data;
+    struct type_annotation *anno;
+    struct element_value_pair *pair;
+
+    data = (attr_RuntimeVisibleTypeAnnotations_info *) info->data;
+    num = data->num_annotations;
+    for (i = 0; i < num; i++)
+    {
+        anno = &(data->annotations[i]);
+        nevp = anno->num_element_value_pairs;
+        for (j = 0; j < nevp; j++)
+        {
+            pair = &(anno->element_value_pairs[j]);
+            freeElementValuePair(cf, pair);
+        }
+    }
+    return 0;
+}
+
+static int
+loadAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    info->tag = TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS;
+    return loadAttribute_RuntimeTypeAnnotations(cf, input, info);
+}
+
+static int
+loadAttribute_RuntimeInvisibleTypeAnnotations(ClassFile *cf,
+        struct BufferIO *input, attr_info *info)
+{
+    info->tag = TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS;
+    return loadAttribute_RuntimeTypeAnnotations(cf, input, info);
+}
+
+static int
 freeAttribute_RuntimeVisibleTypeAnnotations(ClassFile *cf,
         attr_info *info)
 {
-    // TODO
-    return 0;
+    if (info->tag != TAG_ATTR_RUNTIMEVISIBLETYPEANNOTATIONS)
+        return -1;
+    return freeAttribute_RuntimeTypeAnnotations(cf, info);
 }
+
+static int
+freeAttribute_RuntimeInvisibleTypeAnnotations(ClassFile *cf,
+        attr_info *info)
+{
+    if (info->tag != TAG_ATTR_RUNTIMEINVISIBLETYPEANNOTATIONS)
+        return -1;
+    return freeAttribute_RuntimeTypeAnnotations(cf, info);
+}
+
 #endif /* VERSION 52.0 */
 
 extern int
