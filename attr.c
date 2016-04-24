@@ -651,12 +651,17 @@ static int
 loadElementValue(ClassFile *, struct BufferIO *, struct element_value *);
 static int
 freeElementValue(ClassFile *, struct element_value *);
+static int
+loadElementValuePair(ClassFile *, struct BufferIO *, struct element_value_pair *);
+static int
+freeElementValuePair(ClassFile *, struct element_value_pair *);
 
 static int
 loadAnnotation(ClassFile *cf, struct BufferIO *input,
         struct annotation *anno)
 {
     const_Utf8_data *utf8;
+    struct element_value_pair *pair;
     u2 i;
     
     if (ru2(&(anno->type_index), input) < 0)
@@ -681,18 +686,11 @@ loadAnnotation(ClassFile *cf, struct BufferIO *input,
             sizeof (struct element_value_pair));
     for (i = 0; i < anno->num_element_value_pairs; i++)
     {
-        if (ru2(&(anno->element_value_pairs[i].element_name_index), input) < 0)
-            return -1;
-        utf8 = getConstant_Utf8(cf, anno->element_value_pairs[i].element_name_index);
-        if (!utf8)
-            return -1;
-        if (!isFieldDescriptor(utf8->length, utf8->bytes))
-            return -1;
-        anno->element_value_pairs[i].value = (struct element_value *)
-                allocMemory(1, sizeof (struct element_value));
-        if (loadElementValue(cf, input, anno->element_value_pairs[i].value) < 0)
+        pair = &(anno->element_value_pairs[i]);
+        if (loadElementValuePair(cf, input, pair) < 0)
             return -1;
     }
+
     return 0;
 }
 
@@ -700,15 +698,16 @@ static int
 freeAnnotation(ClassFile *cf, struct annotation *anno)
 {
     u2 i;
+    struct element_value_pair *pair;
     
     for (i = 0; i < anno->num_element_value_pairs; i++)
     {
-        freeElementValue(cf, anno->element_value_pairs[i].value);
-        free(anno->element_value_pairs[i].value);
-        anno->element_value_pairs[i].value = (struct element_value *) 0;
+        pair = &(anno->element_value_pairs[i]);
+        freeElementValuePair(cf, pair);
     }
-    free(anno->element_value_pairs);
+    freeMemory(anno->element_value_pairs);
     anno->element_value_pairs = (struct element_value_pair *) 0;
+
     return 0;
 }
 
@@ -821,6 +820,34 @@ freeElementValue(ClassFile *cf, struct element_value *value)
         free(value->array_value.values);
         value->array_value.values = (struct element_value *) 0;
     }
+    return 0;
+}
+
+static int
+loadElementValuePair(ClassFile *cf, struct BufferIO *input,
+        struct element_value_pair *pair)
+{
+    u2 index;
+    const_Utf8_data *utf8;
+
+    if (ru2(&index, input) < 0)
+        return -1;
+    utf8 = getConstant_Utf8(cf, index);
+    if (!utf8 || !isFieldDescriptor(utf8->length, utf8->bytes))
+        return -1;
+    pair->element_name_index = index;
+    pair->value = (struct element_value *)
+        allocMemory(1, sizeof (struct element_value));
+    return loadElementValue(cf, input, pair->value);
+}
+
+static inline int
+freeElementValuePair(ClassFile *cf, struct element_value_pair *pair)
+{
+    freeElementValue(cf, pair->value);
+    freeMemory(pair->value);
+    pair->value = (struct element_value *) 0;
+
     return 0;
 }
 
