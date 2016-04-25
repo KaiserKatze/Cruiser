@@ -265,9 +265,9 @@ public:
 #if VER_CMP(52, 0)
     attr_MethodParameters_info *
                     getAttribute_MethodParameters();
-    attr_RuntimeVisibleTypeAnnotations *
+    attr_RuntimeVisibleTypeAnnotations_info *
                     getAttribute_RuntimeVisibleTypeAnnotations();
-    attr_RuntimeInvisibleTypeAnnotations *
+    attr_RuntimeInvisibleTypeAnnotations_info *
                     getAttribute_RuntimeInvisibleTypeAnnotations();
 #endif
 

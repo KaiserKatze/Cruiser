@@ -219,9 +219,8 @@ static int dc_initFrame(dc_frame *frame,
 #if VER_CMP(52, 0)
     // retrieve MethodParameters attribute
     // retrieve parameter names
-    attribute = rm->getAttribute(off_MethodParameters,
-            TAG_ATTR_METHODPARAMETERS);
-    if (attribute)
+    ampi = rm->getAttribute_MethodParameters();
+    if (ampi)
     {
         // TODO
         goto mpi;
