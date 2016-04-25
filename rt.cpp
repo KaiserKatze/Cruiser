@@ -291,6 +291,8 @@ rt_Member::getDescriptor()
     return cls->getConstant_Utf8(descriptor_index);
 }
 
+#if VER_CMP(45, 3)
+
 attr_Code_info *
 rt_Method::getAttribute_Code()
 {
@@ -303,6 +305,24 @@ rt_Method::getAttribute_Code()
     return (attr_Code_info *) info->data;
 }
 
+#endif
+
+#if VER_CMP(52, 0)
+
+attr_MethodParameters_info *
+rt_Method::getAttribute_MethodParameters()
+{
+    attr_info * info;
+    u2          index;
+
+    info = getAttribute(off_MethodParameters,
+            TAG_ATTR_METHODPARAMETERS);
+    if (!info)
+        return (attr_MethodParameters_info *) 0;
+    return (attr_MethodParameters_info *) info->data;
+}
+
+#endif
 rt_Member::rt_Member(rt_Class *rtc)
 {
     this->def_class = rtc;
