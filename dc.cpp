@@ -44,7 +44,6 @@ int decompile(
     u1 *                    end_code;
     u1                      opcode;
     u2                      index;
-    // TODO
 
     stack.depth = 1024;
     memset(&stack.entries, 0, sizeof (dc_stack));
@@ -104,7 +103,7 @@ int decompile(
             if (dc_printf(entry, rtc, index) < 0)
                 return -1;
         }
-            // TODO
+        // TODO more opcodes to be processed
     }
 }
 
@@ -175,7 +174,7 @@ static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
             return dc_printf(entry, "%fd", cld->double_value);
         case CONSTANT_MethodType:
         case CONSTANT_MethodHandle:
-            // TODO unsupported yet
+            // TODO MethodType/MethodHandle is unsupported yet 
             return -1;
     }
 }
@@ -184,6 +183,8 @@ static int dc_initFrame(dc_frame *frame,
         rt_Class *rtc, rt_Method *rm)
 {
     bool                    is_static;
+    u1                      count;
+    struct parameter_entry *pe;
     u2                      i, j;
     u2                      len;
     u1 *                    str;
@@ -203,11 +204,14 @@ static int dc_initFrame(dc_frame *frame,
 #endif
 
     cud = rm->getDescriptor();
-    len = cud->length;
-    str = cud->bytes;
     if (!cud)
         return -1;
+    len = cud->length;
+    str = cud->bytes;
     is_static = rm->isStatic();
+    // static methods' valid parameter entry starts from 0;
+    // instance methods' valid parameter entry starts from 1,
+    // with `this` object as default parameter at index 0.
     j = 0;
     if (!is_static)
     {
@@ -222,15 +226,32 @@ static int dc_initFrame(dc_frame *frame,
     ampi = rm->getAttribute_MethodParameters();
     if (ampi)
     {
-        // TODO
+        // TODO MethodParameters attribute is not handled
+        count = ampi->parameters_count;
+        for (i = 0; i < count; i++)
+        {
+            pe = &(ampi->parameters[i]);
+            cud = rtc->getConstant_Utf8(pe->name_index);
+            if (!cud)
+                goto sub;
+            len = cud->length;
+            str = cud->bytes;
+            memset(frame->locals[j], 0, MAX_NAME_LENGTH);
+            if (sprintf((char *) frame->locals[j],
+                        "*.s", len, str) < 0)
+                return -1;
+            ++j;
+        }
         goto mpi;
     }
 #endif
+sub:
     // if MethodParameters is not provided
     for (i = 0; i < len; i++)
     {
     }
-mpi:        // MethodParameters is detected
+    // MethodParameters is detected
+mpi:
 
     return 0;
 }
