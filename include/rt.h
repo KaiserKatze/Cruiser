@@ -169,20 +169,19 @@ private:
     rt_Method **    methods;
 
 #if VER_CMP(45, 3)
-    u2 off_InnerClasses;
+    u2              off_InnerClasses;
 #endif
 #if VER_CMP(49, 0)
-    u2 off_EnclosingMethod;
-    u2 off_RuntimeVisibleAnnotations;
-    u2 off_RuntimeInvisibleAnnotations;
+    u2              off_EnclosingMethod;
+    u2              off_RuntimeVisibleAnnotations;
+    u2              off_RuntimeInvisibleAnnotations;
 #endif
 #if VER_CMP(51, 0)
-    u2 off_BootstrapMethods;
+    u2              off_BootstrapMethods;
 #endif
 #if VER_CMP(52, 0)
-    u2 off_MethodParameters;
-    u2 off_RuntimeVisibleTypeAnnotations;
-    u2 off_RuntimeInvisibleTypeAnnotations;
+    u2              off_RuntimeVisibleTypeAnnotations;
+    u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
 public:
     bool            isInterface();
@@ -259,6 +258,7 @@ private:
     u2              off_RuntimeInvisibleAnnotations;
 #endif
 #if VER_CMP(52, 0)
+    u2              off_MethodParameters;
     u2              off_RuntimeVisibleTypeAnnotations;
     u2              off_RuntimeInvisibleTypeAnnotations;
 #endif
