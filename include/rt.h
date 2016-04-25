@@ -237,12 +237,40 @@ class rt_Method :
     public rt_Accessible,
     public rt_Member
 {
-private:
-    attr_Code_info *getAttribute_Code();
 public:
                     rt_Method(rt_Class *, method_info *);
     void            initFrame(rt_Frame *);
     rt_Descriptor * getRuntimeDescriptor();
+
+#if VER_CMP(45, 3)
+    attr_Code_info *
+                    getAttribute_Code();
+    attr_Exceptions_info *
+                    getAttribute_Exceptions();
+#endif
+
+#if VER_CMP(49, 0)
+    attr_RuntimeVisibleParameterAnnotations_info *
+                    getAttribute_RuntimeVisibleParameterAnnotations();
+    attr_RuntimeInvisibleParameterAnnotations_info *
+                    getAttribute_RuntimeInvisibleParameterAnnotations();
+    attr_AnnotationDefault_info *
+                    getAttribute_AnnotationDefault();
+    attr_RuntimeVisibleAnnotations_info *
+                    getAttribute_RuntimeVisibleAnnotations();
+    attr_RuntimeInvisibleAnnotations_info *
+                    getAttribute_RuntimeInvisibleAnnotations();
+#endif
+
+#if VER_CMP(52, 0)
+    attr_MethodParameters_info *
+                    getAttribute_MethodParameters();
+    attr_RuntimeVisibleTypeAnnotations *
+                    getAttribute_RuntimeVisibleTypeAnnotations();
+    attr_RuntimeInvisibleTypeAnnotations *
+                    getAttribute_RuntimeInvisibleTypeAnnotations();
+#endif
+
 private:
     rt_Descriptor   descriptor;
 
