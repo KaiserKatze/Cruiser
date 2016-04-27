@@ -182,76 +182,144 @@ static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
 static int dc_initFrame(dc_frame *frame,
         rt_Class *rtc, rt_Method *rm)
 {
-    bool                    is_static;
-    u1                      count;
-    struct parameter_entry *pe;
-    u2                      i, j;
-    u2                      len;
-    u1 *                    str;
-    const_Utf8_data *       cud;
-    attr_info *             attribute;
+    u1                                  not_static;
+    u1                                  count, state;
+    struct parameter_entry *            pe;
+    u2                                  i, j;
+    u1                                  k;
+    u2                                  len;
+    u1 *                                str;
+    const_Utf8_data *                   cud;
+    attr_info *                         attribute;
 #if VER_CMP(52, 0)
-    attr_MethodParameters_info *
-                            ampi;
+    attr_MethodParameters_info *        ampi;
 #endif
 #if VER_CMP(45, 3)
-    attr_LocalVariableTable_info *
-                            alvti;
+    attr_LocalVariableTable_info *      alvti;
 #endif
 #if VER_CMP(49, 0)
-    attr_LocalVariableTypeTable_info *
-                            alvtti;
+    attr_LocalVariableTypeTable_info *  alvtti;
 #endif
 
+    not_static = rm->isStatic() ? 0 : 1;
+    // static methods' valid parameter entry starts from 0;
+    // instance methods' valid parameter entry starts from 1,
+    // with `this` object as default parameter at index 0.
+    if (not_static)
+    {
+        memset(frame->locals[0], 0, MAX_NAME_LENGTH);
+        if (sprintf((char *) frame->locals[0], "this") < 0)
+            return -1;
+    }
+
+    // retrieve method description
     cud = rm->getDescriptor();
     if (!cud)
         return -1;
     len = cud->length;
     str = cud->bytes;
-    is_static = rm->isStatic();
-    // static methods' valid parameter entry starts from 0;
-    // instance methods' valid parameter entry starts from 1,
-    // with `this` object as default parameter at index 0.
+    cud = (const_Utf8_data *) 0;
+    // method descriptor finite automata
+    state = 0;
+    // parameter name entry
     j = 0;
-    if (!is_static)
-    {
-        memset(frame->locals[0], 0, MAX_NAME_LENGTH);
-        if (sprintf((char *) frame->locals[0], "this") < 0)
-            return -1;
-        j = 1;
-    }
+    // stack entry
+    k = not_static;
 #if VER_CMP(52, 0)
     // retrieve MethodParameters attribute
-    // retrieve parameter names
     ampi = rm->getAttribute_MethodParameters();
+    count = 0;
     if (ampi)
-    {
-        // TODO MethodParameters attribute is not handled
         count = ampi->parameters_count;
-        for (i = 0; i < count; i++)
-        {
-            pe = &(ampi->parameters[i]);
-            cud = rtc->getConstant_Utf8(pe->name_index);
-            if (!cud)
-                goto sub;
-            len = cud->length;
-            str = cud->bytes;
-            memset(frame->locals[j], 0, MAX_NAME_LENGTH);
-            if (sprintf((char *) frame->locals[j],
-                        "*.s", len, str) < 0)
-                return -1;
-            ++j;
-        }
-        goto mpi;
-    }
 #endif
-sub:
-    // if MethodParameters is not provided
+    // | state | description          |
+    // | ----- | -------------------- |
+    // |     0 | terminal             |
+    // |     1 | computational type 1 |
+    // |     2 | computational type 2 |
+    // |     4 | array type ( ct 1 )  |
     for (i = 0; i < len; i++)
     {
+        if (str[i] == ')')
+            break;
+        // inteprete parameter descriptor
+        // instance/array parameters belongs to computational category 1
+        // primitive parameters except long/double belongs to
+        //      computational category 1
+        // long/double parameters belongs to computational category 2
+        switch (str[i])
+        {
+            case '(':
+                continue;
+            case 'L':
+                while (i < len && str[i++] != ';');
+                state |= 1;
+                break;
+            case 'C':case 'B':case 'I':case 'F':case 'Z':case 'S':
+                state |= 1;
+                break;
+            case 'J':case 'D':
+                state |= 2;
+                break;
+            case '[':
+                state = 4;
+                while (++i < len && str[i] == '[');
+                continue;
+            default:
+                return -1;
+        }
+
+        switch (state)
+        {
+            case 1:case 5:case 6:
+                // computational category 1
+                state = 1;
+                break;
+            case 2:
+                // computational category 2
+                state = 2;
+                break;
+            default:
+                // non-accepting state
+                return -1;
+        }
+
+        // assert j is never greater than count
+        if (j >= count)
+            return -1;
+        // retrieve or create parameter names
+        memset(frame->locals[k], 0, MAX_NAME_LENGTH);
+#if VER_CMP(52, 0)
+        if (ampi)
+        {
+            // MethodParameters is available
+            // retrieve j-th parameter entry
+            pe = &(ampi->parameters[j]);
+            cud = rtc->getConstant_Utf8(pe->name_index);
+            if (!cud)
+                return -1;
+            // write j-th parameter's name
+            if (sprintf((char *) frame->locals[k],
+                        "%.*s", cud->length, cud->bytes) < 0)
+                return -1;
+        }
+        else
+        {
+#endif
+            // MethodParameters is not available
+            if (sprintf((char *) frame->locals[k],
+                        "param%i", j) < 0)
+                return -1;
+#if VER_CMP(52, 0)
+        }
+#endif
+        // point to next parameter name entry
+        // and next parameter stack entry
+        ++j;
+        k += state;
+
+        state = 0;
     }
-    // MethodParameters is detected
-mpi:
 
     return 0;
 }
