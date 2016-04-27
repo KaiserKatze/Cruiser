@@ -18,5 +18,8 @@ fi
 
 git log --graph -8 --abbrev-commit --oneline
 
-echo "\nChanges not staged:"
-git status | grep "modified:" | sed -e 's/#\s\+modified:\s\+/\t/'
+CHANGES=`git status | grep "modified:" | sed -e 's/#\s\+modified:\s\+/\t/'`
+if [ ! -z $CHANGES ]; then
+    echo "\nChanges not staged:"
+    echo $CHANGES
+fi
