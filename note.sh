@@ -3,8 +3,8 @@
 FILE_TODO="TODO.md"
 
 clear
-echo "Branches:"
-git branch
+echo "Current branch:"
+git branch | grep '*' | sed -e 's/\* /\t/'
 
 echo "\nMaking..."
 make > /dev/null
