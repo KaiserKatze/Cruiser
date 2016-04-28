@@ -93,7 +93,7 @@ int decompile(
                 break;
             case OPCODE_lconst_0:
             case OPCODE_lconst_1:
-                entry = push_entry(&stack);
+                entry = push_entry_w(&stack);
                 if (!entry)
                     return -1;
                 if (dc_printf(entry, "%llil", opcode - OPCODE_lconst_0) < 0)
@@ -110,7 +110,7 @@ int decompile(
                 break;
             case OPCODE_dconst_0:
             case OPCODE_dconst_1:
-                entry = push_entry(&stack);
+                entry = push_entry_w(&stack);
                 if (!entry)
                     return -1;
                 if (dc_printf(entry, "%fd", opcode - OPCODE_dconst_0) < 0)
@@ -132,8 +132,8 @@ int decompile(
                     return -1;
             case OPCODE_ldc:
             case OPCODE_ldc_w:
-            case OPCODE_ldc2_w:
                 entry = push_entry(&stack);
+ldc:
                 if (!entry)
                     return -1;
                 index = *++str_code;
@@ -142,21 +142,24 @@ int decompile(
                 if (dc_printf(entry, rtc, index) < 0)
                     return -1;
                 break;
+            case OPCODE_ldc2_w:
+                entry = push_entry_w(&stack);
+                goto ldc;
 	        case OPCODE_iload:
 	        case OPCODE_lload:
 	        case OPCODE_fload:
 	        case OPCODE_dload:
 	        case OPCODE_aload:
-                entry = push_entry(&stack);
-                if (!entry)
-                    return -1;
 		        index = *++str_code;
                 if (is_wide)
                 {
                     index = (index << 8) | *++str_code;
                     is_wide = 0;
                 }
+                entry = push_entry(&stack);
 load:
+                if (!entry)
+                    return -1;
 		        if (dc_printf(entry, frame, index) < 0)
                     return -1;
 		        break;
@@ -171,6 +174,7 @@ load:
             case OPCODE_lload_2:
             case OPCODE_lload_3:
                 index = opcode - OPCODE_lload_0;
+                entry = push_entry_w(&stack);
                 goto load;
             case OPCODE_fload_0:
             case OPCODE_fload_1:
@@ -183,6 +187,7 @@ load:
             case OPCODE_dload_2:
             case OPCODE_dload_3:
                 index = opcode - OPCODE_dload_0;
+                entry = push_entry_w(&stack);
                 goto load;
             case OPCODE_aload_0:
             case OPCODE_aload_1:
@@ -191,9 +196,7 @@ load:
                 index = opcode - OPCODE_aload_0;
                 goto load;
             case OPCODE_iaload:
-            case OPCODE_laload:
             case OPCODE_faload:
-            case OPCODE_daload:
             case OPCODE_aaload:
             case OPCODE_baload:
             case OPCODE_caload:
@@ -205,32 +208,39 @@ load:
                 if (!entry2)
                     return -1;
                 entry = push_entry(&stack);
+xaload:
                 if (dc_printf(entry, "%.*s[%.*s]",
                             entry2->len, entry2->str,
                             entry1->len, entry1->str) < 0)
                     return -1;
                 break;
+            case OPCODE_laload:
+            case OPCODE_daload:
+                entry = push_entry_w(&stack);
+                goto xaload;
             case OPCODE_istore:
-            case OPCODE_lstore:
             case OPCODE_fstore:
-            case OPCODE_dstore:
             case OPCODE_astore:
-                entry1 = pop_entry(&stack);
-                if (!entry1)
-                    return -1;
-                entry = push_entry(&stack);
                 index = *++str_code;
                 if (is_wide)
                 {
                     index = (index << 8) | *++str_code;
                     is_wide = 0;
                 }
+                entry1 = pop_entry(&stack);
+                entry = push_entry(&stack);
 store:
+                if (!entry1)
+                    return -1;
                 if (sprintf(output, "%s = %.*s;\r\n",
                         frame.locals[index],
                         entry1->len, entry1->str) < 0)
                     return -1;
                 break;
+            case OPCODE_lstore:
+            case OPCODE_dstore:
+                entry1 = pop_entry_w(&stack);
+                goto store;
             case OPCODE_istore_0:
             case OPCODE_istore_1:
             case OPCODE_istore_2:
@@ -262,20 +272,19 @@ store:
                 index = opcode - OPCODE_astore_0;
                 goto store;
             case OPCODE_iastore:
-            case OPCODE_lastore:
             case OPCODE_fastore:
-            case OPCODE_dastore:
             case OPCODE_aastore:
             case OPCODE_bastore:
             case OPCODE_castore:
             case OPCODE_sastore:
                 entry1 = pop_entry(&stack);
+                entry2 = pop_entry(&stack);
+                entry3 = pop_entry(&stack);
+xastore:
                 if (!entry1)
                     return -1;
-                entry2 = pop_entry(&stack);
                 if (!entry2)
                     return -1;
-                entry3 = pop_entry(&stack);
                 if (!entry3)
                     return -1;
                 if (sprintf(output, "%.*s[%.*s] = %.*s;\r\n",
@@ -284,6 +293,10 @@ store:
                             entry1->len, entry1->str) < 0)
                     return -1;
                 break;
+            case OPCODE_lastore:
+            case OPCODE_dastore:
+                entry1 = pop_entry_w(&stack);
+                goto xastore;
             case OPCODE_iadd:
             case OPCODE_fadd:
                 if (dc_calculate(&stack, 0, "+") < 0)
