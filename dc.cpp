@@ -33,7 +33,7 @@ static dc_stack_entry *     pop_entry_w(dc_stack *);
 static int                  dc_printf(dc_stack_entry *, const char *, ...);
 static int                  dc_printf(dc_stack_entry *, rt_Class *, u2);
 static int                  dc_initFrame(dc_frame *, rt_Class *, rt_Method *);
-static int                  dc_printf(dc_stack_entry *, dc_frame *, u2)
+static int                  dc_printf(dc_stack_entry *, dc_frame *, u2);
 static int                  dc_calculate(dc_stack *, u1, const char *);
 
 int decompile(
@@ -47,7 +47,9 @@ int decompile(
     dc_stack                stack;
     dc_frame 		        frame;
     dc_stack_entry *        entry;
-    dc_stack_entry *        entry1, entry2, entry3;
+    dc_stack_entry *        entry1;
+    dc_stack_entry *        entry2;
+    dc_stack_entry *        entry3;
     u1 *                    end_code;
     u1                      is_wide;
     u1                      opcode;
@@ -160,7 +162,7 @@ ldc:
 load:
                 if (!entry)
                     return -1;
-		        if (dc_printf(entry, frame, index) < 0)
+		        if (dc_printf(entry, &frame, index) < 0)
                     return -1;
 		        break;
             case OPCODE_iload_0:
@@ -233,7 +235,7 @@ store:
                 if (!entry1)
                     return -1;
                 if (sprintf(output, "%s = %.*s;\r\n",
-                        frame.locals[index],
+                        (char *) frame.locals[index],
                         entry1->len, entry1->str) < 0)
                     return -1;
                 break;
@@ -313,11 +315,11 @@ xastore:
                     return -1;
                 break;
             case OPCODE_lsub:
-            case OPCOED_dsub:
+            case OPCODE_dsub:
                 if (dc_calculate(&stack, 1, "-") < 0)
                     return -1;
                 break;
-            case OPCOED_imul:
+            case OPCODE_imul:
             case OPCODE_fmul:
                 if (dc_calculate(&stack, 0, "*") < 0)
                     return -1;
@@ -527,12 +529,12 @@ static int dc_printf(dc_stack_entry *entry, rt_Class *rtc, u2 index)
 
 static int dc_printf(dc_stack_entry *entry, dc_frame *frame, u2 index)
 {
-    return dc_printf(entry, "%s", frame.locals[index]);
+    return dc_printf(entry, "%s", frame->locals[index]);
 }
 
 static int dc_calculate(dc_stack *stack, u1 is_wide, const char *op)
 {
-    dc_stack_entry *to, *pl, *p2;
+    dc_stack_entry *to, *p1, *p2;
 
     p1 = is_wide ? pop_entry_w(stack) : pop_entry(stack);
     if (!p1)
