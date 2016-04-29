@@ -41,6 +41,7 @@ static int                  dc_printf(dc_stack_entry *, rt_Class *, u2);
 static int                  dc_initFrame(dc_frame *, rt_Class *, rt_Method *);
 static int                  dc_printf(dc_stack_entry *, dc_frame *, u2);
 static int                  dc_calculate(dc_stack *, u1, const char *);
+static int                  dc_convertTo(const char *, u1, dc_stack *);
 
 int decompile(
         char *      output,
@@ -471,6 +472,9 @@ xastore:
                 }
                 break;
 
+            case OPCODE_i2l:
+                break;
+
             case OPCODE_wide:
                 is_wide = 1;
                 continue;
@@ -652,6 +656,30 @@ static int dc_calculate(dc_stack *stack, u1 is_wide, const char *op)
 
     return dc_printf(to, "%.*s %s %.*s",
             p2->len, p2->str, op, p1->len, p1->str);
+}
+
+static int dc_convertTo(const char *conversion,
+        u1 mark, dc_stack *stack)
+{
+    dc_stack_entry *p1, *p2;
+    u1 wide_first, wide_last;
+
+    wide_first = mark & 0xf0;
+    wide_last = mark & 0x0f;
+
+    p1 = wide_first
+        ? pop_entry_w(stack)
+        : pop_entry(stack);
+    if (!p1)
+        return -1;
+    p2 = wide_last
+        ? push_entry_w(stack)
+        : push_entry(stack);
+    if (!p2)
+        return -1;
+
+    return dc_printf(p2, "(%s) %.*s", conversion,
+            p1->len, p1->str);
 }
 
 static int dc_initFrame(dc_frame *frame,
