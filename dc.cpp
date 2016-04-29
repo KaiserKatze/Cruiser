@@ -436,16 +436,39 @@ xastore:
                 if (dc_calculate(&stack, 1, "^") < 0)
                     return -1;
                 break;
+
             case OPCODE_iinc:
-                index = *++str_code;
-                cbyte = *++str_code;
-                if (is_wide)
+                index = nextIndex(is_wide, str_code);
+                cbyte = nextIndex(is_wide, str_code);
+                // ++localvar
+                if (cbyte == 1)
                 {
-                    index = (index << 8) | cbyte;
-                    cbyte = (*++str_code << 8) | *++str_code;
-                    is_wide = 0;
+                    if (sprintf(output, "++%s",
+                                (char *) frame.locals[index]) < 0)
+                        return -1;
                 }
-                // TODO
+                // --localvar
+                else if (cbyte == -1)
+                {
+                    if (sprintf(output, "--%s",
+                                (char *) frame.locals[index]) < 0)
+                        return -1;
+                }
+                // localvar += value
+                else if (cbyte > 0)
+                {
+                    if (sprintf(output, "%s += %i",
+                                (char *) frame.locals[index],
+                                cbyte) < 0)
+                        return -1;
+                }
+                else if (cbyte < 0)
+                {
+                    if (sprintf(output, "%s -= %i",
+                                (char *) frame.locals[index],
+                                cbyte) < 0)
+                        return -1;
+                }
                 break;
 
             case OPCODE_wide:
