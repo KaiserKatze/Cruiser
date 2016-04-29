@@ -30,10 +30,12 @@ static inline u2            nextIndex(u1 &, u1 *);
 static inline u1            next_u1(u1 *);
 static inline u2            next_u2(u1 *);
 static inline u4            next_u4(u1 *);
+
 static dc_stack_entry *     push_entry(dc_stack *);
 static dc_stack_entry *     pop_entry(dc_stack *);
 static dc_stack_entry *     push_entry_w(dc_stack *);
 static dc_stack_entry *     pop_entry_w(dc_stack *);
+
 static int                  dc_printf(dc_stack_entry *, const char *, ...);
 static int                  dc_printf(dc_stack_entry *, rt_Class *, u2);
 static int                  dc_initFrame(dc_frame *, rt_Class *, rt_Method *);
@@ -504,6 +506,19 @@ static dc_stack_entry *push_entry(dc_stack *stack)
     return &(stack->entries[index]);
 }
 
+static dc_stack_entry *push_entry_w(dc_stack *stack)
+{
+    u4 index;
+
+    index = stack->depth;
+    index -= 2;
+    if (index < 0)
+        return (dc_stack_entry *) 0;
+    stack->depth = index;
+
+    return &(stack->entries[index]);
+}
+
 static dc_stack_entry *pop_entry(dc_stack *stack)
 {
     u4 index;
@@ -513,6 +528,23 @@ static dc_stack_entry *pop_entry(dc_stack *stack)
         return (dc_stack_entry *) 0;
 
     return &(stack->entries[stack->depth++]);
+}
+
+static dc_stack_entry *pop_entry_w(dc_stack *stack)
+{
+    u4 index;
+    dc_stack_entry *entry;
+
+    index = stack->depth;
+    index += 2;
+    entry = (dc_stack_entry *) 0;
+    if (index < MAX_STACK_DEPTH)
+    {
+        entry = &(stack->entries[stack->depth]);
+        stack->depth = index;
+    }
+        
+    return entry;
 }
 
 static int dc_printf(dc_stack_entry *entry, const char *format, ...)
