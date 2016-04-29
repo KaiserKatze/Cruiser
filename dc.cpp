@@ -26,6 +26,10 @@ typedef struct
                             [MAX_NAME_LENGTH];
 } dc_frame;
 
+static inline u2            nextIndex(u1 &, u1 *);
+static inline u1            next_u1(u1 *);
+static inline u2            next_u2(u1 *);
+static inline u4            next_u4(u1 *);
 static dc_stack_entry *     push_entry(dc_stack *);
 static dc_stack_entry *     pop_entry(dc_stack *);
 static dc_stack_entry *     push_entry_w(dc_stack *);
@@ -118,53 +122,57 @@ int decompile(
                 if (dc_printf(entry, "%fd", opcode - OPCODE_dconst_0) < 0)
                     return -1;
                 break;
+
             case OPCODE_bipush:
                 entry = push_entry(&stack);
                 if (!entry)
                     return -1;
-                if (dc_printf(entry, "%i", *++str_code) < 0)
+                if (dc_printf(entry, "%i", next_u1(str_code)) < 0)
                     return -1;
                 break;
             case OPCODE_sipush:
                 entry = push_entry(&stack);
                 if (!entry)
                     return -1;
-                if (dc_printf(entry, "%i",
-                            (*++str_code << 8) | *++str_code) < 0)
+                if (dc_printf(entry, "%i", next_u2(str_code) < 0)
                     return -1;
+
             case OPCODE_ldc:
             case OPCODE_ldc_w:
                 entry = push_entry(&stack);
 ldc:
                 if (!entry)
                     return -1;
-                index = *++str_code;
-                if (opcode != OPCODE_ldc)
-                    index = (index << 8) | *++str_code;
+                if (opcode == OPCODE_ldc)
+                    index = next_u1(str_code);
+                else
+                    index = next_u2(str_code);
                 if (dc_printf(entry, rtc, index) < 0)
                     return -1;
                 break;
             case OPCODE_ldc2_w:
                 entry = push_entry_w(&stack);
                 goto ldc;
-	        case OPCODE_iload:
-	        case OPCODE_lload:
-	        case OPCODE_fload:
-	        case OPCODE_dload:
-	        case OPCODE_aload:
-		        index = *++str_code;
-                if (is_wide)
-                {
-                    index = (index << 8) | *++str_code;
-                    is_wide = 0;
-                }
-                entry = push_entry(&stack);
+
+            // iload, fload, aload; lload, dload
+            // can be prefixed by wide
+            case OPCODE_iload:
+            case OPCODE_fload:
+            case OPCODE_aload:
+                index = nextIndex(is_wide, str_code);
 load:
+                entry = push_entry(&stack);
+load_w:
                 if (!entry)
                     return -1;
-		        if (dc_printf(entry, &frame, index) < 0)
+                if (dc_printf(entry, &frame, index) < 0)
                     return -1;
-		        break;
+                break;
+            case OPCODE_lload:
+            case OPCODE_dload:
+                index = nextIndex(is_wide, str_code);
+                entry = push_entry_w(&stack);
+                goto load_w;
             case OPCODE_iload_0:
             case OPCODE_iload_1:
             case OPCODE_iload_2:
@@ -177,7 +185,7 @@ load:
             case OPCODE_lload_3:
                 index = opcode - OPCODE_lload_0;
                 entry = push_entry_w(&stack);
-                goto load;
+                goto load_w;
             case OPCODE_fload_0:
             case OPCODE_fload_1:
             case OPCODE_fload_2:
@@ -190,25 +198,29 @@ load:
             case OPCODE_dload_3:
                 index = opcode - OPCODE_dload_0;
                 entry = push_entry_w(&stack);
-                goto load;
+                goto load_w;
             case OPCODE_aload_0:
             case OPCODE_aload_1:
             case OPCODE_aload_2:
             case OPCODE_aload_3:
                 index = opcode - OPCODE_aload_0;
                 goto load;
+
             case OPCODE_iaload:
             case OPCODE_faload:
             case OPCODE_aaload:
             case OPCODE_baload:
             case OPCODE_caload:
             case OPCODE_saload:
+                // pop index
                 entry1 = pop_entry(&stack);
                 if (!entry1)
                     return -1;
+                // pop arrayref
                 entry2 = pop_entry(&stack);
                 if (!entry2)
                     return -1;
+                // push value ( = arrayref[index] )
                 entry = push_entry(&stack);
 xaload:
                 if (dc_printf(entry, "%.*s[%.*s]",
@@ -220,20 +232,19 @@ xaload:
             case OPCODE_daload:
                 entry = push_entry_w(&stack);
                 goto xaload;
+
+            // istore, fstore, astore; lstore, dstore
+            // can be prefixed by wide
             case OPCODE_istore:
             case OPCODE_fstore:
             case OPCODE_astore:
-                index = *++str_code;
-                if (is_wide)
-                {
-                    index = (index << 8) | *++str_code;
-                    is_wide = 0;
-                }
-                entry1 = pop_entry(&stack);
-                entry = push_entry(&stack);
+                index = nextIndex(is_wide, str_code);
 store:
+                entry1 = pop_entry(&stack);
+store_w:
                 if (!entry1)
                     return -1;
+                entry = push_entry(&stack);
                 if (sprintf(output, "%s = %.*s;\r\n",
                         (char *) frame.locals[index],
                         entry1->len, entry1->str) < 0)
@@ -241,8 +252,9 @@ store:
                 break;
             case OPCODE_lstore:
             case OPCODE_dstore:
+                index = nextIndex(is_wide, str_code);
                 entry1 = pop_entry_w(&stack);
-                goto store;
+                goto store_w;
             case OPCODE_istore_0:
             case OPCODE_istore_1:
             case OPCODE_istore_2:
@@ -254,7 +266,8 @@ store:
             case OPCODE_lstore_2:
             case OPCODE_lstore_3:
                 index = opcode - OPCODE_lstore_0;
-                goto store;
+                entry1 = pop_entry_w(&stack);
+                goto store_w;
             case OPCODE_fstore_0:
             case OPCODE_fstore_1:
             case OPCODE_fstore_2:
@@ -266,27 +279,32 @@ store:
             case OPCODE_dstore_2:
             case OPCODE_dstore_3:
                 index = opcode - OPCODE_dstore_0;
-                goto store;
+                entry1 = pop_entry_w(&stack);
+                goto store_w;
             case OPCODE_astore_0:
             case OPCODE_astore_1:
             case OPCODE_astore_2:
             case OPCODE_astore_3:
                 index = opcode - OPCODE_astore_0;
                 goto store;
+
             case OPCODE_iastore:
             case OPCODE_fastore:
             case OPCODE_aastore:
             case OPCODE_bastore:
             case OPCODE_castore:
             case OPCODE_sastore:
+                // pop value
                 entry1 = pop_entry(&stack);
-                entry2 = pop_entry(&stack);
-                entry3 = pop_entry(&stack);
 xastore:
                 if (!entry1)
                     return -1;
+                // pop index
+                entry2 = pop_entry(&stack);
                 if (!entry2)
                     return -1;
+                // pop arrayref
+                entry3 = pop_entry(&stack);
                 if (!entry3)
                     return -1;
                 if (sprintf(output, "%.*s[%.*s] = %.*s;\r\n",
@@ -299,6 +317,7 @@ xastore:
             case OPCODE_dastore:
                 entry1 = pop_entry_w(&stack);
                 goto xastore;
+
             case OPCODE_iadd:
             case OPCODE_fadd:
                 if (dc_calculate(&stack, 0, "+") < 0)
@@ -439,6 +458,38 @@ xastore:
         if (is_wide)
             return -1;
     }
+}
+
+static inline u2 nextIndex(u1 &is_wide, u1 *str_code)
+{
+    u2 index;
+
+    if (is_wide)
+    {
+        index = next_u2(str_code);
+        is_wide = 0;
+    }
+    else
+    {
+        index = next_u1(str_code);
+    }
+
+    return index;
+}
+
+static inline u1 next_u1(u1 *str_code)
+{
+    return *++str_code;
+}
+
+static inline u2 next_u2(u1 *str_code)
+{
+    return (next_u1(str_code) << 8) | next_u1(str_code);
+}
+
+static inline u4 next_u4(u1 *str_code)
+{
+    return (next_u2(str_code) << 16) | next_u2(str_code);
 }
 
 static dc_stack_entry *push_entry(dc_stack *stack)
