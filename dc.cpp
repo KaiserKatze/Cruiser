@@ -472,7 +472,66 @@ xastore:
                 }
                 break;
 
+            // Conversion
             case OPCODE_i2l:
+                if (dc_convertTo("long", 0x0f, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_i2f:
+                if (dc_convertTo("float", 0x00, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_i2d:
+                if (dc_convertTo("double", 0x0f, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_l2i:
+                if (dc_convertTo("int", 0xf0, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_l2f:
+                if (dc_convertTo("float", 0xf0, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_l2d:
+                if (dc_convertTo("double", 0xff, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_f2i:
+                if (dc_convertTo("int", 0x00, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_f2l:
+                if (dc_convertTo("long", 0x0f, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_f2d:
+                if (dc_convertTo("double", 0x0f, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_d2i:
+                if (dc_convertTo("int", 0xf0, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_d2l:
+                if (dc_convertTo("long", 0xff, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_d2f:
+                if (dc_convertTo("float", 0xf0, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_i2b:
+                if (dc_convertTo("byte", 0x00, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_i2c:
+                if (dc_convertTo("char", 0x00, &stack) < 0)
+                    return -1;
+                break;
+            case OPCODE_i2s:
+                if (dc_convertTo("short", 0x00, &stack) < 0)
+                    return -1;
                 break;
 
             case OPCODE_wide:
